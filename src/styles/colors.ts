@@ -5,5 +5,5 @@ export const colors = {
     textSecondary: "#7C8BA0",        
     textDisabled: "#666666",        
     borderLight: "#e7e7e7",          
-    underlineLightBlue: "#e9f0f8",      
+    TextLightBlue: "#e9f0f8",      
 };
