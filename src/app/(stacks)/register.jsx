@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, TextInput } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -7,7 +8,7 @@ const InputField = ({
   value,
   onChangeText,
   secureTextEntry = false,
-  email, // Nova prop para receber o e-mail
+  email,
 }) => {
   const [showPassword, setShowPassword] = useState(!secureTextEntry);
 
@@ -21,7 +22,8 @@ const InputField = ({
     return (
       <>
         <Text className="text-lg mb-4">
-          Digite o código de verificação enviado para o seu e-mail: <Text className="font-bold">{email}</Text>
+          Digite o código de verificação enviado para o seu e-mail:{" "}
+          <Text className="font-bold">{email}</Text>
         </Text>
 
         <View className="flex-row justify-between mb-4">
@@ -71,6 +73,7 @@ const InputField = ({
 export default function MultiStepForm() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
+  const router = useRouter();
 
   const steps = ["Dados Pessoais", "Dados Acadêmicos", "Verificação"];
 
@@ -120,13 +123,23 @@ export default function MultiStepForm() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const goTopendingAccount = () => {
+    router.push("/(stacks)/pendingAccount");
+  };
+
   const submitForm = () => {
     if (!formData.verificationCode || formData.verificationCode.length !== 6) {
       Alert.alert("Erro", "O código de verificação deve ter 6 dígitos.");
       return;
     }
     Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
-      { text: "OK", onPress: () => console.log("Dados enviados:", formData) },
+      {
+        text: "OK",
+        onPress: () => {
+          console.log("Dados enviados:", formData);
+          goTopendingAccount();
+        },
+      },
     ]);
   };
 
@@ -159,7 +172,7 @@ export default function MultiStepForm() {
           value={formData[field.name] || ""}
           onChangeText={(text) => handleChange(field.name, text)}
           secureTextEntry={field.secureTextEntry}
-          email={formData.email} // Passando o e-mail como prop
+          email={formData.email}
         />
       ))}
 
