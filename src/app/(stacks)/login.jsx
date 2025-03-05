@@ -20,7 +20,7 @@ export default function Login() {
 
       <View className="relative mb-4">
         <TextInput
-          className="w-full bg-white border border-borderLight rounded-[14] text-xl px-4 py-5 pr-12" // Adicionado pr-12 para espaço do ícone
+          className="w-full bg-white border border-borderLight rounded-[14] text-xl px-4 py-5 pr-12"
           placeholder="Senha"
           secureTextEntry={!showPassword}
         />
