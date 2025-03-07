@@ -12,7 +12,7 @@ export default function Home() {
         />
       </View>
 
-      <View className="bg-white flex gap-4 pt-14 pr-6 pl-6 w-full rounded-t-[56]">
+      <View className="bg-white flex gap-4 pt-14 pr-6 pl-6 w-full pb-6 rounded-t-[56]">
         <Link
           className="border bg-black text-white p-5 rounded-[14] text-center text-lg font-medium"
           href={"/(stacks)/login"}

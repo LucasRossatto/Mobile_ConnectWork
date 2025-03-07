@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Text, View, TextInput, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
-import { Link } from "expo-router";
+import { Link, Redirect } from "expo-router";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -46,15 +46,15 @@ export default function Login() {
       </View>
 
       <TouchableOpacity className="border w-full bg-black text-white p-5 rounded-[14] text-center text-lg font-medium mb-8">
-        <Text className="text-white text-center text-lg font-medium">
+        <Link href={"/(tabs)"} className="text-white text-center text-lg font-medium">
           Entre agora
-        </Text>
+        </Link>
       </TouchableOpacity>
 
       <View className="flex-row flex justify-center items-center">
         <Text className="text-gray-600">Não tem uma conta? </Text>
         <Link
-          href={"/(stacks)/register"}
+          href={"/(tabs)/home"}
           className="text-blue-500 text-base font-medium underline"
         >
           Cadastre-se
