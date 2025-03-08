@@ -1,6 +1,13 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { Text, View, TouchableOpacity, Animated, Easing, Image } from "react-native";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  Animated,
+  Easing,
+  Image,
+} from "react-native";
 
 export default function PendingAccount() {
   const router = useRouter();
@@ -56,7 +63,9 @@ export default function PendingAccount() {
           className="bg-white py-5 rounded-[14]"
           onPress={goToLogin}
         >
-          <Text className="text-black text-lg text-center">Ir para a tela de login</Text>
+          <Text className="text-black text-lg text-center">
+            Ir para a tela de login
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

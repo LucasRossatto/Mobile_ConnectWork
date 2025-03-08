@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import { Text, View, TextInput, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
-import { Link, Redirect } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const goToHome = () => {
+    router.push("/(tabs)");
+  };
 
   return (
     <View className="flex-1 flex justify-center bg-backgroundLight p-4">
@@ -45,10 +49,13 @@ export default function Login() {
         </Link>
       </View>
 
-      <TouchableOpacity className="border w-full bg-black text-white p-5 rounded-[14] text-center text-lg font-medium mb-8">
-        <Link href={"/(tabs)"} className="text-white text-center text-lg font-medium">
+      <TouchableOpacity
+        onPress={goToHome}
+        className="border w-full bg-black text-white p-5 rounded-[14] text-center text-lg font-medium mb-8"
+      >
+        <Text className="text-white text-center text-lg font-medium">
           Entre agora
-        </Link>
+        </Text>
       </TouchableOpacity>
 
       <View className="flex-row flex justify-center items-center">
