@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Text, View, TextInput, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
-import { Link, Redirect, useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);

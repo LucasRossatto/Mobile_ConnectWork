@@ -24,10 +24,8 @@ export default function Home() {
       <View className="mb-6 bg-white p-4 rounded-lg shadow-sm">
         <View className="flex-row items-center mb-3">
           <Image
-            source={{
-              uri: "https://cdn-icons-png.flaticon.com/512/1144/1144760.png",
-            }}
-            className="w-12 h-12 rounded-full"
+            
+            className="w-12 h-12 rounded-full bg-black"
           />
           <View className="ml-3">
             <Text className="font-bold text-lg text-gray-900">
