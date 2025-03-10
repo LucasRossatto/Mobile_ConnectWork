@@ -12,7 +12,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 export default function Home() {
   return (
     <ScrollView className="flex-1 bg-backgroundGray p-4">
-      <View className="mb-6 bg-white p-4 rounded-lg shadow-sm">
+      <View className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-textSecondary">
         <TextInput
           className="text-gray-700 text-base"
           placeholder="O que você está pensando?"
@@ -21,12 +21,9 @@ export default function Home() {
       </View>
 
       {/* Primeiro Post */}
-      <View className="mb-6 bg-white p-4 rounded-lg shadow-sm">
+      <View className="mb-6 max-h-[396] bg-white p-4 rounded-lg border border-textSecondary">
         <View className="flex-row items-center mb-3">
-          <Image
-            
-            className="w-12 h-12 rounded-full bg-black"
-          />
+          <Image className="w-12 h-12 rounded-full bg-black" />
           <View className="ml-3">
             <Text className="font-bold text-lg text-gray-900">
               Helter Almeida
@@ -44,12 +41,7 @@ export default function Home() {
         </View>
 
         <View className="mb-4">
-          <Image
-            source={{
-              uri: "https://s3.amazonaws.com/blog.dentrodahistoria.com.br/wp-content/uploads/2022/09/14102229/relampago-mcqueen.png",
-            }} 
-            className="w-full h-48 rounded-lg"
-          />
+          <Image className="w-full rounded-[14] bg-black" />
         </View>
 
         <View className="flex-row space-x-4">

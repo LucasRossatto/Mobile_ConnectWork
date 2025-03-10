@@ -8,8 +8,8 @@ export default function _TabsLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: { backgroundColor: "#181818", height:65, paddingTop:8},
-        tabBarActiveTintColor: "#FFFFFF",
-        tabBarInactiveTintColor: "#666666",
+        tabBarActiveTintColor: "#F2F2F2",
+        tabBarInactiveTintColor: "#676D75",
       }}
     >
       <Tabs.Screen
