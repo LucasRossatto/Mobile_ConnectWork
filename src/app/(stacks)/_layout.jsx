@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 import React from "react";
+import "@/styles/global.css";
 
 export default function _layout() {
   return (
@@ -14,7 +15,7 @@ export default function _layout() {
         name="pendingAccount"
         options={{ title: "Conta Solicitada", headerShown: false }}
       />
-       <Stack.Screen
+      <Stack.Screen
         name="(tabs)"
         options={{ title: "tabs", headerShown: false }}
       />
