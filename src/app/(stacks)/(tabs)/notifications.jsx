@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Para navegação
-import Icon from 'react-native-vector-icons/Feather'; // Ícone de sino
+import { useNavigation } from '@react-navigation/native'; 
+import Icon from 'react-native-vector-icons/Feather'; 
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([
@@ -10,21 +10,21 @@ const Notifications = () => {
       notifierName: 'Usuário 1',
       commentId: null,
       message: 'Curtiu sua publicação',
-      notificationPost: 123, // Exemplo de postId
+      notificationPost: 123, 
     },
     {
       id: 2,
       notifierName: 'Usuário 2',
       commentId: 456,
       message: 'Comentou sua publicação',
-      notificationPost: 123, // Exemplo de postId
+      notificationPost: 123, 
     },
     {
       id: 3,
       notifierName: 'Usuário 3',
       commentId: null,
       message: 'Curtiu sua publicação',
-      notificationPost: 456, // Exemplo de postId
+      notificationPost: 456, 
     },
   ]);
   const [showPopup, setShowPopup] = useState(null);
@@ -114,16 +114,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
   },
   header: {
-    backgroundColor: '#000', // Fundo preto
+    backgroundColor: '#000', 
     padding: 16,
     flexDirection: 'row',
-    alignItems: 'center', // Alinha os itens verticalmente
+    alignItems: 'center', 
   },
   headerText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff', // Texto branco
-    marginLeft: 16, // Espaço entre o ícone e o texto
+    color: '#fff', 
+    marginLeft: 16, 
   },
   notificationsList: {
     flex: 1,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   notificationItem: {
     backgroundColor: '#fff',
     padding: 16,
-    position: 'relative', // Para posicionar o popup corretamente
+    position: 'relative', 
   },
   notificationContent: {
     flexDirection: 'row',
