@@ -1,9 +1,9 @@
-import React from "react";
-import { useState } from "react";
-import { View, TextInput, ScrollView, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import { View, TextInput, ScrollView, TouchableOpacity, Modal, Text } from "react-native"
 import Icon from "react-native-vector-icons/FontAwesome"; // Importe o ícone da biblioteca
+import { Ionicons } from "@expo/vector-icons"; // Adicione esta importação
 import Post from "../../../components/Post";
-import Settings from "../../../components/Settings";
+import Settings from "../../../components/Settings"; // Importe o componente Settings
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false); // Estado para controlar a visibilidade do Settings
@@ -26,12 +26,12 @@ export default function Home() {
           />
         </View>
 
-        {/* Ícone de ferramenta */}
+        {/* Ícone de ferramenta (sem fundo) */}
         <TouchableOpacity
-          onPress={() => setShowSettings(!showSettings)} // Alternar a visibilidade do Settings
-          className="cursor-pointer"
+          onPress={() => setShowSettings(true)} // Abrir o Settings em tela cheia
+          className="p-2" // Adicione um padding para melhorar a área de toque
         >
-          <Icon name="cog" size={30} color="#4B5563" />
+          <Icon name="cog" size={30} color="#4B5563" /> {/* Ícone de ferramenta */}
         </TouchableOpacity>
       </View>
 
@@ -44,8 +44,34 @@ export default function Home() {
         />
       </ScrollView>
 
-      {/* Renderizar o Settings condicionalmente */}
-      {showSettings && <Settings />}
+      {/* Modal para exibir o Settings em tela cheia */}
+      <Modal
+        visible={showSettings}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowSettings(false)} // Fechar o modal ao pressionar o botão de voltar no Android
+      >
+        <View className="flex-1 bg-white">
+          {/* Header fixo do Settings */}
+          <View className="bg-black p-4 flex-row items-center">
+            <TouchableOpacity
+              onPress={() => setShowSettings(false)} // Fechar o Settings
+              className="flex-row items-center"
+            >
+              <Ionicons name="arrow-back" size={24} color="white" /> {/* Ícone de voltar */}
+            </TouchableOpacity>
+
+            {/* Ícone e texto "Configurações" */}
+            <View className="flex-row items-center mx-2">
+              <Ionicons name="settings" size={24} color="white" /> {/* Ícone de configurações */}
+              <Text className="text-2xl font-bold text-white ml-2">Configurações</Text>
+            </View>
+          </View>
+
+          {/* Conteúdo do Settings */}
+          <Settings />
+        </View>
+      </Modal>
     </View>
   );
 }
