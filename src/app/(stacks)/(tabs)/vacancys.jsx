@@ -81,12 +81,6 @@ const Vacancys = () => {
         onRequestClose={fecharDetalhes}
       >
         <VagaDetalhes vaga={vagaSelecionada} />
-        <TouchableOpacity
-          onPress={fecharDetalhes}
-          className="p-4 bg-blue-500"
-        >
-          <Text className="text-white text-center">Fechar</Text>
-        </TouchableOpacity>
       </Modal>
     </View>
   );
