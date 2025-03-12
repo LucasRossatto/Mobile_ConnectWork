@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 const Settings = () => {
   const [currentSection, setCurrentSection] = useState('senha'); // Controla a seção atual
   const [showLogoutModal, setShowLogoutModal] = useState(false); // Controla o modal de logout
   const [showDeleteModal, setShowDeleteModal] = useState(false); // Controla o modal de exclusão de conta
+  const router = useRouter();
+
+  const goBack = () => {
+    router.push("/(tabs)/home"); // Voltar para a tela inicial (ou a tela desejada)
+  };
 
   // Função para renderizar o conteúdo da seção atual
   const renderSection = () => {
@@ -55,7 +62,16 @@ const Settings = () => {
   };
 
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-white">
+      {/* Header fixo */}
+      <View className="bg-black p-4 flex-row items-center">
+        <TouchableOpacity onPress={goBack} className="flex-row items-center">
+          <Ionicons name="arrow-back" size={24} color="white" />
+          <Text className="ml-2 text-lg font-bold text-white">Voltar</Text>
+        </TouchableOpacity>
+        <Text className="text-lg font-bold text-white mx-auto">Configurações</Text>
+      </View>
+
       {/* Menu de Configurações */}
       <ScrollView className="bg-white p-4">
         <TouchableOpacity
