@@ -24,6 +24,60 @@ const vagas = [
     descricao:
       "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
   },
+  {
+    id: "3",
+    titulo: "Desenvolvedor Front-end",
+    empresa: "Tech Solutions",
+    local: "Remoto",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
+  {
+    id: "4",
+    titulo: "Desenvolvedor Back-end",
+    empresa: "InovaTech",
+    local: "São Paulo, SP",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
+  {
+    id: "5",
+    titulo: "Desenvolvedor Front-end",
+    empresa: "Tech Solutions",
+    local: "Remoto",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
+  {
+    id: "6",
+    titulo: "Desenvolvedor Back-end",
+    empresa: "InovaTech",
+    local: "São Paulo, SP",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
+  {
+    id: "7",
+    titulo: "Desenvolvedor Front-end",
+    empresa: "Tech Solutions",
+    local: "Remoto",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
+  {
+    id: "8",
+    titulo: "Desenvolvedor Back-end",
+    empresa: "InovaTech",
+    local: "São Paulo, SP",
+    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
+  },
   // Adicione mais vagas conforme necessário
 ];
 

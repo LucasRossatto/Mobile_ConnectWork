@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, TextInput, ScrollView, TouchableOpacity, Modal, Text } from "react-native";
+import { View, TextInput, ScrollView, TouchableOpacity, Modal, Text } from "react-native"
 import Icon from "react-native-vector-icons/FontAwesome"; // Importe o ícone da biblioteca
 import { Ionicons } from "@expo/vector-icons"; // Adicione esta importação
 import Post from "../../../components/Post";
