@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  View,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { View, TextInput, ScrollView } from "react-native";
 import Post from "../../../components/Post";
 
 export default function Home() {
