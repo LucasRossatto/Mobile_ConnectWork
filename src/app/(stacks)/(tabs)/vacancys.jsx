@@ -1,6 +1,8 @@
-import React from "react";
-import { View, Text, FlatList, Image } from "react-native";
-import IconOcticons from "react-native-vector-icons/Octicons"; // Importe o ícone
+import React, { useState } from "react";
+import { View, Text, FlatList, Modal, TouchableOpacity } from "react-native";
+import IconOcticons from "react-native-vector-icons/Octicons";
+import VagaItem from "../../../components/VagaItem"; // Importe o componente VagaItem
+import VagaDetalhes from "../../../components/VagaDetalhes"; // Importe o componente VagaDetalhes
 
 // Dados fictícios de vagas
 const vagas = [
@@ -10,6 +12,8 @@ const vagas = [
     empresa: "Tech Solutions",
     local: "Remoto",
     logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
   },
   {
     id: "2",
@@ -17,64 +21,26 @@ const vagas = [
     empresa: "InovaTech",
     local: "São Paulo, SP",
     logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
+    descricao:
+      "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
   },
-  {
-    id: "3",
-    titulo: "Designer UX/UI",
-    empresa: "Creative Minds",
-    local: "Rio de Janeiro, RJ",
-    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
-  },
-  {
-    id: "4",
-    titulo: "Analista de Dados",
-    empresa: "Data Analytics Co.",
-    local: "Belo Horizonte, MG",
-    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
-  },
-  {
-    id: "5",
-    titulo: "Analista de Dados",
-    empresa: "Data Analytics Co.",
-    local: "Belo Horizonte, MG",
-    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
-  },
-  {
-    id: "6",
-    titulo: "Analista de Dados",
-    empresa: "Data Analytics Co.",
-    local: "Belo Horizonte, MG",
-    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
-  },
-  {
-    id: "7",
-    titulo: "Analista de Dados",
-    empresa: "Data Analytics Co.",
-    local: "Belo Horizonte, MG",
-    logo: "https://www.libbs.com.br/guia-da-marca/wp-content/uploads/2023/06/libbs-compartilhamento.png",
-  },
+  // Adicione mais vagas conforme necessário
 ];
 
-// Componente que representa cada item da lista
-const VagaItem = ({ titulo, empresa, local, logo }) => {
-  return (
-    <View className="flex-row items-center border-b border-gray-300 w-full p-4">
-      <Image
-        source={{ uri: logo }}
-        className="w-12 h-10"
-        resizeMode="contain" // Adicione esta propriedade
-      />
-      <View className="ml-3 flex-1">
-        <Text className="text-lg font-bold text-gray-900">{titulo}</Text>
-        <Text className="text-base text-gray-700">{empresa}</Text>
-        <Text className="text-sm text-gray-500">{local}</Text>
-      </View>
-    </View>
-  );
-};
-
-// Componente principal que renderiza a lista de vagas
 const Vacancys = () => {
+  const [vagaSelecionada, setVagaSelecionada] = useState(null); // Estado para armazenar a vaga selecionada
+  const [modalVisivel, setModalVisivel] = useState(false); // Estado para controlar a visibilidade do modal
+
+  const abrirDetalhes = (id) => {
+    const vaga = vagas.find((v) => v.id === id); // Encontra a vaga pelo ID
+    setVagaSelecionada(vaga); // Define a vaga selecionada
+    setModalVisivel(true); // Abre o modal
+  };
+
+  const fecharDetalhes = () => {
+    setModalVisivel(false); // Fecha o modal
+  };
+
   return (
     <View className="flex-1 bg-gray-100 w-full">
       {/* Cabeçalho preto com ícone e texto "Vagas" */}
@@ -97,14 +63,25 @@ const Vacancys = () => {
         data={vagas}
         renderItem={({ item }) => (
           <VagaItem
+            id={item.id}
             titulo={item.titulo}
             empresa={item.empresa}
             local={item.local}
             logo={item.logo}
+            onPress={abrirDetalhes} // Passa a função onPress corretamente
           />
         )}
         keyExtractor={(item) => item.id}
       />
+
+      {/* Modal para exibir os detalhes da vaga */}
+      <Modal
+        visible={modalVisivel}
+        animationType="slide"
+        onRequestClose={fecharDetalhes}
+      >
+        <VagaDetalhes vaga={vagaSelecionada} />
+      </Modal>
     </View>
   );
 };
