@@ -1,79 +1,37 @@
+import React, { useState, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert, TextInput } from "react-native";
-import Icon from "react-native-vector-icons/Octicons";
+import axios from "axios";
+import InputField from "@/components/InputField";
+import log from "@/utils/logger";
 
-const InputField = ({
-  placeholder,
-  value,
-  onChangeText,
-  secureTextEntry = false,
-  email,
-}) => {
-  const [showPassword, setShowPassword] = useState(!secureTextEntry);
-
-  const handleDigitChange = (text, index) => {
-    const newValue = value.split("");
-    newValue[index] = text;
-    onChangeText(newValue.join(""));
-  };
-
-  if (placeholder.includes("Código")) {
-    return (
-      <>
-        <Text className="text-lg mb-4">
-          Digite o código de verificação enviado para o seu e-mail:{" "}
-          <Text className="font-bold">{email}</Text>
-        </Text>
-
-        <View className="flex-row justify-between mb-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <TextInput
-              key={index}
-              className="w-[15%] h-16 border border-black rounded text-center text-lg"
-              placeholder="-"
-              value={value[index] || ""}
-              onChangeText={(text) => handleDigitChange(text, index)}
-              keyboardType="numeric"
-              maxLength={1}
-            />
-          ))}
-        </View>
-      </>
-    );
-  }
-
-  return (
-    <View className="relative mb-4">
-      <TextInput
-        className="w-full bg-white border border-gray-300 rounded-2xl text-xl px-4 py-5"
-        placeholder={placeholder}
-        value={value}
-        onChangeText={onChangeText}
-        secureTextEntry={!showPassword && secureTextEntry}
-        keyboardType={placeholder.includes("Código") ? "numeric" : "default"}
-        maxLength={placeholder.includes("Código") ? 6 : undefined}
-      />
-      {secureTextEntry && (
-        <TouchableOpacity
-          className="absolute right-4 top-5"
-          onPress={() => setShowPassword(!showPassword)}
-        >
-          <Icon
-            name={showPassword ? "eye" : "eye-closed"}
-            size={24}
-            color="#666666"
-          />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
-
-export default function MultiStepForm() {
+const MultiStepForm = () => {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({
+    fullName: "",
+    cpf: "",
+    email: "",
+    password: "",
+    ra: "",
+    schoolUnit: "",
+    course: "",
+    class: "",
+    verificationCode: "",
+  });
+  const [errors, setErrors] = useState({});
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
   const router = useRouter();
+  const inputsRef = useRef([]);
 
   const steps = ["Dados Pessoais", "Dados Acadêmicos", "Verificação"];
 
@@ -81,19 +39,24 @@ export default function MultiStepForm() {
     {
       title: "Dados Pessoais",
       fields: [
-        { name: "fullName", placeholder: "Nome Completo" },
-        { name: "cpf", placeholder: "CPF" },
-        { name: "email", placeholder: "E-mail" },
-        { name: "password", placeholder: "Senha", secureTextEntry: true },
+        { name: "fullName", placeholder: "Nome Completo", required: true },
+        { name: "cpf", placeholder: "CPF", required: true },
+        { name: "email", placeholder: "E-mail", required: true },
+        {
+          name: "password",
+          placeholder: "Senha",
+          secureTextEntry: true,
+          required: true,
+        },
       ],
     },
     {
       title: "Dados Acadêmicos",
       fields: [
-        { name: "ra", placeholder: "RA (Registro Acadêmico)" },
-        { name: "schoolUnit", placeholder: "Unidade Escolar" },
-        { name: "course", placeholder: "Curso" },
-        { name: "class", placeholder: "Turma" },
+        { name: "ra", placeholder: "RA (Registro Acadêmico)", required: true },
+        { name: "schoolUnit", placeholder: "Unidade Escolar", required: true },
+        { name: "course", placeholder: "Curso", required: true },
+        { name: "class", placeholder: "Turma", required: true },
       ],
     },
     {
@@ -102,6 +65,7 @@ export default function MultiStepForm() {
         {
           name: "verificationCode",
           placeholder: "Código de Verificação (6 dígitos)",
+          required: true,
         },
       ],
     },
@@ -109,38 +73,172 @@ export default function MultiStepForm() {
 
   const currentStep = stepConfig[step - 1];
 
-  const nextStep = () => {
-    if (currentStep.fields.some((field) => !formData[field.name])) {
+  const validateFields = () => {
+    const newErrors = {};
+    currentStep.fields.forEach((field) => {
+      if (field.required && !formData[field.name]) {
+        newErrors[field.name] = "Este campo é obrigatório.";
+      }
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const nextStep = async () => {
+    if (!validateFields()) {
       Alert.alert("Erro", "Por favor, preencha todos os campos.");
       return;
     }
-    setStep(step + 1);
+
+    if (step === 2) {
+      await sendPersonalAndAcademicData();
+    } else {
+      setStep(step + 1);
+    }
   };
 
   const prevStep = () => setStep(step - 1);
 
   const handleChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: "" });
   };
 
-  const goTopendingAccount = () => {
-    router.push("/(stacks)/pendingAccount");
-  };
+  const sendPersonalAndAcademicData = async () => {
+    try {
+      setIsLoading(true)
+      setErrors({}); 
 
-  const submitForm = () => {
-    if (!formData.verificationCode || formData.verificationCode.length !== 6) {
-      Alert.alert("Erro", "O código de verificação deve ter 6 dígitos.");
-      return;
+      const payload = {
+        nome: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        cpf: formData.cpf,
+        ra: formData.ra,
+        school: formData.schoolUnit,
+        course: formData.course,
+        userClass: formData.class,
+      };
+
+      const response = await axios.post(
+        "http://10.0.2.2:3001/api/user/register",
+        payload,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      log.info("Resposta do backend:", response.data);
+
+      if (response.status === 200 || response.status === 201) {
+        setSuccess(response.data.message);
+
+        if (response.data.user && response.data.user.id) {
+          log.debug("ID do usuário capturado:", response.data.user.id);
+          setUserId(response.data.user.id);
+          setIsCodeSent(true);
+          await sendEmail();
+          setStep(step + 1); 
+        } else {
+          log.error("ID do usuário não encontrado na resposta da API");
+          setErrors({
+            ...errors,
+            general: "ID do usuário não encontrado na resposta da API",
+          });
+        }
+      } else {
+        setErrors({
+          ...errors,
+          general: response.data.message || "Erro ao fazer cadastro.",
+        });
+      }
+    } catch (error) {
+      log.error("Erro ao enviar formulário:", error);
+      setErrors({
+        ...errors,
+        general: error.response?.data?.message || "Erro ao enviar formulário.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
-      {
-        text: "OK",
-        onPress: () => {
-          console.log("Dados enviados:", formData);
-          goTopendingAccount();
+  };
+
+  const sendEmail = async () => {
+    try {
+      const response = await fetch("http://10.0.2.2:3001/api/user/send-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      },
-    ]);
+        body: JSON.stringify({
+          email: formData.email,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess("Email enviado com sucesso!");
+        handleUpdateVerifyEmail(formData.email);
+      } else {
+        setErrors({ ...errors, general: "Erro ao enviar email." });
+      }
+    } catch (error) {
+      setErrors({ ...errors, general: "Erro ao enviar email." });
+    }
+  };
+
+  const handleUpdateVerifyEmail = (newEmail) => {
+    setVerifyEmail(newEmail);
+  };
+
+  // Verifica o código de verificação
+  const handleVerifyCode = async () => {
+    try {
+      setIsLoading(true);
+      setErrors({});
+
+      const code = formData.verificationCode;
+
+      const response = await axios.post(
+        "http://10.0.2.2:3001/api/user/verify-code",
+        {
+          email: verifyEmail,
+          code: code,
+        },
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const data = response.data;
+
+      if (
+        response.status === 200 &&
+        data.message === "Conta verificada com sucesso!"
+      ) {
+        Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.push("/(stacks)/pendingAccount");
+            },
+          },
+        ]);
+      } else {
+        setErrors({
+          ...errors,
+          verificationCode: "Código inválido ou não encontrado.",
+        });
+      }
+    } catch (error) {
+      log.error("Erro ao verificar código:", error);
+      setErrors({
+        ...errors,
+        verificationCode:
+          error.response?.data?.message || "Erro ao verificar o código.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -159,8 +257,6 @@ export default function MultiStepForm() {
                 index < step ? "bg-black" : "bg-gray-300"
               } rounded-full`}
             />
-            {/** Mostra as etapas em cima das barrinhas
-             * <Text className="text-sm font-medium mt-2">{label}</Text> */}
           </View>
         ))}
       </View>
@@ -173,14 +269,20 @@ export default function MultiStepForm() {
           onChangeText={(text) => handleChange(field.name, text)}
           secureTextEntry={field.secureTextEntry}
           email={formData.email}
+          isValid={!errors[field.name]}
         />
       ))}
+
+      {errors.general && (
+        <Text className="text-red-500 text-center mb-4">{errors.general}</Text>
+      )}
 
       <View className="flex-row justify-between mt-6">
         {step > 1 && (
           <TouchableOpacity
             className="bg-gray-600 py-3 px-16 rounded-[14]"
             onPress={prevStep}
+            disabled={isLoading}
           >
             <Text className="text-white text-lg">Anterior</Text>
           </TouchableOpacity>
@@ -188,20 +290,32 @@ export default function MultiStepForm() {
 
         {step < steps.length ? (
           <TouchableOpacity
-            className="bg-black py-3 px-16 rounded-[14] "
+            className="bg-black py-3 px-16 rounded-[14]"
             onPress={nextStep}
+            disabled={isLoading}
           >
-            <Text className="text-white text-lg">Próximo</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text className="text-white text-lg">Próximo</Text>
+            )}
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            className="bg-green-600 py-3 px-10 rounded-[14]"
-            onPress={submitForm}
+            className="bg-green-600 py-3 px-16 rounded-[14]"
+            onPress={handleVerifyCode}
+            disabled={isLoading}
           >
-            <Text className="text-white text-lg">Verificar código</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text className="text-white text-lg">Verificar Código</Text>
+            )}
           </TouchableOpacity>
         )}
       </View>
     </View>
   );
-}
+};
+
+export default MultiStepForm;
