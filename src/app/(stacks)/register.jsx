@@ -7,9 +7,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import axios from "axios";
 import InputField from "@/components/InputField";
 import log from "@/utils/logger";
+import { post } from "@/services/api"; 
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(1);
@@ -106,8 +106,8 @@ const MultiStepForm = () => {
 
   const sendPersonalAndAcademicData = async () => {
     try {
-      setIsLoading(true)
-      setErrors({}); 
+      setIsLoading(true);
+      setErrors({});
 
       const payload = {
         nome: formData.fullName,
@@ -120,43 +120,28 @@ const MultiStepForm = () => {
         userClass: formData.class,
       };
 
-      const response = await axios.post(
-        "http://10.0.2.2:3001/api/user/register",
-        payload,
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const response = await post("/user/register", payload);
 
-      log.info("Resposta do backend:", response.data);
+      log.info("Resposta do backend:", response);
 
-      if (response.status === 200 || response.status === 201) {
-        setSuccess(response.data.message);
-
-        if (response.data.user && response.data.user.id) {
-          log.debug("ID do usuário capturado:", response.data.user.id);
-          setUserId(response.data.user.id);
-          setIsCodeSent(true);
-          await sendEmail();
-          setStep(step + 1); 
-        } else {
-          log.error("ID do usuário não encontrado na resposta da API");
-          setErrors({
-            ...errors,
-            general: "ID do usuário não encontrado na resposta da API",
-          });
-        }
+      if (response.user && response.user.id) {
+        log.debug("ID do usuário capturado:", response.user.id);
+        setUserId(response.user.id);
+        setIsCodeSent(true);
+        await sendEmail();
+        setStep(step + 1);
       } else {
+        log.error("ID do usuário não encontrado na resposta da API");
         setErrors({
           ...errors,
-          general: response.data.message || "Erro ao fazer cadastro.",
+          general: "ID do usuário não encontrado na resposta da API",
         });
       }
     } catch (error) {
       log.error("Erro ao enviar formulário:", error);
       setErrors({
         ...errors,
-        general: error.response?.data?.message || "Erro ao enviar formulário.",
+        general: error.message || "Erro ao enviar formulário.",
       });
     } finally {
       setIsLoading(false);
@@ -165,17 +150,11 @@ const MultiStepForm = () => {
 
   const sendEmail = async () => {
     try {
-      const response = await fetch("http://10.0.2.2:3001/api/user/send-code", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-        }),
+      const response = await post("/user/send-code", {
+        email: formData.email,
       });
 
-      if (response.ok) {
+      if (response) {
         setSuccess("Email enviado com sucesso!");
         handleUpdateVerifyEmail(formData.email);
       } else {
@@ -190,7 +169,6 @@ const MultiStepForm = () => {
     setVerifyEmail(newEmail);
   };
 
-  // Verifica o código de verificação
   const handleVerifyCode = async () => {
     try {
       setIsLoading(true);
@@ -198,23 +176,12 @@ const MultiStepForm = () => {
 
       const code = formData.verificationCode;
 
-      const response = await axios.post(
-        "http://10.0.2.2:3001/api/user/verify-code",
-        {
-          email: verifyEmail,
-          code: code,
-        },
-        {
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const response = await post("/user/verify-code", {
+        email: verifyEmail,
+        code: code,
+      });
 
-      const data = response.data;
-
-      if (
-        response.status === 200 &&
-        data.message === "Conta verificada com sucesso!"
-      ) {
+      if (response.message === "Conta verificada com sucesso!") {
         Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
           {
             text: "OK",
@@ -233,8 +200,7 @@ const MultiStepForm = () => {
       log.error("Erro ao verificar código:", error);
       setErrors({
         ...errors,
-        verificationCode:
-          error.response?.data?.message || "Erro ao verificar o código.",
+        verificationCode: error.message || "Erro ao verificar o código.",
       });
     } finally {
       setIsLoading(false);
