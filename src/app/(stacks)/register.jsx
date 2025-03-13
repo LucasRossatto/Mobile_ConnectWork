@@ -73,6 +73,12 @@ const MultiStepForm = () => {
 
   const currentStep = stepConfig[step - 1];
 
+  // Função para validar o formato do e-mail
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validateFields = () => {
     const newErrors = {};
     currentStep.fields.forEach((field) => {
@@ -80,13 +86,23 @@ const MultiStepForm = () => {
         newErrors[field.name] = "Este campo é obrigatório.";
       }
     });
+
+    // Validação específica para o campo de e-mail
+    if (
+      currentStep.title === "Dados Pessoais" &&
+      formData.email &&
+      !validateEmail(formData.email)
+    ) {
+      newErrors.email = "Por favor, insira um e-mail válido.";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const nextStep = async () => {
     if (!validateFields()) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos.");
+      Alert.alert("Erro", "Por favor, preencha todos os campos corretamente.");
       return;
     }
 
@@ -124,25 +140,58 @@ const MultiStepForm = () => {
 
       log.info("Resposta do backend:", response);
 
-      if (response.user && response.user.id) {
-        log.debug("ID do usuário capturado:", response.user.id);
-        setUserId(response.user.id);
+      if (
+        response.status === 200 &&
+        response.data.user &&
+        response.data.user.id
+      ) {
+        log.debug("ID do usuário capturado:", response.data.user.id);
+        setUserId(response.data.user.id);
         setIsCodeSent(true);
         await sendEmail();
         setStep(step + 1);
       } else {
-        log.error("ID do usuário não encontrado na resposta da API");
+        log.error(
+          "Erro ao registrar usuário:",
+          response.data.error || "Erro desconhecido"
+        );
         setErrors({
           ...errors,
-          general: "ID do usuário não encontrado na resposta da API",
+          general: response.data.error || "Erro ao registrar usuário.",
         });
       }
     } catch (error) {
       log.error("Erro ao enviar formulário:", error);
-      setErrors({
-        ...errors,
-        general: error.message || "Erro ao enviar formulário.",
-      });
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            setErrors({
+              ...errors,
+              general: "Dados inválidos. Verifique os campos.",
+            });
+            break;
+          case 409:
+            setErrors({ ...errors, general: "Usuário já cadastrado." });
+            break;
+          case 500:
+            setErrors({
+              ...errors,
+              general: "Erro interno do servidor. Tente novamente mais tarde.",
+            });
+            break;
+          default:
+            setErrors({ ...errors, general: "Erro ao enviar formulário." });
+            break;
+        }
+      } else if (error.request) {
+        setErrors({
+          ...errors,
+          general:
+            "Sem resposta do servidor. Verifique sua conexão com a internet.",
+        });
+      } else {
+        setErrors({ ...errors, general: "Erro ao enviar formulário." });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -154,14 +203,41 @@ const MultiStepForm = () => {
         email: formData.email,
       });
 
-      if (response) {
+      if (response.status === 200) {
         setSuccess("Email enviado com sucesso!");
         handleUpdateVerifyEmail(formData.email);
       } else {
         setErrors({ ...errors, general: "Erro ao enviar email." });
       }
     } catch (error) {
-      setErrors({ ...errors, general: "Erro ao enviar email." });
+      log.error("Erro ao enviar email:", error);
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            setErrors({
+              ...errors,
+              general: "Dados inválidos. Verifique o email.",
+            });
+            break;
+          case 500:
+            setErrors({
+              ...errors,
+              general: "Erro interno do servidor. Tente novamente mais tarde.",
+            });
+            break;
+          default:
+            setErrors({ ...errors, general: "Erro ao enviar email." });
+            break;
+        }
+      } else if (error.request) {
+        setErrors({
+          ...errors,
+          general:
+            "Sem resposta do servidor. Verifique sua conexão com a internet.",
+        });
+      } else {
+        setErrors({ ...errors, general: "Erro ao enviar email." });
+      }
     }
   };
 
@@ -181,7 +257,10 @@ const MultiStepForm = () => {
         code: code,
       });
 
-      if (response.message === "Conta verificada com sucesso!") {
+      if (
+        response.status === 200 &&
+        response.data.message === "Conta verificada com sucesso!"
+      ) {
         Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
           {
             text: "OK",
@@ -193,15 +272,49 @@ const MultiStepForm = () => {
       } else {
         setErrors({
           ...errors,
-          verificationCode: "Código inválido ou não encontrado.",
+          verificationCode:
+            response.data.error || "Código inválido ou não encontrado.",
         });
       }
     } catch (error) {
       log.error("Erro ao verificar código:", error);
-      setErrors({
-        ...errors,
-        verificationCode: error.message || "Erro ao verificar o código.",
-      });
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            setErrors({ ...errors, verificationCode: "Código inválido." });
+            break;
+          case 404:
+            setErrors({
+              ...errors,
+              verificationCode: "Código não encontrado.",
+            });
+            break;
+          case 500:
+            setErrors({
+              ...errors,
+              verificationCode:
+                "Erro interno do servidor. Tente novamente mais tarde.",
+            });
+            break;
+          default:
+            setErrors({
+              ...errors,
+              verificationCode: "Erro ao verificar o código.",
+            });
+            break;
+        }
+      } else if (error.request) {
+        setErrors({
+          ...errors,
+          verificationCode:
+            "Sem resposta do servidor. Verifique sua conexão com a internet.",
+        });
+      } else {
+        setErrors({
+          ...errors,
+          verificationCode: "Erro ao verificar o código.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -236,6 +349,7 @@ const MultiStepForm = () => {
           secureTextEntry={field.secureTextEntry}
           email={formData.email}
           isValid={!errors[field.name]}
+          errorMessage={errors[field.name]}
         />
       ))}
 
