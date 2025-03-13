@@ -9,7 +9,7 @@ import {
 import { useRouter } from "expo-router";
 import InputField from "@/components/InputField";
 import log from "@/utils/logger";
-import { post } from "@/services/api"; 
+import { post } from "@/services/api";
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(1);
