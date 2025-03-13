@@ -7,9 +7,7 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar />
-      <AuthProvider>
-        <Slot />
-      </AuthProvider>
+      <Slot />
     </GestureHandlerRootView>
   );
 }

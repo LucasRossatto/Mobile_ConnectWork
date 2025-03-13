@@ -22,20 +22,6 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para tratamento global de erros
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.error("Não autorizado. Redirecionando para login...");
-      Alert.alert(
-        "Erro",
-        "Sua sessão expirou. Por favor, faça login novamente."
-      );
-    }
-    return Promise.reject(error);
-  }
-);
 
 // Funções reutilizáveis para requisições HTTP
 export const get = async (url, params = {}) => {
