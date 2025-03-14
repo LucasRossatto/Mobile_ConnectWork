@@ -12,7 +12,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const router = useRouter();
   const { login } = useContext(AuthContext);
 
   const validateEmail = (email) => {
@@ -157,7 +156,7 @@ export default function Login() {
       <View className="flex-row flex justify-center items-center">
         <Text className="text-gray-600">Não tem uma conta? </Text>
         <Link
-          href={"/(stack)/register"}
+          href={"/(stacks)/register"}
           className="text-blue-500 text-base font-medium underline"
         >
           Cadastre-se
