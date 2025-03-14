@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, TextInput, ScrollView, TouchableOpacity, Modal, Text } from "react-native"
+import {
+  View,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Text,
+  Image,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome"; // Importe o ícone da biblioteca
 import { Ionicons } from "@expo/vector-icons"; // Adicione esta importação
 import Post from "../../../components/Post";
@@ -11,13 +19,16 @@ export default function Home() {
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
-      <View className="bg-black flex-row items-center p-2">
-        <View className="bg-gray-100 rounded-full flex-row items-center p-1 flex-1 mr-2 cursor-pointer">
+      <View className="bg-backgroundDark h-5 w-full"></View>
+      <View className="bg-white flex-row items-center p-4">
+        <Image source="" className="size-12  rounded-full bg-black" />
+
+        <View className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2 cursor-pointer">
           <Icon
             name="search"
             size={18}
             color="#9CA3AF"
-            style={{ marginLeft: 8, marginRight: 8 }}
+            style={{ marginLeft: 15, marginRight: 8 }}
           />
           <TextInput
             className="text-gray-700 text-base flex-1 cursor-pointer"
@@ -31,7 +42,8 @@ export default function Home() {
           onPress={() => setShowSettings(true)} // Abrir o Settings em tela cheia
           className="p-2" // Adicione um padding para melhorar a área de toque
         >
-          <Icon name="cog" size={30} color="#4B5563" /> {/* Ícone de ferramenta */}
+          <Icon name="cog" size={30} color="#4B5563" />{" "}
+          {/* Ícone de ferramenta */}
         </TouchableOpacity>
       </View>
 
@@ -58,13 +70,17 @@ export default function Home() {
               onPress={() => setShowSettings(false)} // Fechar o Settings
               className="flex-row items-center"
             >
-              <Ionicons name="arrow-back" size={24} color="white" /> {/* Ícone de voltar */}
+              <Ionicons name="arrow-back" size={24} color="white" />{" "}
+              {/* Ícone de voltar */}
             </TouchableOpacity>
 
             {/* Ícone e texto "Configurações" */}
             <View className="flex-row items-center mx-2">
-              <Ionicons name="settings" size={24} color="white" /> {/* Ícone de configurações */}
-              <Text className="text-2xl font-bold text-white ml-2">Configurações</Text>
+              <Ionicons name="settings" size={24} color="white" />{" "}
+              {/* Ícone de configurações */}
+              <Text className="text-2xl font-bold text-white ml-2">
+                Configurações
+              </Text>
             </View>
           </View>
 
