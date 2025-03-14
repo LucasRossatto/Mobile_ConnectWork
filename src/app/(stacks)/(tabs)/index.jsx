@@ -11,8 +11,8 @@ export default function Home() {
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
-      <View className="bg-white flex-row items-center p-2">
-        <View className="bg-gray-100 rounded-lg flex-row items-center p-1 flex-1 mr-2 cursor-pointer">
+      <View className="bg-black flex-row items-center p-2">
+        <View className="bg-gray-100 rounded-full flex-row items-center p-1 flex-1 mr-2 cursor-pointer">
           <Icon
             name="search"
             size={18}
