@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { View, Image } from "react-native";
+import { View, Image, Text } from "react-native";
 
 export default function Home() {
   return (
@@ -17,14 +17,14 @@ export default function Home() {
           className="border bg-black text-white p-5 rounded-[14] text-center text-lg font-medium"
           href={"/(stacks)/login"}
         >
-          Login
+          <Text>Login</Text>
         </Link>
 
         <Link
           className="border p-5 rounded-[14] text-center text-lg font-medium"
           href={"/(stacks)/register"}
         >
-          Cadastre-se
+          <Text>Cadastre-se</Text>
         </Link>
       </View>
     </View>
