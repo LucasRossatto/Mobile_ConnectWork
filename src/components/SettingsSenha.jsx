@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
 const SettingsSenha = () => {
@@ -9,58 +9,58 @@ const SettingsSenha = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   return (
-    <View style={{ backgroundColor: 'white', padding: 16, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>Altere sua senha:</Text>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-4 bg-gray-100">
+      <Text className="text-[20px] font-bold mb-4">Altere sua senha:</Text>
 
       {/* Campo: Senha Atual */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Senha atual *</Text>
+      <View className="mb-4">
+        <Text className="text-[14px] font-medium mb-2">Senha atual *</Text>
         <TextInput
           secureTextEntry={!showPasswords}
           value={passwordPass}
           onChangeText={setPasswordPass}
-          style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 }}
+          className="border border-gray-300 rounded-lg p-3"
         />
       </View>
 
       {/* Campo: Nova Senha */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Nova senha *</Text>
+      <View className="mb-4">
+        <Text className="text-[14px] font-medium mb-2">Nova senha *</Text>
         <TextInput
           secureTextEntry={!showPasswords}
           value={newPassword}
           onChangeText={setNewPassword}
-          style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 }}
+          className="border border-gray-300 rounded-lg p-3"
         />
       </View>
 
       {/* Campo: Confirmar Nova Senha */}
-      <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 8 }}>Confirme a nova senha *</Text>
+      <View className="mb-4">
+        <Text className="text-[14px] font-medium mb-2">Confirme a nova senha *</Text>
         <TextInput
           secureTextEntry={!showPasswords}
           value={confirmNewPassword}
           onChangeText={setConfirmNewPassword}
-          style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, padding: 12 }}
+          className="border border-gray-300 rounded-lg p-3"
         />
       </View>
 
       {/* Botão para mostrar/ocultar senhas */}
       <TouchableOpacity
-        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}
+        className="flex-row items-center mb-4"
         onPress={() => setShowPasswords(!showPasswords)}
       >
         <Icon name={showPasswords ? 'eye-off' : 'eye'} size={20} color="#000" />
-        <Text style={{ marginLeft: 8 }}>{showPasswords ? 'Ocultar senhas' : 'Mostrar senhas'}</Text>
+        <Text className="ml-2">{showPasswords ? 'Ocultar senhas' : 'Mostrar senhas'}</Text>
       </TouchableOpacity>
 
       {/* Botão para salvar */}
       <TouchableOpacity
-        style={{ backgroundColor: 'black', padding: 12, borderRadius: 8, alignItems: 'center' }}
+        className="bg-black py-3 rounded-lg mx-4 items-center"
       >
-        <Text style={{ color: 'white', fontWeight: 'bold' }}>Alterar senha</Text>
+        <Text className="text-white font-bold">Alterar senha</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
