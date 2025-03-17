@@ -6,49 +6,62 @@ import DeleteAccount from './DeleteAccount';
 import LogoutConfirm from './LogoutModal';
 
 const Settings = () => {
-  const [currentComponent, setCurrentComponent] = useState('senha');
+  const [currentComponent, setCurrentComponent] = useState(null);
+
+  const renderComponent = () => {
+    switch (currentComponent) {
+      case 'senha':
+        return <SettingsSenha onClose={() => setCurrentComponent(null)} />;
+      case 'delete':
+        return <DeleteAccount onCancel={() => setCurrentComponent(null)} />;
+      case 'logout':
+        return <LogoutConfirm onCancel={() => setCurrentComponent(null)} />;
+      default:
+        return (
+          <ScrollView className="flex-1 bg-gray-100">
+            {/* Menu de Configurações */}
+            <View className="bg-white p-4">
+              {/* Botão Alterar Senha */}
+              <TouchableOpacity
+                className="flex-row items-center py-3 border-b border-gray-200"
+                onPress={() => setCurrentComponent('senha')}
+              >
+                <Icon name="lock" size={20} color="#000" />
+                <Text className="text-[17px] ml-3 text-gray-800">
+                  Alterar Senha
+                </Text>
+              </TouchableOpacity>
+
+              {/* Botão Excluir Conta */}
+              <TouchableOpacity
+                className="flex-row items-center py-3 border-b border-gray-200"
+                onPress={() => setCurrentComponent('delete')}
+              >
+                <Icon name="trash-2" size={20} color="#000" />
+                <Text className="text-[17px] ml-3 text-gray-800">
+                  Excluir Conta
+                </Text>
+              </TouchableOpacity>
+
+              {/* Botão Sair da Conta */}
+              <TouchableOpacity
+                className="flex-row items-center py-3"
+                onPress={() => setCurrentComponent('logout')}
+              >
+                <Icon name="log-out" size={20} color="#000" />
+                <Text className="text-[17px] ml-3 text-gray-800">
+                  Sair da Conta
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        );
+    }
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-      {/* Conteúdo principal */}
-      <ScrollView style={{ flex: 1, backgroundColor: '#f3f4f6' }}>
-        {/* Menu de Configurações */}
-        <View style={{ backgroundColor: 'white', padding: 16 }}>
-          {/* Botão Alterar Senha */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}
-            onPress={() => setCurrentComponent('senha')}
-          >
-            <Icon name="lock" size={20} color="#000" />
-            <Text style={{ fontSize: 16, color: '#1f2937', marginLeft: 12 }}>Alterar Senha</Text>
-          </TouchableOpacity>
-
-          {/* Botão Sair da Conta */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}
-            onPress={() => setCurrentComponent('logout')}
-          >
-            <Icon name="log-out" size={20} color="#000" />
-            <Text style={{ fontSize: 16, color: '#1f2937', marginLeft: 12 }}>Sair da Conta</Text>
-          </TouchableOpacity>
-
-          {/* Botão Excluir Conta */}
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}
-            onPress={() => setCurrentComponent('delete')}
-          >
-            <Icon name="trash-2" size={20} color="#000" />
-            <Text style={{ fontSize: 16, color: '#1f2937', marginLeft: 12 }}>Excluir Conta</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Área de Configurações Principais */}
-        <View style={{ padding: 16 }}>
-          {currentComponent === 'senha' && <SettingsSenha />}
-          {currentComponent === 'logout' && <LogoutConfirm onCancel={() => setCurrentComponent('senha')} />}
-          {currentComponent === 'delete' && <DeleteAccount onCancel={() => setCurrentComponent('senha')} />}
-        </View>
-      </ScrollView>
+    <SafeAreaView className="flex-1 bg-white">
+      {renderComponent()}
     </SafeAreaView>
   );
 };
