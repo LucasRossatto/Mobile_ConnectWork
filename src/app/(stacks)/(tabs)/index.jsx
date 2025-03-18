@@ -78,7 +78,7 @@ export default function Home() {
         </View>
 
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
-          <Icon name="cog" size={30} color="#4B5563" />
+          <Ionicons name="settings-sharp" size={30} color="#000000" />
         </TouchableOpacity>
       </View>
 

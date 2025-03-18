@@ -26,8 +26,8 @@ const Settings = () => {
                 className="flex-row items-center py-3 border-b border-gray-200"
                 onPress={() => setCurrentComponent('senha')}
               >
-                <Icon name="lock" size={20} color="#000" />
-                <Text className="text-[17px] ml-3 text-gray-800">
+                <Icon name="lock" size={30} color="#000" /> {/* Aumentei o tamanho do ícone */}
+                <Text className="text-[20px] ml-3 text-gray-800"> {/* Aumentei o tamanho da fonte */}
                   Alterar Senha
                 </Text>
               </TouchableOpacity>
@@ -37,9 +37,9 @@ const Settings = () => {
                 className="flex-row items-center py-3 border-b border-gray-200"
                 onPress={() => setCurrentComponent('delete')}
               >
-                <Icon name="trash-2" size={20} color="#000" />
-                <Text className="text-[17px] ml-3 text-gray-800">
-                  Excluir Conta
+                <Icon name="trash-2" size={30} color="#000" /> {/* Aumentei o tamanho do ícone */}
+                <Text className="text-[20px] ml-3 text-gray-800"> {/* Aumentei o tamanho da fonte */}
+                  Deletar Conta
                 </Text>
               </TouchableOpacity>
 
@@ -48,8 +48,8 @@ const Settings = () => {
                 className="flex-row items-center py-3"
                 onPress={() => setCurrentComponent('logout')}
               >
-                <Icon name="log-out" size={20} color="#000" />
-                <Text className="text-[17px] ml-3 text-gray-800">
+                <Icon name="log-out" size={30} color="#000" /> {/* Aumentei o tamanho do ícone */}
+                <Text className="text-[20px] ml-3 text-gray-800"> {/* Aumentei o tamanho da fonte */}
                   Sair da Conta
                 </Text>
               </TouchableOpacity>
