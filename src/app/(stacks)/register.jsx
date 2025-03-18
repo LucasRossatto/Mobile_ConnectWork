@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import InputField from "@/components/InputField";
+import InputField from "@/components/register/InputField";
 import log from "@/utils/logger";
 import { post } from "@/services/api";
 
