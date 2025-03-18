@@ -1,12 +1,12 @@
 import { Stack } from "expo-router";
 import React from "react";
 import "@/styles/global.css";
-import AuthProvider from "@/contexts/AuthProvider";
+import AuthContext from "@/contexts/AuthContext";
 import { StatusBar } from "react-native";
 
 export default function _layout() {
   return (
-    <AuthProvider>
+    <AuthContext>
       <StatusBar style="light" backgroundColor="#ffffff" />
       <Stack>
         <Stack.Screen
@@ -24,6 +24,6 @@ export default function _layout() {
           options={{ title: "tabs", headerShown: false }}
         />
       </Stack>
-    </AuthProvider>
+    </AuthContext>
   );
 }

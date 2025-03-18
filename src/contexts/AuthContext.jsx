@@ -33,6 +33,7 @@ const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     setUser(userData);
+    AsyncStorage.setItem("token", userData.token);
     router.push("/(stacks)/(tabs)");
   };
 

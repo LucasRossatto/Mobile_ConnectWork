@@ -1,6 +1,6 @@
 import axios from "axios";
-import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const api = axios.create({
   baseURL: "http://10.0.2.2:3001/api",
   headers: {
@@ -10,26 +10,32 @@ const api = axios.create({
 
 // Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
-  async (config) => {
+  async (request) => {
     const token = await AsyncStorage.getItem("token");
+    console.log("Token recuperado:", token);
+
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      request.headers.Authorization = `Bearer ${token}`;
     }
-    return config;
+
+    console.log("Headers da requisição:", request.headers);
+    return request;
   },
   (error) => {
     return Promise.reject(error);
   }
 );
-
-
 // Funções reutilizáveis para requisições HTTP
 export const get = async (url, params = {}) => {
   try {
     const response = await api.get(url, { params });
     return response.data;
   } catch (error) {
-    console.error("Erro na requisição GET:", error);
+    if (error.response) {
+      console.error("Erro na requisição GET:", error.response.data);
+    } else {
+      console.error("Erro de rede ou outro problema:", error.message);
+    }
     throw error;
   }
 };
