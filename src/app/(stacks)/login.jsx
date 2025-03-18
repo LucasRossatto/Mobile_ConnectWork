@@ -3,8 +3,8 @@ import { Text, View, TextInput, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 import { Link, useRouter } from "expo-router";
 import { post } from "@/services/api";
-import { AuthContext } from "@/contexts/AuthProvider";
 import log from "@/utils/logger";
+import { AuthContext } from "@/contexts/AuthContext";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -52,6 +52,7 @@ export default function Login() {
         log.info(response);
         if (userData.id && userData.token) {
           login({ id: userData.id, token: userData.token });
+
           setSuccess("Login realizado com sucesso!");
           log.debug("adicionado ao contexto");
         } else {

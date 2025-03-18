@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import {
   View,
   TextInput,
@@ -12,19 +12,47 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons } from "@expo/vector-icons";
 import Post from "../../../components/Post";
 import Settings from "../../../components/Settings";
+import log from "@/utils/logger";
+import { AuthContext } from "../../../contexts/AuthContext";
+import { get } from "@/services/api";
 
 export default function Home() {
-  const [showSettings, setShowSettings] = useState(false); 
+  const [showSettings, setShowSettings] = useState(false);
+  const { user } = useContext(AuthContext);
+  const [posts, setPosts] = useState([]);
+
+  const getPosts = async () => {
+    try {
+      log.debug("Token sendo enviado:", user.token);
+      const res = await get("/user/posts");
+
+      if (!res) {
+        throw new Error("No response received");
+      }
+
+      if (!Array.isArray(res)) {
+        throw new Error("Expected an array of posts, but got something else");
+      }
+
+      setPosts(res);
+      log.debug("posts = ", res);
+    } catch (error) {
+      console.error("Error fetching posts:", error.message);
+      setPosts([]);
+    }
+  };
+
+  useEffect(() => {
+    getPosts();
+    log.debug("userContext", user);
+  }, []);
 
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
       <View className="bg-backgroundDark h-5 w-full"></View>
       <View className="bg-white flex-row items-center p-4">
-        <Image
-          source={""}
-          className="w-12 h-12 rounded-full bg-black"
-        />
+        <Image source={""} className="w-12 h-12 rounded-full bg-black" />
 
         <View className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2">
           <Icon
@@ -41,10 +69,7 @@ export default function Home() {
         </View>
 
         {/* Ícone de ferramenta (sem fundo) */}
-        <TouchableOpacity
-          onPress={() => setShowSettings(true)}
-          className="p-2" 
-        >
+        <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
           <Icon name="cog" size={30} color="#4B5563" />
           {/* Ícone de ferramenta */}
         </TouchableOpacity>
