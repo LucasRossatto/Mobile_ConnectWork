@@ -2,11 +2,11 @@ import React, { useEffect, useState, useContext } from "react";
 import {
   View,
   TextInput,
-  ScrollView,
   TouchableOpacity,
   Modal,
   Text,
   Image,
+  FlatList,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +47,15 @@ export default function Home() {
     log.debug("userContext", user);
   }, []);
 
+  const renderPost = ({ item }) => (
+    <Post
+      author={item.username}
+      course={item.course}
+      content={item.content}
+      img={item?.image_based64}
+    />
+  );
+
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
@@ -68,21 +77,18 @@ export default function Home() {
           />
         </View>
 
-        {/* Ícone de ferramenta (sem fundo) */}
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
           <Icon name="cog" size={30} color="#4B5563" />
-          {/* Ícone de ferramenta */}
         </TouchableOpacity>
       </View>
 
-      {/* Área de postagem */}
-      <ScrollView className="flex-1 p-4">
-        <Post
-          author="lucas"
-          course="Desenvolvimento de sistemas"
-          content="conteudo da postagem"
-        />
-      </ScrollView>
+      {/* Lista de posts */}
+      <FlatList
+        data={posts}
+        renderItem={renderPost}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop:14 }}
+      />
 
       {/* Modal para exibir o Settings em tela cheia */}
       <Modal
@@ -92,27 +98,22 @@ export default function Home() {
         onRequestClose={() => setShowSettings(false)}
       >
         <View className="flex-1 bg-white">
-          {/* Header fixo do Settings */}
           <View className="bg-black p-4 flex-row items-center">
             <TouchableOpacity
               onPress={() => setShowSettings(false)}
               className="flex-row items-center"
             >
               <Ionicons name="arrow-back" size={24} color="white" />
-              {/* Ícone de voltar */}
             </TouchableOpacity>
 
-            {/* Ícone e texto "Configurações" */}
             <View className="flex-row items-center mx-2">
               <Ionicons name="settings" size={24} color="white" />
-              {/* Ícone de configurações */}
               <Text className="text-2xl font-bold text-white ml-2">
                 Configurações
               </Text>
             </View>
           </View>
 
-          {/* Conteúdo do Settings */}
           <Settings />
         </View>
       </Modal>
