@@ -14,13 +14,22 @@
       "backgroundColor": "#181818"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Este aplicativo usa a câmera para permitir que os usuários tirem fotos.",
+        "NSPhotoLibraryUsageDescription": "Este aplicativo acessa a galeria de fotos para permitir que os usuários selecionem imagens."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/Icon_connectwork.png",
         "backgroundColor": "#181818"
-      }
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -28,7 +37,14 @@
       "favicon": "./assets/images/Icon_connectwork.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Este aplicativo acessa a galeria de fotos para permitir que os usuários selecionem imagens.",
+          "cameraPermission": "Este aplicativo usa a câmera para permitir que os usuários tirem fotos."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
