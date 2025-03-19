@@ -7,6 +7,7 @@ import {
   Text,
   Image,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,32 +21,57 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const { user } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [offset, setOffset] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const getPosts = async () => {
+  const getPosts = async (newOffset = 0) => {
     try {
+      setIsLoading(true); // Inicia o carregamento
       log.debug("Token sendo enviado:", user.token);
-      const res = await get("/user/posts");
+      const res = await get("/user/posts", {
+        params: { limit, offset: newOffset },
+      });
 
       if (!res) {
         throw new Error("No response received");
       }
 
-      if (!Array.isArray(res)) {
+      if (!res.posts || !Array.isArray(res.posts)) {
         throw new Error("Expected an array of posts, but got something else");
       }
 
-      setPosts(res);
-      log.debug("posts = ", res);
+      if (newOffset === 0) {
+        setPosts(res.posts);
+      } else {
+        setPosts((prevPosts) => [...prevPosts, ...res.posts]);
+      }
+      setTotalPosts(res.totalPosts);
+      log.debug("Posts recebidos:", res.posts);
     } catch (error) {
-      console.error("Error fetching posts:", error.message);
-      setPosts([]);
+      console.error("Error fetching posts:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     getPosts();
     log.debug("userContext", user);
-  }, []);
+  }, [user.token]);
+
+  const loadMorePosts = () => {
+    if (!isLoading && posts.length < totalPosts) {
+      const newOffset = offset + limit;
+      setOffset(newOffset);
+      getPosts(newOffset);
+    }
+  };
 
   const renderPost = ({ item }) => (
     <Post
@@ -55,6 +81,11 @@ export default function Home() {
       img={item?.image_based64}
     />
   );
+
+  const renderFooter = () => {
+    if (!isLoading) return null;
+    return <ActivityIndicator size="large" color="#0000ff" />;
+  };
 
   return (
     <View className="flex-1 bg-backgroundGray">
@@ -78,7 +109,7 @@ export default function Home() {
         </View>
 
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
-          <Ionicons name="settings-sharp" size={30} color="#000000" />
+          <Icon name="cog" size={30} color="#4B5563" />
         </TouchableOpacity>
       </View>
 
@@ -87,7 +118,13 @@ export default function Home() {
         data={posts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop:14 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24 }}
+        // Carrega mais posts quando o fim da lista é alcançado
+        onEndReached={loadMorePosts}
+        // Define quando carregar mais posts (10% do final)
+        onEndReachedThreshold={0.1}
+        // Exibe um indicador de carregamento
+        ListFooterComponent={renderFooter}
       />
 
       {/* Modal para exibir o Settings em tela cheia */}
@@ -108,6 +145,7 @@ export default function Home() {
 
             <View className="flex-row items-center mx-2">
               <Ionicons name="settings" size={24} color="white" />
+
               <Text className="text-2xl font-bold text-white ml-2">
                 Configurações
               </Text>
