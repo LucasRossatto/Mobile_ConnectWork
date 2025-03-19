@@ -9,6 +9,7 @@ const InputField = ({
   secureTextEntry = false,
   email,
   isValid = true,
+  errorMessage,
 }) => {
   const [showPassword, setShowPassword] = useState(!secureTextEntry);
 
@@ -18,6 +19,7 @@ const InputField = ({
     onChangeText(newValue.join(""));
   };
 
+  // Campos de código de verificação 
   if (placeholder.includes("Código")) {
     return (
       <>
@@ -41,6 +43,10 @@ const InputField = ({
             />
           ))}
         </View>
+
+        {errorMessage && (
+          <Text className="text-red-500 text-sm mt-2">{errorMessage}</Text>
+        )}
       </>
     );
   }
@@ -58,6 +64,8 @@ const InputField = ({
         keyboardType={placeholder.includes("Código") ? "numeric" : "default"}
         maxLength={placeholder.includes("Código") ? 6 : undefined}
       />
+
+      {/* Ícone de olho para campos de senha */}
       {secureTextEntry && (
         <TouchableOpacity
           className="absolute right-4 top-5"
@@ -69,6 +77,11 @@ const InputField = ({
             color="#666666"
           />
         </TouchableOpacity>
+      )}
+
+      {/* Exibição de mensagens de erro */}
+      {errorMessage && (
+        <Text className="text-red-500 text-sm mt-2 ml-2">{errorMessage}</Text>
       )}
     </View>
   );

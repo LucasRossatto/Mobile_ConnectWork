@@ -10,6 +10,13 @@ import { useRouter } from "expo-router";
 import InputField from "@/components/register/InputField";
 import log from "@/utils/logger";
 import { post } from "@/services/api";
+import {
+  validateEmail,
+  validateCPF,
+  validateRA,
+  validateCourse,
+  validatePassword,
+} from "@/utils/validations";
 
 const MultiStepForm = () => {
   const [step, setStep] = useState(1);
@@ -73,27 +80,28 @@ const MultiStepForm = () => {
 
   const currentStep = stepConfig[step - 1];
 
-  // Função para validar o formato do e-mail
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const validateFields = () => {
     const newErrors = {};
+
     currentStep.fields.forEach((field) => {
       if (field.required && !formData[field.name]) {
-        newErrors[field.name] = "Este campo é obrigatório.";
+        newErrors[field.name] = `O campo ${field.placeholder} é obrigatório.`;
       }
     });
 
-    // Validação específica para o campo de e-mail
-    if (
-      currentStep.title === "Dados Pessoais" &&
-      formData.email &&
-      !validateEmail(formData.email)
-    ) {
-      newErrors.email = "Por favor, insira um e-mail válido.";
+    const emailError = validateEmail(formData.email);
+    if (emailError !== true) {
+      newErrors.email = emailError;
+    }
+
+    const cpfError = validateCPF(formData.cpf);
+    if (cpfError !== true) {
+      newErrors.cpf = cpfError;
+    }
+
+    const passwordValidation = validatePassword(formData.password);
+    if (passwordValidation !== true) {
+      newErrors.password = passwordValidation;
     }
 
     setErrors(newErrors);
@@ -102,7 +110,7 @@ const MultiStepForm = () => {
 
   const nextStep = async () => {
     if (!validateFields()) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos corretamente.");
+      // Interrompe a execução se tiver erros
       return;
     }
 
@@ -347,7 +355,7 @@ const MultiStepForm = () => {
           value={formData[field.name] || ""}
           onChangeText={(text) => handleChange(field.name, text)}
           secureTextEntry={field.secureTextEntry}
-          email={formData.email}
+          email={field.name === "email"}
           isValid={!errors[field.name]}
           errorMessage={errors[field.name]}
         />

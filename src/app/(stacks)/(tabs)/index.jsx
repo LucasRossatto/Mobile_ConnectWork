@@ -75,7 +75,7 @@ export default function Home() {
 
   const renderPost = ({ item }) => (
     <Post
-      author={item.username}
+      author={item.user.nome}
       course={item.course}
       content={item.content}
       img={item?.image_based64}
