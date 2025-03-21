@@ -13,13 +13,6 @@ const InputField = ({
 }) => {
   const [showPassword, setShowPassword] = useState(!secureTextEntry);
 
-  const handleDigitChange = (text, index) => {
-    const newValue = value.split("");
-    newValue[index] = text;
-    onChangeText(newValue.join(""));
-  };
-
-  // Campos de código de verificação 
   if (placeholder.includes("Código")) {
     return (
       <>
@@ -37,7 +30,11 @@ const InputField = ({
               } rounded text-center text-lg`}
               placeholder="-"
               value={value[index] || ""}
-              onChangeText={(text) => handleDigitChange(text, index)}
+              onChangeText={(text) => {
+                const newValue = value.split("");
+                newValue[index] = text;
+                onChangeText(newValue.join(""));
+              }}
               keyboardType="numeric"
               maxLength={1}
             />

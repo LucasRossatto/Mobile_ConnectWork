@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import InputField from "@/components/register/InputField";
+import CoursePicker from "@/components/register/CoursePicker";
 import log from "@/utils/logger";
 import { post } from "@/services/api";
 import {
@@ -36,12 +37,10 @@ const MultiStepForm = () => {
   const [userId, setUserId] = useState(null);
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [verifyEmail, setVerifyEmail] = useState("");
   const router = useRouter();
   const inputsRef = useRef([]);
 
   const steps = ["Dados Pessoais", "Dados Acadêmicos", "Verificação"];
-
   const stepConfig = [
     {
       title: "Dados Pessoais",
@@ -80,6 +79,26 @@ const MultiStepForm = () => {
 
   const currentStep = stepConfig[step - 1];
 
+  const formatCPF = (value) => {
+    const cleanedValue = value.replace(/\D/g, "");
+
+    if (cleanedValue.length <= 3) {
+      return cleanedValue;
+    } else if (cleanedValue.length <= 6) {
+      return `${cleanedValue.slice(0, 3)}.${cleanedValue.slice(3)}`;
+    } else if (cleanedValue.length <= 9) {
+      return `${cleanedValue.slice(0, 3)}.${cleanedValue.slice(
+        3,
+        6
+      )}.${cleanedValue.slice(6)}`;
+    } else {
+      return `${cleanedValue.slice(0, 3)}.${cleanedValue.slice(
+        3,
+        6
+      )}.${cleanedValue.slice(6, 9)}-${cleanedValue.slice(9, 11)}`;
+    }
+  };
+
   const validateFields = () => {
     const newErrors = {};
 
@@ -109,22 +128,41 @@ const MultiStepForm = () => {
   };
 
   const nextStep = async () => {
+    if (isLoading) return;
+
     if (!validateFields()) {
-      // Interrompe a execução se tiver erros
       return;
     }
 
-    if (step === 2) {
-      await sendPersonalAndAcademicData();
-    } else {
-      setStep(step + 1);
+    try {
+      setIsLoading(true);
+
+      if (step === 2) {
+        await sendPersonalAndAcademicData();
+      } else {
+        setStep(step + 1);
+      }
+    } catch (error) {
+      log.error("Erro ao avançar para a próxima etapa:", error);
+      setErrors({
+        ...errors,
+        general: "Erro ao processar a solicitação. Tente novamente.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const prevStep = () => setStep(step - 1);
 
   const handleChange = (name, value) => {
-    setFormData({ ...formData, [name]: value });
+    let formattedValue = value;
+
+    if (name === "cpf") {
+      formattedValue = formatCPF(value);
+    }
+
+    setFormData({ ...formData, [name]: formattedValue });
     setErrors({ ...errors, [name]: "" });
   };
 
@@ -132,6 +170,23 @@ const MultiStepForm = () => {
     try {
       setIsLoading(true);
       setErrors({});
+
+      if (
+        !formData.fullName ||
+        !formData.email ||
+        !formData.password ||
+        !formData.cpf ||
+        !formData.ra ||
+        !formData.schoolUnit ||
+        !formData.course ||
+        !formData.class
+      ) {
+        setErrors({
+          ...errors,
+          general: "Todos os campos são obrigatórios.",
+        });
+        return;
+      }
 
       const payload = {
         nome: formData.fullName,
@@ -144,32 +199,30 @@ const MultiStepForm = () => {
         userClass: formData.class,
       };
 
-      const response = await post("/user/register", payload);
+      console.log("Payload sendo enviado:", payload);
 
+      const response = await post("/user/register", payload);
       log.info("Resposta do backend:", response);
 
-      if (
-        response.status === 200 &&
-        response.data.user &&
-        response.data.user.id
-      ) {
-        log.debug("ID do usuário capturado:", response.data.user.id);
-        setUserId(response.data.user.id);
+      if (response && response.user && response.user.id) {
+        log.debug("ID do usuário capturado:", response.user.id);
+        setUserId(response.user.id);
         setIsCodeSent(true);
         await sendEmail();
         setStep(step + 1);
       } else {
         log.error(
           "Erro ao registrar usuário:",
-          response.data.error || "Erro desconhecido"
+          response.error || "Erro desconhecido"
         );
         setErrors({
           ...errors,
-          general: response.data.error || "Erro ao registrar usuário.",
+          general: response.error || "Erro ao registrar usuário.",
         });
       }
     } catch (error) {
       log.error("Erro ao enviar formulário:", error);
+
       if (error.response) {
         switch (error.response.status) {
           case 400:
@@ -188,7 +241,10 @@ const MultiStepForm = () => {
             });
             break;
           default:
-            setErrors({ ...errors, general: "Erro ao enviar formulário." });
+            setErrors({
+              ...errors,
+              general: "Erro ao enviar formulário. Tente novamente.",
+            });
             break;
         }
       } else if (error.request) {
@@ -198,7 +254,10 @@ const MultiStepForm = () => {
             "Sem resposta do servidor. Verifique sua conexão com a internet.",
         });
       } else {
-        setErrors({ ...errors, general: "Erro ao enviar formulário." });
+        setErrors({
+          ...errors,
+          general: "Erro ao enviar formulário. Tente novamente.",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -207,24 +266,58 @@ const MultiStepForm = () => {
 
   const sendEmail = async () => {
     try {
+      setIsLoading(true);
+      setErrors({});
+
       const response = await post("/user/send-code", {
         email: formData.email,
       });
+
+      log.debug("Resposta do backend:", response);
 
       if (response.status === 200) {
         setSuccess("Email enviado com sucesso!");
         handleUpdateVerifyEmail(formData.email);
       } else {
-        setErrors({ ...errors, general: "Erro ao enviar email." });
+        const errorMessage = response.message || "Erro ao enviar email.";
+        setErrors({ ...errors, general: errorMessage });
       }
     } catch (error) {
       log.error("Erro ao enviar email:", error);
+
       if (error.response) {
         switch (error.response.status) {
           case 400:
+            if (error.response.data.message.includes("Aguarde")) {
+              setErrors({
+                ...errors,
+                general: error.response.data.message,
+              });
+            } else if (
+              error.response.data.message.includes("Código inválido")
+            ) {
+              setErrors({
+                ...errors,
+                general: "Código inválido ou não encontrado.",
+              });
+            } else if (
+              error.response.data.message.includes("O código expirou")
+            ) {
+              setErrors({
+                ...errors,
+                general: "O código expirou. Solicite um novo.",
+              });
+            } else {
+              setErrors({
+                ...errors,
+                general: "Dados inválidos. Verifique o email.",
+              });
+            }
+            break;
+          case 404:
             setErrors({
               ...errors,
-              general: "Dados inválidos. Verifique o email.",
+              general: "Usuário não encontrado. Verifique o email digitado.",
             });
             break;
           case 500:
@@ -234,18 +327,28 @@ const MultiStepForm = () => {
             });
             break;
           default:
-            setErrors({ ...errors, general: "Erro ao enviar email." });
+            setErrors({
+              ...errors,
+              general: "Erro ao enviar email. Tente novamente.",
+            });
             break;
         }
       } else if (error.request) {
+        // Erros de conexão (sem resposta do servidor)
         setErrors({
           ...errors,
           general:
             "Sem resposta do servidor. Verifique sua conexão com a internet.",
         });
       } else {
-        setErrors({ ...errors, general: "Erro ao enviar email." });
+        // Erros inesperados
+        setErrors({
+          ...errors,
+          general: "Erro ao enviar email. Tente novamente.",
+        });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -259,16 +362,16 @@ const MultiStepForm = () => {
       setErrors({});
 
       const code = formData.verificationCode;
+      log.debug(code);
 
       const response = await post("/user/verify-code", {
-        email: verifyEmail,
+        email: formData.email,
         code: code,
       });
 
-      if (
-        response.status === 200 &&
-        response.data.message === "Conta verificada com sucesso!"
-      ) {
+      log.debug("Resposta do backend:", response);
+
+      if (response.message === "Conta verificada com sucesso!") {
         Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
           {
             text: "OK",
@@ -281,36 +384,18 @@ const MultiStepForm = () => {
         setErrors({
           ...errors,
           verificationCode:
-            response.data.error || "Código inválido ou não encontrado.",
+            response.message || "Código inválido ou não encontrado.",
         });
       }
     } catch (error) {
       log.error("Erro ao verificar código:", error);
       if (error.response) {
-        switch (error.response.status) {
-          case 400:
-            setErrors({ ...errors, verificationCode: "Código inválido." });
-            break;
-          case 404:
-            setErrors({
-              ...errors,
-              verificationCode: "Código não encontrado.",
-            });
-            break;
-          case 500:
-            setErrors({
-              ...errors,
-              verificationCode:
-                "Erro interno do servidor. Tente novamente mais tarde.",
-            });
-            break;
-          default:
-            setErrors({
-              ...errors,
-              verificationCode: "Erro ao verificar o código.",
-            });
-            break;
-        }
+        console.log("Erro na resposta:", error.response);
+        setErrors({
+          ...errors,
+          verificationCode:
+            error.response.message || "Erro ao verificar o código.",
+        });
       } else if (error.request) {
         setErrors({
           ...errors,
@@ -348,18 +433,32 @@ const MultiStepForm = () => {
         ))}
       </View>
 
-      {currentStep.fields.map((field) => (
-        <InputField
-          key={field.name}
-          placeholder={field.placeholder}
-          value={formData[field.name] || ""}
-          onChangeText={(text) => handleChange(field.name, text)}
-          secureTextEntry={field.secureTextEntry}
-          email={field.name === "email"}
-          isValid={!errors[field.name]}
-          errorMessage={errors[field.name]}
-        />
-      ))}
+      {currentStep.fields.map((field) => {
+        if (field.name === "course") {
+          return (
+            <CoursePicker
+              key={field.name}
+              selectedValue={formData.course}
+              onValueChange={(value) => handleChange("course", value)}
+              isValid={!errors.course}
+              errorMessage={errors.course}
+            />
+          );
+        }
+
+        return (
+          <InputField
+            key={field.name}
+            placeholder={field.placeholder}
+            value={formData[field.name] || ""}
+            onChangeText={(text) => handleChange(field.name, text)}
+            secureTextEntry={field.secureTextEntry}
+            email={formData.email}
+            isValid={!errors[field.name]}
+            errorMessage={errors[field.name]}
+          />
+        );
+      })}
 
       {errors.general && (
         <Text className="text-red-500 text-center mb-4">{errors.general}</Text>
