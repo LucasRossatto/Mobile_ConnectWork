@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons } from "@expo/vector-icons";
-import Post from "../../../components/Post";
-import Settings from "../../../components/Settings";
+import Post from "@/components/Post";
+import Settings from "@/components/index/Settings";
 import log from "@/utils/logger";
-import { AuthContext } from "../../../contexts/AuthContext";
+import { AuthContext } from "@/contexts/AuthContext";
 import { get } from "@/services/api";
 
 export default function Home() {
