@@ -102,25 +102,52 @@ const MultiStepForm = () => {
   const validateFields = () => {
     const newErrors = {};
 
-    currentStep.fields.forEach((field) => {
-      if (field.required && !formData[field.name]) {
-        newErrors[field.name] = `O campo ${field.placeholder} é obrigatório.`;
+    if (step === 1) {
+      if (!formData.fullName) {
+        newErrors.fullName = "O campo Nome Completo é obrigatório.";
       }
-    });
 
-    const emailError = validateEmail(formData.email);
-    if (emailError !== true) {
-      newErrors.email = emailError;
-    }
+      const emailError = validateEmail(formData.email);
+      if (emailError !== true) {
+        newErrors.email = emailError;
+      }
 
-    const cpfError = validateCPF(formData.cpf);
-    if (cpfError !== true) {
-      newErrors.cpf = cpfError;
-    }
+      const cpfError = validateCPF(formData.cpf);
+      if (cpfError !== true) {
+        newErrors.cpf = cpfError;
+      }
 
-    const passwordValidation = validatePassword(formData.password);
-    if (passwordValidation !== true) {
-      newErrors.password = passwordValidation;
+      const passwordValidation = validatePassword(formData.password);
+      if (passwordValidation !== true) {
+        newErrors.password = passwordValidation;
+      }
+    } else if (step === 2) {
+      // Validação dos campos da etapa 2 (Dados Acadêmicos)
+      if (!formData.ra) {
+        newErrors.ra = "O campo RA é obrigatório.";
+      } else {
+        const raValidation = validateRA(formData.ra);
+        if (raValidation !== true) {
+          newErrors.ra = raValidation;
+        }
+      }
+
+      if (!formData.schoolUnit) {
+        newErrors.schoolUnit = "O campo Unidade Escolar é obrigatório.";
+      }
+
+      if (!formData.course) {
+        newErrors.course = "O campo Curso é obrigatório.";
+      }
+
+      if (!formData.class) {
+        newErrors.class = "O campo Turma é obrigatório.";
+      }
+    } else if (step === 3) {
+      if (!formData.verificationCode) {
+        newErrors.verificationCode =
+          "O campo Código de Verificação é obrigatório.";
+      }
     }
 
     setErrors(newErrors);
