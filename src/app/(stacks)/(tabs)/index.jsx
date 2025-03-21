@@ -28,7 +28,7 @@ export default function Home() {
 
   const getPosts = async (newOffset = 0) => {
     try {
-      setIsLoading(true); // Inicia o carregamento
+      setIsLoading(true);
       log.debug("Token sendo enviado:", user.token);
       const res = await get("/user/posts", {
         params: { limit, offset: newOffset },
@@ -87,6 +87,17 @@ export default function Home() {
     return <ActivityIndicator size="large" color="#0000ff" />;
   };
 
+  const renderEmptyList = () => {
+    if (isLoading) {
+      return null;
+    }
+    return (
+      <View className="flex-1 justify-center items-center mt-10">
+        <Text className="text-gray-500 text-lg">Nenhum post encontrado.</Text>
+      </View>
+    );
+  };
+
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
@@ -119,12 +130,10 @@ export default function Home() {
         renderItem={renderPost}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24 }}
-        // Carrega mais posts quando o fim da lista é alcançado
         onEndReached={loadMorePosts}
-        // Define quando carregar mais posts (10% do final)
         onEndReachedThreshold={0.1}
-        // Exibe um indicador de carregamento
         ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmptyList}
       />
 
       {/* Modal para exibir o Settings em tela cheia */}
