@@ -1,41 +1,47 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const API_TIMEOUT = 15000;
+
 const api = axios.create({
-  baseURL: "http://10.0.2.2:3001/api",
+  baseURL: process.env.API_BASE_URL || "http://10.0.2.2:3001/api",
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: API_TIMEOUT,
 });
 
-// Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
-  async (request) => {
-    const token = await AsyncStorage.getItem("token");
-    console.log("Token recuperado:", token);
-
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    } catch (error) {
+      console.error("Token error:", error);
+      return config;
     }
-
-    console.log("Headers da requisição:", request.headers);
-    return request;
   },
+  (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+    }
     return Promise.reject(error);
   }
 );
-// Funções reutilizáveis para requisições HTTP
-export const get = async (url, params = {}) => {
+
+export const get = async (url, params = {}, config = {}) => {
   try {
-    const response = await api.get(url, { params });
+    const response = await api.get(url, { ...config, params });
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error("Erro na requisição GET:", error.response.data);
-    } else {
-      console.error("Erro de rede ou outro problema:", error.message);
-    }
+    handleApiError(error, "GET", url);
     throw error;
   }
 };

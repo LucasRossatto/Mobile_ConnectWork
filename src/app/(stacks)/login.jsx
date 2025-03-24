@@ -1,10 +1,14 @@
 import React, { useContext, useState } from "react";
-import { Text, View, TextInput, TouchableOpacity } from "react-native";
+import { Text, View, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 import { Link, useRouter } from "expo-router";
 import { post } from "@/services/api";
-import log from "@/utils/logger";
 import { AuthContext } from "@/contexts/AuthContext";
+
+const validateEmail = (email) => {
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return re.test(email);
+};
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -12,127 +16,126 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useContext(AuthContext);
+  const router = useRouter();
 
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateLoginInputs = (email, password) => {
+    if (!email || !password) {
+      return "Todos os campos são obrigatórios.";
+    }
+  
+    if (!validateEmail(email)) {
+      return "Por favor, insira um e-mail válido.";
+    }
+  
+    if (password.length < 6) {
+      return "A senha deve ter pelo menos 6 caracteres.";
+    }
+  
+    return null;
   };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  
+  const getLoginErrorMessage = (error) => {
+    if (error.response) {
+      switch (error.response.status) {
+        case 400: return "Requisição inválida. Verifique os dados enviados.";
+        case 401:
+        case 404: return "Credenciais inválidas. Verifique seu e-mail e senha.";
+        case 403: return "Acesso negado. Você não tem permissão para acessar este recurso.";
+        case 500: return "Erro interno do servidor. Tente novamente mais tarde.";
+        default: return "Erro ao realizar o login. Tente novamente.";
+      }
+    }
+    
+    if (error.request) {
+      return "Sem resposta do servidor. Verifique sua conexão com a internet.";
+    }
+    
+    return "Erro ao enviar formulário.";
+  };
+  
+  const handleLogin = async () => {
     setError("");
     setSuccess("");
-
-    if (!email || !password) {
-      setError("Todos os campos são obrigatórios.");
+  
+    const validationError = validateLoginInputs(email, password);
+    if (validationError) {
+      setError(validationError);
       return;
     }
-
-    if (!validateEmail(email)) {
-      setError("Por favor, insira um e-mail válido.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-
-    const formData = {
-      email: email,
-      password: password,
-    };
-
+  
     try {
-      const response = await post("/user/login", formData);
-
-      if ((response.message = "Login bem-sucedido!")) {
-        const userData = response;
-        log.info(response);
-        if (userData.id && userData.token) {
-          login({ id: userData.id, token: userData.token });
-
-          setSuccess("Login realizado com sucesso!");
-          log.debug("adicionado ao contexto");
-        } else {
-          setError("Erro ao processar os dados do usuário.");
-        }
+      setIsLoading(true);
+      const response = await post("/user/login", { email, password });
+  
+      if (response.message === "Login bem-sucedido!") {
+        const userData = {
+          id: response.id,
+          token: response.token,
+          email: response.email || email,
+          role: response.role || "user",
+        };
+        
+        await login(userData);
+        setSuccess("Login realizado com sucesso!");
+        router.replace("/(stacks)/(tabs)");
       } else {
-        setError("Erro inesperado ao realizar o login.");
+        setError(response.message || "Erro inesperado ao realizar o login.");
       }
     } catch (error) {
-      if (error.response) {
-        switch (error.response.status) {
-          case 400:
-            setError("Requisição inválida. Verifique os dados enviados.");
-            break;
-          case 401:
-            setError("Credenciais inválidas. Verifique seu e-mail e senha.");
-            break;
-          case 403:
-            setError(
-              "Acesso negado. Você não tem permissão para acessar este recurso."
-            );
-            break;
-          case 404:
-            setError("Credenciais inválidas. Verifique seu e-mail e senha.");
-            break;
-          case 500:
-            setError("Erro interno do servidor. Tente novamente mais tarde.");
-            break;
-          default:
-            setError("Erro ao realizar o login. Tente novamente.");
-            break;
-        }
-      } else if (error.request) {
-        setError(
-          "Sem resposta do servidor. Verifique sua conexão com a internet."
-        );
-      } else {
-        setError("Erro ao enviar formulário.");
-      }
+      setError(getLoginErrorMessage(error));
+      console.error("Erro no login:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <View className="flex-1 flex justify-center bg-backgroundLight p-4">
+    <View className="flex-1 justify-center bg-backgroundLight p-4">
       <Text className="text-4xl font-medium mb-10 text-center">
         Faça o seu login
       </Text>
 
       <TextInput
-        className="w-full bg-white border border-borderLight rounded-[14] text-xl px-4 py-5 mb-4"
+        className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 mb-4"
         placeholder="Email"
+        placeholderTextColor="#666"
         keyboardType="email-address"
+        autoCapitalize="none"
         value={email}
-        onChangeText={(text) => setEmail(text)}
+        onChangeText={setEmail}
+        accessibilityLabel="Campo de email"
       />
 
       <View className="relative mb-4">
         <TextInput
-          className="w-full bg-white border border-borderLight rounded-[14] text-xl px-4 py-5 pr-12"
+          className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 pr-12"
           placeholder="Senha"
+          placeholderTextColor="#666"
           secureTextEntry={!showPassword}
           value={password}
-          onChangeText={(text) => setPassword(text)}
+          onChangeText={setPassword}
+          accessibilityLabel="Campo de senha"
         />
         <TouchableOpacity
           className="absolute right-4 top-5"
           onPress={() => setShowPassword(!showPassword)}
+          accessibilityLabel={showPassword ? "Ocultar senha" : "Mostrar senha"}
         >
           <Icon
             name={showPassword ? "eye" : "eye-closed"}
             size={24}
-            color="#666666"
+            color="#666"
           />
         </TouchableOpacity>
       </View>
 
-      <View className="flex justify-end items-end mb-14">
+      <View className="items-end mb-14">
         <Link
-          href={"/(stacks)/register"}
-          className="text-gray-400 text-base font-medium underline flex"
+          href="/forgot-password"
+          className="text-gray-400 text-base font-medium underline"
+          accessibilityRole="link"
         >
           Esqueceu a senha?
         </Link>
@@ -140,25 +143,33 @@ export default function Login() {
 
       <TouchableOpacity
         onPress={handleLogin}
-        className="border w-full bg-black text-white p-5 rounded-[14] text-center text-lg font-medium mb-8"
+        className="w-full bg-black p-5 rounded-[14px] mb-8"
+        disabled={isLoading}
+        accessibilityRole="button"
       >
-        <Text className="text-white text-center text-lg font-medium">
-          Entre agora
-        </Text>
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text className="text-white text-center text-lg font-medium">
+            Entre agora
+          </Text>
+        )}
       </TouchableOpacity>
 
       {error ? (
         <Text className="text-red-500 text-center mb-4">{error}</Text>
       ) : null}
+      
       {success ? (
         <Text className="text-green-500 text-center mb-4">{success}</Text>
       ) : null}
 
-      <View className="flex-row flex justify-center items-center">
+      <View className="flex-row justify-center items-center">
         <Text className="text-gray-600">Não tem uma conta? </Text>
         <Link
-          href={"/(stacks)/register"}
+          href="/(stacks)/register"
           className="text-blue-500 text-base font-medium underline"
+          accessibilityRole="link"
         >
           Cadastre-se
         </Link>

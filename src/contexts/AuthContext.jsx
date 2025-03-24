@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 
@@ -6,44 +6,105 @@ export const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadUser = async () => {
-      const storedUser = await AsyncStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      try {
+        const [storedUser, token] = await Promise.all([
+          AsyncStorage.getItem("user"),
+          AsyncStorage.getItem("token"),
+        ]);
+
+        if (isMounted && storedUser && token) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error("Failed to load user", error);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
+
     loadUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const updateStorage = async () => {
-      if (user) {
-        await AsyncStorage.setItem("user", JSON.stringify(user));
-        await AsyncStorage.setItem("role", user.role);
-      } else {
-        await AsyncStorage.removeItem("user");
-        await AsyncStorage.removeItem("role");
+      try {
+        if (user) {
+          await AsyncStorage.multiSet([
+            ["user", JSON.stringify(user)],
+            ["token", user.token],
+            ["role", user.role],
+          ]);
+        } else {
+          await AsyncStorage.multiRemove(["user", "token", "role"]);
+        }
+      } catch (error) {
+        console.error("Storage update failed", error);
       }
     };
-    updateStorage();
+
+    if (isMounted) updateStorage();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
-  const login = (userData) => {
-    setUser(userData);
-    AsyncStorage.setItem("token", userData.token);
-    router.push("/(stacks)/(tabs)");
+  const login = async (userData) => {
+    try {
+      const storageData = [
+        ["user", JSON.stringify(userData)],
+        ["token", userData.token],
+      ];
+
+      if (userData.role) {
+        storageData.push(["role", userData.role]);
+      }
+
+      await AsyncStorage.multiSet(storageData);
+      setUser(userData);
+      router.replace("/(stacks)/(tabs)");
+    } catch (error) {
+      console.error("Login failed", error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    router.push("/(stacks)/login");
+  const logout = async () => {
+    try {
+      await AsyncStorage.multiRemove(["user", "token", "role"]);
+      setUser(null);
+      router.replace("/(stacks)/login");
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
+
+  const isAuthenticated = !!user?.token;
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        login,
+        logout,
+        isAuthenticated,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
