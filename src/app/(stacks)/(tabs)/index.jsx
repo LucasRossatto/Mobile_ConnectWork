@@ -26,8 +26,38 @@ export default function Home() {
   const [offset, setOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  const getUserData = async () => {
+    try {
+      const res = await get(`/user/users/${user.id}`);
+      log.debug("get by id res:", res);
+      if (res.data) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          nome: res.data.nome,
+          school: res.data.school,
+          course: res.data.course,
+          userClass: res.data.userClass,
+          banner_img: res.data.banner_img,
+          profile_img: res.data.profile_img,
+        }));
+      }
+
+      return res;
+    } catch (error) {
+      console.error("Error fetching user data:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  };
   const getPosts = async (newOffset = 0) => {
     try {
+      if (!user?.token) {
+        throw new Error("No user token available");
+      }
+
       setIsLoading(true);
       log.debug("Token sendo enviado:", user.token);
       const res = await get("/user/posts", {
@@ -49,22 +79,39 @@ export default function Home() {
       }
       setTotalPosts(res.totalPosts);
       log.debug("Posts recebidos:", res.posts);
+      return res;
     } catch (error) {
       console.error("Error fetching posts:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
       });
+      throw error; // Rejeita o erro para ser tratado pelo chamador, se necessário
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    getPosts();
-    log.debug("userContext", user);
-  }, [user.token]);
+    if (!user?.token) return; // Sai se não houver token
 
+    let isMounted = true; // Flag para controle de montagem
+
+    const fetchData = async () => {
+      try {
+        await Promise.all([getPosts(), getUserData()]);
+        log.debug("userContext", user);
+      } catch (error) {
+        console.error("Error in useEffect:", error);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false; // Cleanup para evitar state updates após desmontagem
+    };
+  }, [user?.token]); // Dependência mais segura
   const loadMorePosts = () => {
     if (!isLoading && posts.length < totalPosts) {
       const newOffset = offset + limit;
