@@ -97,3 +97,15 @@ export const validatePassword = (password) => {
 
   return errors.length === 0 ? true : errors.join(" ");
 };
+
+export const educationValidations = {
+  institution: (value) => (!value?.trim() ? 'Instituição é obrigatória' : ''),
+  courseDegree: (value) => (!value?.trim() ? 'Curso/grau é obrigatório' : ''),
+  startDate: (value) => {
+    if (!value) return 'Data de início é obrigatória';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Formato inválido (use AAAA-MM-DD)';
+    return '';
+  },
+  endDate: (value) => 
+    (value && !/^\d{4}-\d{2}-\d{2}$/.test(value) ? 'Formato inválido (use AAAA-MM-DD)' : ''),
+};
