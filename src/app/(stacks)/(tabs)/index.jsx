@@ -19,7 +19,7 @@ import { get } from "@/services/api";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
-  const { user } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
   const [totalPosts, setTotalPosts] = useState(0);
   const [limit, setLimit] = useState(10);
@@ -28,23 +28,35 @@ export default function Home() {
 
   const getUserData = async () => {
     try {
-      const res = await get(`/user/users/${user.id}`);
-      log.debug("get by id res:", res);
-      if (res.data) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          nome: res.data.nome,
-          school: res.data.school,
-          course: res.data.course,
-          userClass: res.data.userClass,
-          banner_img: res.data.banner_img,
-          profile_img: res.data.profile_img,
-        }));
+      if (!user?.id) {
+        throw new Error("ID do usuário não disponível");
       }
 
-      return res;
+      const response = await get(`/user/users/${user.id}`);
+      log.debug("Resposta completa:", response);
+
+      const userData = response.data;
+
+      if (userData) {
+        setUser((prevUser) => ({
+          ...prevUser,
+          nome: userData.nome,
+          school: userData.school,
+          course: userData.course,
+          userClass: userData.userClass,
+          profile_img: userData.profile_img,
+          banner_img: userData.banner_img,
+        }));
+
+        log.debug("Contexto atualizado:", {
+          ...user,
+          ...userData,
+        });
+      }
+
+      return userData;
     } catch (error) {
-      console.error("Error fetching user data:", {
+      console.error("Erro ao buscar dados:", {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data,
@@ -86,16 +98,16 @@ export default function Home() {
         status: error.response?.status,
         data: error.response?.data,
       });
-      throw error; // Rejeita o erro para ser tratado pelo chamador, se necessário
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!user?.token) return; // Sai se não houver token
+    if (!user?.token) return;
 
-    let isMounted = true; // Flag para controle de montagem
+    let isMounted = true;
 
     const fetchData = async () => {
       try {
@@ -109,9 +121,10 @@ export default function Home() {
     fetchData();
 
     return () => {
-      isMounted = false; // Cleanup para evitar state updates após desmontagem
+      isMounted = false;
     };
-  }, [user?.token]); // Dependência mais segura
+  }, [user?.token]);
+
   const loadMorePosts = () => {
     if (!isLoading && posts.length < totalPosts) {
       const newOffset = offset + limit;
