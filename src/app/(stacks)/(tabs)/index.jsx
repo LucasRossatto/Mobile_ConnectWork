@@ -16,6 +16,7 @@ import Settings from "@/components/index/Settings";
 import log from "@/utils/logger";
 import { AuthContext } from "@/contexts/AuthContext";
 import { get } from "@/services/api";
+import { UserRound } from "lucide-react-native";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
@@ -35,7 +36,7 @@ export default function Home() {
       const response = await get(`/user/users/${user.id}`);
       log.debug("Resposta completa:", response);
 
-      const userData = response.data;
+      const userData = response;
 
       if (userData) {
         setUser((prevUser) => ({
@@ -112,7 +113,7 @@ export default function Home() {
     const fetchData = async () => {
       try {
         await Promise.all([getPosts(), getUserData()]);
-        log.debug("userContext", user);
+        log.debug("userContext effect", user);
       } catch (error) {
         console.error("Error in useEffect:", error);
       }
@@ -124,7 +125,6 @@ export default function Home() {
       isMounted = false;
     };
   }, [user?.token]);
-
   const loadMorePosts = () => {
     if (!isLoading && posts.length < totalPosts) {
       const newOffset = offset + limit;
@@ -163,8 +163,17 @@ export default function Home() {
       {/* Barra de pesquisa */}
       <View className="bg-backgroundDark h-5 w-full"></View>
       <View className="bg-white flex-row items-center p-4">
-        <Image source={""} className="w-12 h-12 rounded-full bg-black" />
-
+        <View className="h-12 w-12 rounded-full bg-[#c2c2c2] flex justify-center items-center">
+          {user?.profile_img ? (
+            <Image
+              source={{ uri: user.profile_img }}
+              className="h-full w-full rounded-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <UserRound size={36} color="black" />
+          )}
+        </View>
         <View className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2">
           <Icon
             name="search"
