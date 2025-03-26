@@ -5,7 +5,8 @@ import { AuthContext } from "@/contexts/AuthContext";
 import ProgressBar from "../../../components/ProgressBar";
 import AsideEducation from "../../../components/profile/AsideEducation";
 import AsideExperience from "../../../components/AsideExperience";
-import AddEducationModal from "../../../components/profile/modalEducation";
+import AddEducationModal from "../../../components/profile/ModalEducation";
+import EditEducationModal from "../../../components/profile/ModalEditEducation";
 import Post from "../../../components/Post";
 
 export default function Profile() {
@@ -22,6 +23,11 @@ export default function Profile() {
   const handleEditEducation = (education) => {
     setCurrentEducation(education);
     setIsEditModalVisible(true);
+  };
+
+  const RefreshAside = () => {
+    setIsEditModalVisible(false);
+    handleRefreshEducations();
   };
 
   return (
@@ -53,7 +59,7 @@ export default function Profile() {
         </View>
 
         {/* Informações do perfil */}
-        <View className="px-5 pt-[50px]">
+        <View className="px-5 pt-[50px] mb-4">
           <View className="flex-row justify-between items-center">
             <Text className="font-semibold text-2xl">
               {user?.nome || "Nome de usuário"}
@@ -100,22 +106,15 @@ export default function Profile() {
       <AddEducationModal
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
-        onSuccess={() => {
-          setIsAddModalVisible(false);
-          handleRefreshEducations();
-        }}
+        onSuccess={RefreshAside}
       />
 
-      {/* Modal de edição - Implemente quando pronto */}
-      {/* <EditEducationModal
+      <EditEducationModal
         visible={isEditModalVisible}
         onClose={() => setIsEditModalVisible(false)}
         education={currentEducation}
-        onSuccess={() => {
-          setIsEditModalVisible(false);
-          handleRefreshEducations();
-        }}
-      /> */}
+        onUpdateEducation={RefreshAside}
+      />
     </ScrollView>
   );
 }

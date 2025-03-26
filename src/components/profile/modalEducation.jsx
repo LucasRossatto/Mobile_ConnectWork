@@ -14,7 +14,7 @@ import FormField from "@/components/profile/FormField";
 import ActionButton from "@/components/profile/ActionButton";
 import { educationValidations } from "@/utils/validations";
 
-const ModalEducation = ({ visible, onClose, onAddEducation }) => {
+const ModalEducation = ({ visible, onClose, onSuccess }) => {
   const { user } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -65,7 +65,7 @@ const ModalEducation = ({ visible, onClose, onAddEducation }) => {
 
     try {
       setLoading(true);
-      const response = await post(`/user/education/${user.id}`, {
+      const res = await post(`/user/education/${user.id}`, {
         institution: formData.institution.trim(),
         courseDegree: formData.courseDegree.trim(),
         fieldOfStudy: formData.fieldOfStudy.trim() || null,
@@ -74,13 +74,13 @@ const ModalEducation = ({ visible, onClose, onAddEducation }) => {
         description: formData.description.trim() || null,
       });
 
-      if (!response?.education) throw new Error("Resposta inválida da API");
+      if (!res?.education) throw new Error("Resposta inválida da API");
 
       Alert.alert("Sucesso!", "Educação acadêmica adicionada com sucesso", [
         {
           text: "OK",
           onPress: () => {
-            onAddEducation(response.education);
+            onSuccess(res.education);
             setFormData({
               institution: "",
               courseDegree: "",
@@ -96,7 +96,7 @@ const ModalEducation = ({ visible, onClose, onAddEducation }) => {
     } catch (error) {
       Alert.alert(
         "Erro",
-        error.response?.data?.message || "Não foi possível salvar a formação"
+        error.res?.message || "Não foi possível salvar a formação"
       );
     } finally {
       setLoading(false);
