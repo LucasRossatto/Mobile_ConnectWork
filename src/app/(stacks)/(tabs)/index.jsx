@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Post from "@/components/Post";
 import Settings from "@/components/index/Settings";
 import log from "@/utils/logger";
@@ -20,12 +20,18 @@ import { UserRound } from "lucide-react-native";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const { user, setUser } = useContext(AuthContext);
   const [posts, setPosts] = useState([]);
   const [totalPosts, setTotalPosts] = useState(0);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([
+    { id: 1, text: "Desenvolvedor FullStack" },
+    { id: 2, text: "Operador Logístico" },
+    { id: 3, text: "Auxiliar de Administração" },
+  ]);
 
   const getUserData = async () => {
     try {
@@ -65,6 +71,7 @@ export default function Home() {
       throw error;
     }
   };
+
   const getPosts = async (newOffset = 0) => {
     try {
       if (!user?.token) {
@@ -125,12 +132,19 @@ export default function Home() {
       isMounted = false;
     };
   }, [user?.token]);
+
   const loadMorePosts = () => {
     if (!isLoading && posts.length < totalPosts) {
       const newOffset = offset + limit;
       setOffset(newOffset);
       getPosts(newOffset);
     }
+  };
+
+  const removeSearchItem = (id) => {
+    setRecentSearches(prevSearches => 
+      prevSearches.filter(item => item.id !== id)
+    );
   };
 
   const renderPost = ({ item }) => (
@@ -140,6 +154,18 @@ export default function Home() {
       content={item.content}
       img={item?.image_based64}
     />
+  );
+
+  const renderSearchItem = ({ item }) => (
+    <View className="flex-row justify-between items-center py-3 px-4">
+      <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
+      <TouchableOpacity 
+        onPress={() => removeSearchItem(item.id)}
+        className="p-2"
+      >
+        <Ionicons name="close" size={18} color="#9CA3AF" />
+      </TouchableOpacity>
+    </View>
   );
 
   const renderFooter = () => {
@@ -174,24 +200,69 @@ export default function Home() {
             <UserRound size={36} color="black" />
           )}
         </View>
-        <View className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2">
+        
+        <TouchableOpacity 
+          className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2"
+          onPress={() => setShowSearchModal(true)}
+        >
           <Icon
             name="search"
             size={18}
             color="#9CA3AF"
             style={{ marginLeft: 15, marginRight: 8 }}
           />
-          <TextInput
-            className="text-gray-700 text-base flex-1"
-            placeholder="Busque por vagas"
-            placeholderTextColor="#9CA3AF"
-          />
-        </View>
+          <Text className="text-gray-700 text-base flex-1">Busque por vagas</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
           <Icon name="cog" size={30} color="#4B5563" />
         </TouchableOpacity>
       </View>
+
+      {/* Modal de Pesquisa */}
+      <Modal
+        visible={showSearchModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View className="flex-1 bg-white">
+          {/* Cabeçalho branco */}
+          <View className="bg-white p-4 flex-row items-center border-b border-gray-200">
+            <TouchableOpacity
+              onPress={() => setShowSearchModal(false)}
+              className="flex-row items-center"
+            >
+              <Ionicons name="arrow-back" size={24} color="black" />
+            </TouchableOpacity>
+
+            <View className="flex-1 mx-2">
+              <TextInput
+                className="bg-gray-100 rounded-full px-4 py-2 text-black"
+                placeholder="Pesquisar vagas"
+                placeholderTextColor="#9CA3AF"
+                autoFocus={true}
+              />
+            </View>
+
+            <TouchableOpacity>
+              <MaterialIcons name="filter-list" size={24} color="black" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Conteúdo */}
+          <View className="p-4">
+            <Text className="text-lg font-bold mb-4 text-gray-800">Pesquisas recentes</Text>
+            
+            <FlatList
+              data={recentSearches}
+              renderItem={renderSearchItem}
+              keyExtractor={(item) => item.id.toString()}
+              ItemSeparatorComponent={() => <View className="h-px bg-gray-200 mx-4" />}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Lista de posts */}
       <FlatList
