@@ -10,25 +10,18 @@ import Post from "../../../components/Post";
 
 export default function Profile() {
   const { user } = useContext(AuthContext);
-  const [educations, setEducations] = useState([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [currentEducation, setCurrentEducation] = useState(null);
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
-  const handleAddEducation = (newEducation) => {
-    setEducations([...educations, newEducation]);
+  const handleRefreshEducations = () => {
+    setRefreshFlag((prev) => prev + 1);
   };
 
-  const handleEditEducation = (updatedEducation) => {
-    setEducations(
-      educations.map((edu) =>
-        edu.id === updatedEducation.id ? updatedEducation : edu
-      )
-    );
-  };
-
-  const handleDeleteEducation = (id) => {
-    setEducations(educations.filter((edu) => edu.id !== id));
+  const handleEditEducation = (education) => {
+    setCurrentEducation(education);
+    setIsEditModalVisible(true);
   };
 
   return (
@@ -82,13 +75,9 @@ export default function Profile() {
       {/* Seção de formações acadêmicas */}
       <View className="px-4 mb-4">
         <AsideEducation
-          educations={educations}
           onOpenModal={() => setIsAddModalVisible(true)}
-          onEdit={(edu) => {
-            setCurrentEducation(edu);
-            setIsEditModalVisible(true);
-          }}
-          onDelete={handleDeleteEducation}
+          onEdit={handleEditEducation}
+          refreshFlag={refreshFlag}
         />
       </View>
 
@@ -111,15 +100,21 @@ export default function Profile() {
       <AddEducationModal
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
-        onAddEducation={handleAddEducation}
+        onSuccess={() => {
+          setIsAddModalVisible(false);
+          handleRefreshEducations();
+        }}
       />
 
-      {/* Adicione o ModalEditEducation quando implementado */}
+      {/* Modal de edição - Implemente quando pronto */}
       {/* <EditEducationModal
         visible={isEditModalVisible}
         onClose={() => setIsEditModalVisible(false)}
         education={currentEducation}
-        onSave={handleEditEducation}
+        onSuccess={() => {
+          setIsEditModalVisible(false);
+          handleRefreshEducations();
+        }}
       /> */}
     </ScrollView>
   );

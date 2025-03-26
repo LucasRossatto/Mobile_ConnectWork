@@ -1,39 +1,70 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import React, { useContext, useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
+import { AuthContext } from "@/contexts/AuthContext";
+import { get } from "@/services/api";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
-const AsideEducation = ({ educations = [], onOpenModal, onEdit }) => {
+const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
+  const { user } = useContext(AuthContext);
+  const [educations, setEducations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showAllEducations, setShowAllEducations] = useState(false);
 
-  // Função para formatar a data no formato dd/mm/aaaa
-  const formatDisplayDate = (dateString) => {
-    if (!dateString) return "";
-    
+  const getEducations = async () => {
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "";
-      
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      
-      return `${day}/${month}/${year}`;
+      setLoading(true);
+      setError(null);
+
+      const res = await get(`/user/education/`);
+
+      if (res) {
+        setEducations(res);
+      } else {
+        throw new Error("Formato de dados inválido");
+      }
     } catch (error) {
-      console.error("Erro ao formatar data:", error);
-      return "";
+      setError(error.message);
+      Alert.alert(
+        "Erro",
+        error.response?.message || "Não foi possível carregar as formações"
+      );
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    getEducations();
+  }, [user?.id, refreshFlag]);
 
   const toggleShowAllEducations = () => {
     setShowAllEducations((prev) => !prev);
   };
 
-  // Mostra todas as formações ou apenas a primeira
-  const educationsToShow = showAllEducations ? educations : educations.slice(0, 1);
+  const educationsToShow = showAllEducations
+    ? educations
+    : educations.slice(0, 1);
+
+  if (loading && educations.length === 0) {
+    return (
+      <View className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-sm items-center justify-center h-40">
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <View className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-      {/* Cabeçalho */}
+      {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-xl font-semibold">Formação Acadêmica</Text>
         <TouchableOpacity
@@ -44,17 +75,26 @@ const AsideEducation = ({ educations = [], onOpenModal, onEdit }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Lista de Formações */}
-      {educations.length === 0 ? (
+      {error ? (
+        <View className="items-center py-4">
+          <Text className="text-red-500 mb-2">{error}</Text>
+          <TouchableOpacity
+            onPress={getEducations}
+            className="bg-blue-500 px-4 py-2 rounded"
+          >
+            <Text className="text-white">Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : educations.length === 0 ? (
         <Text className="text-gray-500 text-base mb-4">
           Não há formações acadêmicas adicionadas.
         </Text>
       ) : (
-        <ScrollView className="max-h-72" showsVerticalScrollIndicator={false}>
-          {educationsToShow.map((education, index) => (
-            <View 
-              key={`education-${index}`} 
-              className="mb-4 pb-3 border-b border-gray-100 last:border-0"
+        <View>
+          {educationsToShow.map((education) => (
+            <View
+              key={`education-${education.id}`}
+              className=" pb-3 border-b border-gray-100 last:border-0"
             >
               <Text className="text-lg font-bold mb-1">
                 {education.institution}
@@ -64,7 +104,9 @@ const AsideEducation = ({ educations = [], onOpenModal, onEdit }) => {
               </Text>
               <Text className="text-gray-500 text-sm mb-2">
                 {formatDisplayDate(education.startDate)} -{" "}
-                {education.endDate ? formatDisplayDate(education.endDate) : "Atual"}
+                {education.endDate
+                  ? formatDisplayDate(education.endDate)
+                  : "Atual"}
               </Text>
               {education.description && (
                 <Text className="text-sm text-gray-700">
@@ -73,25 +115,22 @@ const AsideEducation = ({ educations = [], onOpenModal, onEdit }) => {
               )}
             </View>
           ))}
-        </ScrollView>
+        </View>
       )}
 
-      {/* Rodapé com ações */}
+      {/* Footer */}
       <View className="flex-row justify-between items-center mt-4">
-        {/* Botão "Ver mais/Ver menos" */}
         {educations.length > 1 && (
           <TouchableOpacity onPress={toggleShowAllEducations}>
             <Text className="font-medium text-sm text-gray-600">
-              {showAllEducations ? "Ver menos" : "Ver mais"}
+              {showAllEducations
+                ? "Ver menos"
+                : `Ver mais (${educations.length - 1})`}
             </Text>
           </TouchableOpacity>
         )}
-        
-        {/* Botão de adicionar (alinhado à direita) */}
-        <TouchableOpacity 
-          onPress={onOpenModal}
-          className="ml-auto"
-        >
+
+        <TouchableOpacity onPress={onOpenModal} className="ml-auto">
           <Plus size={25} color="black" />
         </TouchableOpacity>
       </View>
