@@ -6,7 +6,6 @@ import {
   Modal,
   Alert,
   ScrollView,
-  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -172,7 +171,7 @@ const ModalEditEducation = ({
         </View>
       </View>
 
-      <View className="flex-1 bg-white p-6 max-w-md">
+      <View className="flex-1 bg-white p-6">
         <ScrollView showsVerticalScrollIndicator={false}>
           <FormField
             label="Instituição"
