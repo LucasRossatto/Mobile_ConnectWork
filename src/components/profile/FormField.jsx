@@ -4,6 +4,7 @@ export default function FormField({
   label,
   value,
   onChangeText,
+  inputMode,
   error,
   placeholder,
   required = false,
@@ -12,12 +13,12 @@ export default function FormField({
 }) {
   return (
     <View>
-      <Text className="text-sm font-medium mb-1">
+      <Text className="text-lg font-medium mb-2">
         {label} {required && '*'}
       </Text>
       <TextInput
-        className={`w-full border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md py-2 px-3 text-sm ${
-          multiline ? 'h-24 text-align-top' : ''
+        className={`w-full border mb-1 ${error ? 'border-red-500' : 'border-gray-300'} rounded-md py-4 px-3 text-base ${
+          multiline ? 'h-34 text-align-top' : ''
         }`}
         placeholder={placeholder}
         value={value}

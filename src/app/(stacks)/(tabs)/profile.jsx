@@ -2,12 +2,12 @@ import React, { useContext, useState } from "react";
 import { Text, View, TouchableOpacity, ScrollView, Image } from "react-native";
 import { UserRound, Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
-import ProgressBar from "../../../components/ProgressBar";
-import AsideEducation from "../../../components/profile/AsideEducation";
-import AsideExperience from "../../../components/AsideExperience";
-import AddEducationModal from "../../../components/profile/ModalEducation";
-import EditEducationModal from "../../../components/profile/ModalEditEducation";
-import Post from "../../../components/Post";
+import ProgressBar from "@/components/ProgressBar";
+import AsideEducation from "@/components/profile/AsideEducation";
+import AsideExperience from "@/components/AsideExperience";
+import AddEducationModal from "@/components/profile/ModalAddEducation";
+import EditEducationModal from "@/components/profile/ModalEditEducation";
+import Post from "@/components/Post";
 
 export default function Profile() {
   const { user } = useContext(AuthContext);

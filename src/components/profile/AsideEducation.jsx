@@ -107,11 +107,11 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
           </Text>
           <TouchableOpacity
             onPress={onOpenModal}
-            className="bg-blue-500 px-4 py-2 rounded-lg flex-row items-center"
+            className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
             activeOpacity={0.7}
           >
-            <Plus size={18} color="white" className="mr-2" />
-            <Text className="text-white font-medium">Adicionar formação</Text>
+            <Plus size={18} color="#60a5fa" className="mr-2" />
+            <Text className="text-blue-400 font-medium">Adicionar formação</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -128,7 +128,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
           {educationsToShow.map((education) => (
             <View
               key={`education-${education.id}`}
-              className="mb-4 pb-3 border-b border-gray-200 last:border-0"
+              className="mb-4 pb-3 border-b border-gray-100 last:border-0"
             >
               <View className="flex-row justify-between items-start">
                 <View className="flex-1">
