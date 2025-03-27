@@ -75,7 +75,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
   }
 
   return (
-    <View className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+    <View className="w-full bg-white p-4 rounded-2xl shadow-md md:w-80 border border-gray-200">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-xl font-semibold">Formação Acadêmica</Text>
