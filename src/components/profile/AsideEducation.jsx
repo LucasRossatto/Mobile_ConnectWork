@@ -167,7 +167,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
 
       {/* Footer */}
       {educations.length > 1 && (
-        <View className="pt-2">
+        <View>
           <TouchableOpacity
             onPress={toggleShowAllEducations}
             activeOpacity={0.7}
