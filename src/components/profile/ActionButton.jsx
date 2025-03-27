@@ -1,32 +1,36 @@
-import { TouchableOpacity, Text } from 'react-native';
+import { TouchableOpacity, Text } from "react-native";
 
 export default function ActionButton({
   text,
   onPress,
   disabled = false,
-  variant = 'primary',
+  variant = "primary",
 }) {
   const variantStyles = {
-    primary: 'bg-black',
-    secondary: 'bg-gray-200',
-    disabled: 'bg-gray-400',
+    primary: "bg-black",
+    secondary: "bg-gray-200",
+    disabled: "bg-gray-400",
   };
 
   const textStyles = {
-    primary: 'text-white',
-    secondary: 'text-black',
-    disabled: 'text-white',
+    primary: "text-white",
+    secondary: "text-black",
+    disabled: "text-white",
   };
 
   return (
     <TouchableOpacity
-      className={`py-3 px-6 rounded-md ${
+      className={`py-4 px-4 rounded-full ${
         disabled ? variantStyles.disabled : variantStyles[variant]
       }`}
       onPress={onPress}
       disabled={disabled}
     >
-      <Text className={disabled ? textStyles.disabled : textStyles[variant]}>
+      <Text
+        className={`${
+          disabled ? textStyles.disabled : textStyles[variant]
+        } text-center`}
+      >
         {text}
       </Text>
     </TouchableOpacity>
