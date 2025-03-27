@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
+import ActionButton from "@/components/profile/ActionButton";
 import { remove, put } from "@/services/api";
 import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
@@ -274,26 +274,20 @@ const ModalEditEducation = ({
           />
         </ScrollView>
 
-        <View className="flex justify-between items-center mt-4 gap-4">
-          <TouchableOpacity
+        <View className="flex mt-4 gap-4">
+          <ActionButton
             onPress={deleteEducation}
-            className="py-4 px-4 bg-red-500 w-full rounded-full"
             disabled={loading}
-          >
-            <Text className="text-white text-center">Excluir</Text>
-          </TouchableOpacity>
+            variant="delete"
+            text={"Excluir"}
+          />
 
-          <TouchableOpacity
+          <ActionButton
             onPress={handleSubmit}
             className="bg-black py-4 px-4  w-full rounded-full"
             disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white text-center">Salvar</Text>
-            )}
-          </TouchableOpacity>
+            text={loading ? "Salvando..." : "Salvar"}
+          />
         </View>
       </View>
     </Modal>
