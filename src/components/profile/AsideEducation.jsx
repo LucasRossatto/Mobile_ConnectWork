@@ -78,7 +78,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
     <View className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-4">
-      <Text className="text-xl font-semibold">Formação Acadêmica</Text>
+        <Text className="text-xl font-semibold">Formação Acadêmica</Text>
 
         <TouchableOpacity
           onPress={onOpenModal}
@@ -111,7 +111,9 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
             activeOpacity={0.7}
           >
             <Plus size={18} color="#60a5fa" className="mr-2" />
-            <Text className="text-blue-400 font-medium">Adicionar formação</Text>
+            <Text className="text-blue-400 font-medium">
+              Adicionar formação
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -155,7 +157,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
                   className="p-2 ml-2"
                   activeOpacity={0.7}
                 >
-                  <Pencil size={16} color="#6b7280"  />
+                  <Pencil size={16} color="#6b7280" />
                 </TouchableOpacity>
               </View>
             </View>
