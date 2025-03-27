@@ -1,6 +1,5 @@
 import { Tabs } from "expo-router";
-import Icon from "react-native-vector-icons/Feather";
-import IconOcticons from "react-native-vector-icons/Octicons";
+import { Ionicons } from '@expo/vector-icons';
 import React from "react";
 import { StatusBar } from "react-native";
 
@@ -15,6 +14,7 @@ export default function _TabsLayout() {
             height: 58,
             paddingTop: 8,
           },
+         
           tabBarActiveTintColor: "#F2F2F2",
           tabBarInactiveTintColor: "#676D75",
           tabBarShowLabel: false,
@@ -24,8 +24,12 @@ export default function _TabsLayout() {
           name="index"
           options={{
             headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="home" size={size} color={color} />
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons 
+                name={focused ? "home" : "home-outline"} 
+                size={28} 
+                color={color} 
+              />
             ),
           }}
         />
@@ -33,8 +37,12 @@ export default function _TabsLayout() {
           name="vacancys"
           options={{
             headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <IconOcticons name="briefcase" size={size} color={color} />
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons 
+                name={focused ? "briefcase" : "briefcase-outline"} 
+                size={28} 
+                color={color} 
+              />
             ),
           }}
         />
@@ -42,8 +50,12 @@ export default function _TabsLayout() {
           name="addPost"
           options={{
             headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="plus" size={size} color={color} />
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons 
+                name={focused ? "add-circle" : "add-circle-outline"} 
+                size={30} 
+                color={color} 
+              />
             ),
           }}
         />
@@ -51,8 +63,12 @@ export default function _TabsLayout() {
           name="notifications"
           options={{
             headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="bell" size={size} color={color} />
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons 
+                name={focused ? "notifications" : "notifications-outline"} 
+                size={28} 
+                color={color} 
+              />
             ),
           }}
         />
@@ -60,8 +76,12 @@ export default function _TabsLayout() {
           name="profile"
           options={{
             headerShown: false,
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="user" size={size} color={color} />
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons 
+                name={focused ? "person-circle-sharp" : "person-circle-outline"} 
+                size={30} 
+                color={color} 
+              />
             ),
           }}
         />
