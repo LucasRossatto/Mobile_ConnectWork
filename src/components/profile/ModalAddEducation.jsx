@@ -237,8 +237,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
           </View>
         </ScrollView>
 
-        {/* Rodapé com ações */}
-        <View className="p-4 border-t border-gray-200 flex-row justify-between">
+        <View className="p-4 flex justify-between gap-4">
           <ActionButton
             text="Cancelar"
             onPress={handleCloseModal}
