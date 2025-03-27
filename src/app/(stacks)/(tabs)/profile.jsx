@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useCallback } from "react";
 import { Text, View, TouchableOpacity, ScrollView, Image } from "react-native";
 import { UserRound, Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -13,61 +13,85 @@ import Post from "@/components/Post";
 
 export default function Profile() {
   const { user } = useContext(AuthContext);
-  // Estados para Education
-  const [isAddEducationModalVisible, setIsAddEducationModalVisible] = useState(false);
-  const [isEditEducationModalVisible, setIsEditEducationModalVisible] = useState(false);
-  const [currentEducation, setCurrentEducation] = useState(null);
-  
-  // Estados para Experience
-  const [isAddExperienceModalVisible, setIsAddExperienceModalVisible] = useState(false);
-  const [isEditExperienceModalVisible, setIsEditExperienceModalVisible] = useState(false);
-  const [currentExperience, setCurrentExperience] = useState(null);
-  
+  const [modalState, setModalState] = useState({
+    addEducation: false,
+    editEducation: false,
+    addExperience: false,
+    editExperience: false,
+  });
+
+  const [currentItem, setCurrentItem] = useState({
+    education: null,
+    experience: null,
+  });
+
   const [refreshFlag, setRefreshFlag] = useState(0);
 
-  const handleRefresh = () => {
+  // Funções de callback memorizadas
+  const handleRefresh = useCallback(() => {
     setRefreshFlag((prev) => prev + 1);
-  };
+  }, []);
 
-  const handleEditEducation = (education) => {
-    setCurrentEducation(education);
-    setIsEditEducationModalVisible(true);
-  };
+  const handleEditItem = useCallback((type, item) => {
+    setCurrentItem((prev) => ({ ...prev, [type]: item }));
+    setModalState((prev) => ({
+      ...prev,
+      [`edit${type.charAt(0).toUpperCase() + type.slice(1)}`]: true,
+    }));
+  }, []);
 
-  const handleEditExperience = (experience) => {
-    setCurrentExperience(experience);
-    setIsEditExperienceModalVisible(true);
-  };
+  const closeAllModals = useCallback(() => {
+    setModalState({
+      addEducation: false,
+      editEducation: false,
+      addExperience: false,
+      editExperience: false,
+    });
+  }, []);
 
-  const refreshAndCloseModal = () => {
-    setIsEditEducationModalVisible(false);
-    setIsEditExperienceModalVisible(false);
+  const refreshAndClose = useCallback(() => {
+    closeAllModals();
     handleRefresh();
+  }, [closeAllModals, handleRefresh]);
+
+  // Dados do perfil
+  const profileData = {
+    name: user?.nome || "Nome de usuário",
+    course: user?.course || "Curso",
+    class: user?.userClass || "Turma",
+    image: user?.profile_img,
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView className="flex-1 bg-gray-50" testID="profile-scrollview">
       {/* Container do perfil */}
       <View className="bg-white shadow-md pb-5 mb-4">
         {/* Banner */}
         <View className="bg-[#181818] h-[100px] relative">
-          <TouchableOpacity className="absolute top-2 right-2 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center">
+          <TouchableOpacity
+            className="absolute top-2 right-2 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center"
+            accessibilityLabel="Editar banner"
+          >
             <Pencil width={15} color="white" />
           </TouchableOpacity>
 
           {/* Foto de perfil */}
           <View className="h-[90px] w-[90px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
-            {user?.profile_img ? (
+            {profileData.image ? (
               <Image
-                source={{ uri: user.profile_img }}
+                source={{ uri: profileData.image }}
                 className="h-full w-full rounded-full"
                 resizeMode="cover"
+                accessibilityLabel="Foto do perfil"
               />
             ) : (
               <UserRound width={50} height={50} color="black" />
             )}
 
-            <TouchableOpacity className="absolute bottom-1 right-1 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center">
+            <TouchableOpacity
+              className="absolute bottom-1 right-1 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center"
+              accessibilityLabel="Editar foto de perfil"
+            >
               <Pencil width={15} color="white" />
             </TouchableOpacity>
           </View>
@@ -76,16 +100,16 @@ export default function Profile() {
         {/* Informações do perfil */}
         <View className="px-5 pt-[50px] mb-4">
           <View className="flex-row justify-between items-center">
-            <Text className="font-semibold text-2xl">
-              {user?.nome || "Nome de usuário"}
+            <Text className="font-semibold text-2xl" accessibilityRole="header">
+              {profileData.name}
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity accessibilityLabel="Editar perfil">
               <Pencil width={15} color="black" />
             </TouchableOpacity>
           </View>
 
-          <Text className="text-base mt-1">{user?.course || "Curso"}</Text>
-          <Text className="text-base mt-1">{user?.userClass || "Turma"}</Text>
+          <Text className="text-base mt-1">{profileData.course}</Text>
+          <Text className="text-base mt-1">{profileData.class}</Text>
 
           <View className="mt-5">
             <ProgressBar />
@@ -94,19 +118,23 @@ export default function Profile() {
       </View>
 
       {/* Seção de formações acadêmicas */}
-      <View className="px-4 mb-4">
+      <View className="px-4 mb-4" testID="education-section">
         <AsideEducation
-          onOpenModal={() => setIsAddEducationModalVisible(true)}
-          onEdit={handleEditEducation}
+          onOpenModal={() =>
+            setModalState((prev) => ({ ...prev, addEducation: true }))
+          }
+          onEdit={(education) => handleEditItem("education", education)}
           refreshFlag={refreshFlag}
         />
       </View>
 
       {/* Seção de experiências profissionais */}
-      <View className="px-4 mb-4">
+      <View className="px-4 mb-4" testID="experience-section">
         <AsideExperience
-          onOpenModal={() => setIsAddExperienceModalVisible(true)}
-          onEdit={handleEditExperience}
+          onOpenModal={() =>
+            setModalState((prev) => ({ ...prev, addExperience: true }))
+          }
+          onEdit={(experience) => handleEditItem("experience", experience)}
           refreshFlag={refreshFlag}
         />
       </View>
@@ -123,30 +151,38 @@ export default function Profile() {
 
       {/* Modais para Education */}
       <AddEducationModal
-        visible={isAddEducationModalVisible}
-        onClose={() => setIsAddEducationModalVisible(false)}
-        onSuccess={refreshAndCloseModal}
+        visible={modalState.addEducation}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, addEducation: false }))
+        }
+        onSuccess={refreshAndClose}
       />
 
       <EditEducationModal
-        visible={isEditEducationModalVisible}
-        onClose={() => setIsEditEducationModalVisible(false)}
-        education={currentEducation}
-        onUpdateEducation={refreshAndCloseModal}
+        visible={modalState.editEducation}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editEducation: false }))
+        }
+        education={currentItem.education}
+        onUpdateEducation={refreshAndClose}
       />
 
       {/* Modais para Experience */}
       <AddExperienceModal
-        visible={isAddExperienceModalVisible}
-        onClose={() => setIsAddExperienceModalVisible(false)}
-        onSuccess={refreshAndCloseModal}
+        visible={modalState.addExperience}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, addExperience: false }))
+        }
+        onSuccess={refreshAndClose}
       />
 
       <EditExperienceModal
-        visible={isEditExperienceModalVisible}
-        onClose={() => setIsEditExperienceModalVisible(false)}
-        experience={currentExperience}
-        onUpdateExperience={refreshAndCloseModal}
+        visible={modalState.editExperience}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editExperience: false }))
+        }
+        experience={currentItem.experience}
+        onUpdateExperience={refreshAndClose}
       />
     </ScrollView>
   );

@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ActionButton from "@/components/profile/ActionButton";
-import { remove, put } from "@/services/api";
+import api from "@/services/api";
 import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
 import FormField from "@/components/profile/FormField";
@@ -73,7 +73,7 @@ const ModalEditEducation = ({
           onPress: async () => {
             try {
               setLoading(true);
-              const res = await remove(`/user/education/${education.id}`);
+              const res = await api.delete(`/user/education/${education.id}`);
 
               log.debug("Res Tentativa de deletar", res);
               if ((res.status = 200)) {
@@ -119,7 +119,7 @@ const ModalEditEducation = ({
       };
 
       log.debug("Dados enviados para edição:", payload);
-      const res = await put(`/user/education/${education.id}`, payload);
+      const res = await api.put(`/user/education/${education.id}`, payload);
 
       if ((res.status = 200)) {
         Alert.alert("Sucesso", "Formação acadêmica editada com sucesso");

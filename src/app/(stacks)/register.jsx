@@ -10,7 +10,7 @@ import { useRouter } from "expo-router";
 import InputField from "@/components/register/InputField";
 import CoursePicker from "@/components/register/CoursePicker";
 import log from "@/utils/logger";
-import { post } from "@/services/api";
+import api from "@/services/api";
 import {
   validateEmail,
   validateCPF,
@@ -228,7 +228,7 @@ const MultiStepForm = () => {
 
       console.log("Payload sendo enviado:", payload);
 
-      const response = await post("/user/register", payload);
+      const response = await api.post("/user/register", payload);
       log.info("Resposta do backend:", response);
 
       if (response && response.user && response.user.id) {
@@ -296,7 +296,7 @@ const MultiStepForm = () => {
       setIsLoading(true);
       setErrors({});
 
-      const response = await post("/user/send-code", {
+      const response = await api.post("/user/send-code", {
         email: formData.email,
       });
 
@@ -391,7 +391,7 @@ const MultiStepForm = () => {
       const code = formData.verificationCode;
       log.debug(code);
 
-      const response = await post("/user/verify-code", {
+      const response = await api.post("/user/verify-code", {
         email: formData.email,
         code: code,
       });

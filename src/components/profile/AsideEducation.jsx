@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
-import { get } from "@/services/api";
+import api from '@/services/api';
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
@@ -26,27 +26,45 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
     try {
       setLoading(true);
       setError(null);
-
-      if (!user?.id) return;
-
-      const res = await get(`/user/education/`);
-      log.debug("Resposta do GetAll Educations", res);
-
-      if (res?.success && res.data) {
-        const educationsArray = Array.isArray(res.data) ? res.data : [];
-        log.debug("Array convertido:", educationsArray);
-        setEducations(educationsArray);
-      } else {
-        setEducations([]);
-        throw new Error("Formato de dados inválido");
+      setRefreshing(true);
+  
+      if (!user?.id) {
+        throw new Error('ID do usuário não disponível');
       }
+  
+      const res = await api.get(`/user/education/`);
+      log.debug("Resposta do GetAll Educations", res);
+  
+      if (!res?.success) {
+        throw handleError(
+          new Error('Resposta da API sem flag de sucesso'),
+          'validacao_educacao',
+          {
+            metadata: { response: res },
+            showToUser: false
+          }
+        );
+      }
+  
+      const educationsArray = Array.isArray(res.data) ? res.data : [];
+      log.debug("Array convertido:", educationsArray);
+      setEducations(educationsArray);
+  
     } catch (error) {
-      setError(error.message);
+      const handledError = handleError(error, 'buscar_educacoes', {
+        metadata: { userId: user?.id },
+        customMessage: 'Falha ao carregar formações acadêmicas'
+      });
+  
+      setError(handledError.message);
       setEducations([]);
-      Alert.alert(
-        "Erro",
-        error.response?.message || "Não foi possível carregar as formações"
-      );
+      
+      log.error('Erro no getEducations', {
+        errorType: handledError.errorType,
+        context: handledError.context,
+        originalError: handledError.originalError
+      });
+  
     } finally {
       setLoading(false);
       setRefreshing(false);

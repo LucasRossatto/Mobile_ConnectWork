@@ -9,13 +9,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "@/contexts/AuthContext";
-import { post } from "@/services/api";
+import api from "@/services/api";
 import FormField from "@/components/profile/FormField";
 import ActionButton from "@/components/profile/ActionButton";
 import { educationValidations } from "@/utils/validations";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
+import { handleError, ErrorTypes } from "@/services/errorHandler";
 
 const ModalEducation = ({ visible, onClose, onSuccess }) => {
   const { user } = useContext(AuthContext);
@@ -86,6 +87,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
 
     try {
       setLoading(true);
+
       const formattedData = {
         institution: formData.institution.trim(),
         courseDegree: formData.courseDegree.trim(),
@@ -95,37 +97,71 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
         description: formData.description.trim() || null,
       };
 
-      log.debug("tentativa de cadastrar education:", formattedData);
-      const res = await post(`/user/education/${user.id}`, formattedData);
+      log.debug("Tentativa de cadastrar education:", {
+        formattedData,
+        userId: user?.id,
+      });
 
-      if (!res?.education) throw new Error("Resposta inválida da API");
+      const res = await api
+        .post(`/user/education/${user.id}`, formattedData)
+        .catch((error) => {
+          throw handleError(error, "criar_educacao", {
+            metadata: { payload: formattedData },
+            customMessage: "Falha ao criar formação acadêmica",
+          });
+        });
+
+      if (!res?.education) {
+        throw handleError(
+          new Error("Resposta inválida da API"),
+          "resposta_educacao_invalida",
+          {
+            metadata: { response: res },
+            showToUser: false,
+          }
+        );
+      }
+
+      log.info("Educação criada com sucesso:", res.education);
 
       Alert.alert("Sucesso!", "Educação acadêmica adicionada com sucesso", [
         {
           text: "OK",
           onPress: () => {
             onSuccess(res.education);
-            setFormData({
-              institution: "",
-              courseDegree: "",
-              fieldOfStudy: "",
-              startDate: null,
-              endDate: null,
-              description: "",
-            });
+            resetForm();
             onClose();
           },
         },
       ]);
     } catch (error) {
-      log.error("Erro ao salvar formação:", error);
-      Alert.alert(
-        "Erro",
-        error.response?.message || "Não foi possível salvar a formação"
-      );
+      if (error.errorType === ErrorTypes.VALIDATION) {
+        setErrors((prev) => ({
+          ...prev,
+          ...error.response?.data?.errors,
+        }));
+        return;
+      }
+      log.error("Falha ao salvar formação:", {
+        error: error.originalError || error,
+        context: error.context,
+        type: error.errorType,
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      institution: "",
+      courseDegree: "",
+      fieldOfStudy: "",
+      startDate: null,
+      endDate: null,
+      description: "",
+    });
+    setErrors({});
   };
 
   return (

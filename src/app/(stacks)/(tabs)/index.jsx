@@ -15,7 +15,7 @@ import Post from "@/components/Post";
 import Settings from "@/components/index/Settings";
 import log from "@/utils/logger";
 import { AuthContext } from "@/contexts/AuthContext";
-import { get } from "@/services/api";
+import api from "@/services/api";
 import { UserRound } from "lucide-react-native";
 
 export default function Home() {
@@ -39,7 +39,7 @@ export default function Home() {
         throw new Error("ID do usuário não disponível");
       }
 
-      const response = await get(`/user/users/${user.id}`);
+      const response = await api.get(`/user/users/${user.id}`);
       log.debug("Resposta completa:", response);
 
       const userData = response;
@@ -80,7 +80,7 @@ export default function Home() {
 
       setIsLoading(true);
       log.debug("Token sendo enviado:", user.token);
-      const res = await get("/user/posts", {
+      const res = await api.get("/user/posts", {
         params: { limit, offset: newOffset },
       });
 
@@ -142,8 +142,8 @@ export default function Home() {
   };
 
   const removeSearchItem = (id) => {
-    setRecentSearches(prevSearches => 
-      prevSearches.filter(item => item.id !== id)
+    setRecentSearches((prevSearches) =>
+      prevSearches.filter((item) => item.id !== id)
     );
   };
 
@@ -159,7 +159,7 @@ export default function Home() {
   const renderSearchItem = ({ item }) => (
     <View className="flex-row justify-between items-center py-3 px-4">
       <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         onPress={() => removeSearchItem(item.id)}
         className="p-2"
       >
@@ -200,8 +200,8 @@ export default function Home() {
             <UserRound size={36} color="black" />
           )}
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2"
           onPress={() => setShowSearchModal(true)}
         >
@@ -211,7 +211,9 @@ export default function Home() {
             color="#9CA3AF"
             style={{ marginLeft: 15, marginRight: 8 }}
           />
-          <Text className="text-gray-700 text-base flex-1">Busque por vagas</Text>
+          <Text className="text-gray-700 text-base flex-1">
+            Busque por vagas
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
@@ -252,13 +254,17 @@ export default function Home() {
 
           {/* Conteúdo */}
           <View className="p-4">
-            <Text className="text-lg font-bold mb-4 text-gray-800">Pesquisas recentes</Text>
-            
+            <Text className="text-lg font-bold mb-4 text-gray-800">
+              Pesquisas recentes
+            </Text>
+
             <FlatList
               data={recentSearches}
               renderItem={renderSearchItem}
               keyExtractor={(item) => item.id.toString()}
-              ItemSeparatorComponent={() => <View className="h-px bg-gray-200 mx-4" />}
+              ItemSeparatorComponent={() => (
+                <View className="h-px bg-gray-200 mx-4" />
+              )}
             />
           </View>
         </View>

@@ -1,8 +1,14 @@
 import React, { useContext, useState } from "react";
-import { Text, View, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 import { Link, useRouter } from "expo-router";
-import { post } from "@/services/api";
+import api from "@/services/api";
 import { AuthContext } from "@/contexts/AuthContext";
 
 const validateEmail = (email) => {
@@ -24,51 +30,56 @@ export default function Login() {
     if (!email || !password) {
       return "Todos os campos são obrigatórios.";
     }
-  
+
     if (!validateEmail(email)) {
       return "Por favor, insira um e-mail válido.";
     }
-  
+
     if (password.length < 6) {
       return "A senha deve ter pelo menos 6 caracteres.";
     }
-  
+
     return null;
   };
-  
+
   const getLoginErrorMessage = (error) => {
     if (error.response) {
       switch (error.response.status) {
-        case 400: return "Requisição inválida. Verifique os dados enviados.";
+        case 400:
+          return "Requisição inválida. Verifique os dados enviados.";
         case 401:
-        case 404: return "Credenciais inválidas. Verifique seu e-mail e senha.";
-        case 403: return "Acesso negado. Você não tem permissão para acessar este recurso.";
-        case 500: return "Erro interno do servidor. Tente novamente mais tarde.";
-        default: return "Erro ao realizar o login. Tente novamente.";
+        case 404:
+          return "Credenciais inválidas. Verifique seu e-mail e senha.";
+        case 403:
+          return "Acesso negado. Você não tem permissão para acessar este recurso.";
+        case 500:
+          return "Erro interno do servidor. Tente novamente mais tarde.";
+        default:
+          return "Erro ao realizar o login. Tente novamente.";
       }
     }
-    
+
     if (error.request) {
       return "Sem resposta do servidor. Verifique sua conexão com a internet.";
     }
-    
+
     return "Erro ao enviar formulário.";
   };
-  
+
   const handleLogin = async () => {
     setError("");
     setSuccess("");
-  
+
     const validationError = validateLoginInputs(email, password);
     if (validationError) {
       setError(validationError);
       return;
     }
-  
+
     try {
       setIsLoading(true);
-      const response = await post("/user/login", { email, password });
-  
+      const response = await api.post("/user/login", { email, password });
+
       if (response.message === "Login bem-sucedido!") {
         const userData = {
           id: response.id,
@@ -76,7 +87,7 @@ export default function Login() {
           email: response.email || email,
           role: response.role || "user",
         };
-        
+
         await login(userData);
         setSuccess("Login realizado com sucesso!");
         router.replace("/(stacks)/(tabs)");
@@ -159,7 +170,7 @@ export default function Login() {
       {error ? (
         <Text className="text-red-500 text-center mb-4">{error}</Text>
       ) : null}
-      
+
       {success ? (
         <Text className="text-green-500 text-center mb-4">{success}</Text>
       ) : null}

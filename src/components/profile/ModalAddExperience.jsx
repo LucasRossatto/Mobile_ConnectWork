@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "@/contexts/AuthContext";
-import { post } from "@/services/api";
+import api from "@/services/api";
 import FormField from "@/components/profile/FormField";
 import ActionButton from "@/components/profile/ActionButton";
 import { experienceValidations } from "@/utils/validations";
@@ -85,6 +85,7 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
 
     try {
       setLoading(true);
+
       const formattedData = {
         title: formData.title.trim(),
         company: formData.company.trim(),
@@ -93,36 +94,76 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
         description: formData.description.trim() || null,
       };
 
-      log.debug("tentativa de cadastrar experience:", formattedData);
-      const res = await post(`/user/experience/${user.id}`, formattedData);
+      log.debug("Tentativa de cadastrar experiência:", {
+        payload: formattedData,
+        userId: user?.id,
+      });
 
-      if (!res?.experience) throw new Error("Resposta inválida da API");
+      const res = await api
+        .post(`/user/experience/${user.id}`, formattedData)
+        .catch((error) => {
+          throw handleError(error, "criar_experiencia", {
+            metadata: { payload: formattedData },
+            customMessage: "Falha ao salvar experiência profissional",
+          });
+        });
 
-      Alert.alert("Sucesso!", "Experiência profissional adicionada com sucesso", [
-        {
-          text: "OK",
-          onPress: () => {
-            onSuccess(res.experience);
-            setFormData({
-              title: "",
-              company: "",
-              startDate: null,
-              endDate: null,
-              description: "",
-            });
-            onClose();
-          },
-        },
-      ]);
-    } catch (error) {
-      log.error("Erro ao salvar experiência:", error);
+      if (!res?.experience) {
+        throw handleError(
+          new Error("Resposta inválida da API"),
+          "resposta_experiencia_invalida",
+          {
+            metadata: { response: res },
+            showToUser: false,
+          }
+        );
+      }
+
+      log.info("Experiência criada com sucesso:", res.experience);
+
       Alert.alert(
-        "Erro",
-        error.response?.message || "Não foi possível salvar a experiência"
+        "Sucesso!",
+        "Experiência profissional adicionada com sucesso",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              onSuccess(res.experience);
+              resetForm();
+              onClose();
+            },
+          },
+        ]
       );
+    } catch (error) {
+      if (
+        error.errorType === ErrorTypes.VALIDATION &&
+        error.response?.data?.errors
+      ) {
+        setErrors(error.response.data.errors);
+        return;
+      }
+
+      log.error("Falha na submissão da experiência:", {
+        errorType: error.errorType,
+        context: error.context,
+        originalError: error.originalError || error,
+        timestamp: new Date().toISOString(),
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      company: "",
+      startDate: null,
+      endDate: null,
+      description: "",
+    });
+    setErrors({});
   };
 
   return (

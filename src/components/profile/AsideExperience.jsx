@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
-import { get } from "@/services/api";
+import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
@@ -29,24 +29,37 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
 
       if (!user?.id) return;
 
-      const res = await get(`/user/experience/`);
+      const res = await api.get(`/user/experience/`);
       log.debug("Resposta do GetAll Experiences", res);
 
-      if (res?.success && res.data) {
-        const experiencesArray = Array.isArray(res.data) ? res.data : [];
-        log.debug("Array convertido:", experiencesArray);
-        setExperiences(experiencesArray);
-      } else {
-        setExperiences([]);
-        throw new Error("Formato de dados inválido");
+      if (!res?.success) {
+        throw handleError(
+          new Error("Resposta da API sem flag de sucesso"),
+          "validacao_educacao",
+          {
+            metadata: { response: res },
+            showToUser: false,
+          }
+        );
       }
+
+      const experiencesArray = Array.isArray(res.data) ? res.data : [];
+      log.debug("Array convertido:", experiencesArray);
+      setExperiences(experiencesArray);
     } catch (error) {
-      setError(error.message);
-      setExperiences([]);
-      Alert.alert(
-        "Erro",
-        error.response?.message || "Não foi possível carregar as experiências"
-      );
+      const handledError = handleError(error, "buscar_experiencias", {
+        metadata: { userId: user?.id },
+        customMessage: "Falha ao carregar expeiencias profissionais",
+      });
+
+      setError(handledError.message);
+      setEducations([]);
+
+      log.error("Erro no getExperience", {
+        errorType: handledError.errorType,
+        context: handledError.context,
+        originalError: handledError.originalError,
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);

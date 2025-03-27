@@ -10,7 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ActionButton from "@/components/profile/ActionButton";
-import { remove, put } from "@/services/api";
+import api from "@/services/api";
 import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
 import FormField from "@/components/profile/FormField";
@@ -73,7 +73,7 @@ const ModalEditExperience = ({
           onPress: async () => {
             try {
               setLoading(true);
-              const res = await remove(`/user/experience/${experience.id}`);
+              const res = await api.delete(`/user/experience/${experience.id}`);
 
               log.debug("Res Tentativa de deletar", res);
               if ((res.status = 200)) {
@@ -118,7 +118,7 @@ const ModalEditExperience = ({
       };
 
       log.debug("Dados enviados para edição:", payload);
-      const res = await put(`/user/experience/${experience.id}`, payload);
+      const res = await api.put(`/user/experience/${experience.id}`, payload);
 
       if ((res.status = 200)) {
         Alert.alert("Sucesso", "Experiência profissional editada com sucesso");
@@ -144,7 +144,9 @@ const ModalEditExperience = ({
         startDate: experience.startDate
           ? parseDateString(experience.startDate)
           : null,
-        endDate: experience.endDate ? parseDateString(experience.endDate) : null,
+        endDate: experience.endDate
+          ? parseDateString(experience.endDate)
+          : null,
         description: experience.description || "",
       });
     }
