@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
+
 import { remove, put } from "@/services/api";
 import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
@@ -273,35 +274,26 @@ const ModalEditEducation = ({
           />
         </ScrollView>
 
-        <View className="flex-row justify-between items-center mt-4">
+        <View className="flex justify-between items-center mt-4 gap-4">
           <TouchableOpacity
             onPress={deleteEducation}
-            className="py-2 px-4 bg-backgroundDark rounded-md"
+            className="py-4 px-4 bg-red-500 w-full rounded-full"
             disabled={loading}
           >
-            <Text className="text-red-600 font-bold">Excluir</Text>
+            <Text className="text-white text-center">Excluir</Text>
           </TouchableOpacity>
 
-          <View className="flex-row">
-            <TouchableOpacity
-              onPress={onClose}
-              className="bg-gray-200 py-2 px-4 rounded-md mr-2"
-              disabled={loading}
-            >
-              <Text>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleSubmit}
-              className="bg-black py-2 px-4 rounded-md"
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white">Salvar</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            className="bg-black py-4 px-4  w-full rounded-full"
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white text-center">Salvar</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
