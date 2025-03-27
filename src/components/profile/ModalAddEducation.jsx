@@ -144,7 +144,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
           <View className="flex-row items-center mx-2">
             <Ionicons name="school" size={24} color="white" />
             <Text className="text-2xl font-bold text-white ml-2">
-              Adicionar Formação
+              Adicionar Formação acadêmica
             </Text>
           </View>
         </View>

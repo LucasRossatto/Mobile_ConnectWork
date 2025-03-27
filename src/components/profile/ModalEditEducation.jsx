@@ -1,18 +1,19 @@
-import React, { useContext, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Modal,
   Alert,
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { AntDesign } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { remove, put } from "@/services/api";
 import log from "@/utils/logger";
-
+import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
+import FormField from "@/components/profile/FormField";
 
 const ModalEditEducation = ({
   visible,
@@ -21,55 +22,79 @@ const ModalEditEducation = ({
   onUpdateEducation,
 }) => {
   const [loading, setLoading] = useState(false);
-
-
-  const formatDisplayDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
+  const [errors, setErrors] = useState({});
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const [formData, setFormData] = useState({
-    institution: education?.institution || "",
-    courseDegree: education?.courseDegree || "",
-    fieldOfStudy: education?.fieldOfStudy || "",
-    startDate: education?.startDate ? formatDisplayDate(education.startDate) : "",
-    endDate: education?.endDate ? formatDisplayDate(education.endDate) : "",
-    description: education?.description || "",
+    institution: "",
+    courseDegree: "",
+    fieldOfStudy: "",
+    startDate: null,
+    endDate: null,
+    description: "",
   });
+  const parseDateString = (dateString) => {
+    if (!dateString) return null;
+
+    const parts = dateString.split("/");
+    if (parts.length === 3) {
+      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    }
+
+    return new Date(dateString);
+  };
+
+  const handleChange = (name, value) => {
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDateChange = (event, selectedDate, field) => {
+    if (field === "startDate") {
+      setShowStartDatePicker(false);
+    } else {
+      setShowEndDatePicker(false);
+    }
+
+    if (event.type === "set" && selectedDate) {
+      handleChange(field, selectedDate);
+    }
+  };
 
   const deleteEducation = async () => {
     Alert.alert(
       "Confirmar exclusão",
       "Tem certeza que deseja excluir esta formação?",
       [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
+        { text: "Cancelar", style: "cancel" },
         {
           text: "Excluir",
           onPress: async () => {
             try {
               setLoading(true);
               const res = await remove(`/user/education/${education.id}`);
-              log.debug("Res Tentativa de deletar", res)
-              if(res.status = 200){
-                Alert.alert("Sucesso", "A formação acadêmica foi deletada com sucesso");
+
+              log.debug("Res Tentativa de deletar", res);
+              if ((res.status = 200)) {
+                Alert.alert(
+                  "Sucesso",
+                  "A formação acadêmica foi deletada com sucesso"
+                );
               }
 
               if (onUpdateEducation) {
-                onUpdateEducation({ action: 'delete', id: education.id });
-            }
+                onUpdateEducation({ action: "delete", id: education.id });
+              }
 
               onClose();
             } catch (error) {
               log.error("Erro ao deletar educação:", error);
-              if(error.status = 404){
-                Alert.alert("Erro", "Não foi possível encontrar a formação acadêmica");
+              if ((error.status = 404)) {
+                Alert.alert(
+                  "Erro",
+                  "Não foi possível encontrar a formação acadêmica"
+                );
               }
             } finally {
               setLoading(false);
@@ -80,50 +105,29 @@ const ModalEditEducation = ({
     );
   };
 
-  const handleChange = (name, value) => {
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const handleEdit = async () => {
-    
-
+  const handleSubmit = async () => {
     try {
       setLoading(true);
 
-     
-
       const payload = {
-        ...(formData.institution && { institution: formData.institution }),
-        ...(formData.courseDegree && { courseDegree: formData.courseDegree }),
-        ...(formData.fieldOfStudy && { fieldOfStudy: formData.fieldOfStudy }),
-        ...(formData.startDate && { startDate: formData.startDate }),
-        ...(formData.endDate && { endDate: formData.endDate }),
-        ...(formData.description && { description: formData.description }),
+        institution: formData.institution.trim(),
+        courseDegree: formData.courseDegree.trim(),
+        fieldOfStudy: formData.fieldOfStudy.trim() || null,
+        startDate: formatDateForAPI(formData.startDate),
+        endDate: formData.endDate ? formatDateForAPI(formData.endDate) : null,
+        description: formData.description.trim() || null,
       };
-      log.debug("Debug Dados enviados:",payload)
 
-      
+      log.debug("Dados enviados para edição:", payload);
       const res = await put(`/user/education/${education.id}`, payload);
-      if(res.status = 200){
-        Alert.alert("Sucesso", "Formação acadêmica editada com sucesso");
 
+      if ((res.status = 200)) {
+        Alert.alert("Sucesso", "Formação acadêmica editada com sucesso");
       }
-      log.debug("Debug tentativa de editar:",res)
+      log.debug("Debug tentativa de editar:", res);
       if (onUpdateEducation) {
-        onUpdateEducation({ action: 'update', data: res });
-    }
+        onUpdateEducation({ action: "update", data: res });
+      }
       onClose();
     } catch (error) {
       log.error("Erro ao editar educação:", error);
@@ -133,6 +137,21 @@ const ModalEditEducation = ({
     }
   };
 
+  useEffect(() => {
+    if (education) {
+      setFormData({
+        institution: education.institution || "",
+        courseDegree: education.courseDegree || "",
+        fieldOfStudy: education.fieldOfStudy || "",
+        startDate: education.startDate
+          ? parseDateString(education.startDate)
+          : null,
+        endDate: education.endDate ? parseDateString(education.endDate) : null,
+        description: education.description || "",
+      });
+    }
+  }, [education, visible]);
+
   return (
     <Modal
       visible={visible}
@@ -140,112 +159,148 @@ const ModalEditEducation = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-center items-center bg-black/50 p-4">
-        <View className="w-full bg-white rounded-lg p-6 max-w-md">
-          {/* Cabeçalho */}
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-xl font-bold">Editar Formação</Text>
-            <TouchableOpacity onPress={onClose}>
-              <AntDesign name="close" size={24} color="black" />
+      <View className="bg-black p-4 flex-row items-center">
+        <TouchableOpacity onPress={onClose}>
+          <Ionicons name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View className="flex-row items-center mx-2">
+          <Ionicons name="school" size={24} color="white" />
+          <Text className="text-2xl font-bold text-white ml-2">
+            Editar Formação acadêmica
+          </Text>
+        </View>
+      </View>
+
+      <View className="flex-1 bg-white p-6 max-w-md">
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <FormField
+            label="Instituição"
+            value={formData.institution}
+            onChangeText={(text) => handleChange("institution", text)}
+            error={errors.institution}
+            placeholder="Nome da instituição"
+            required
+          />
+
+          <FormField
+            label="Curso/Grau"
+            value={formData.courseDegree}
+            onChangeText={(text) => handleChange("courseDegree", text)}
+            error={errors.courseDegree}
+            placeholder="Ex: Bacharelado em Ciência da Computação"
+            required
+          />
+
+          <FormField
+            label="Área de Estudo"
+            value={formData.fieldOfStudy}
+            onChangeText={(text) => handleChange("fieldOfStudy", text)}
+            placeholder="Ex: Ciência da Computação"
+          />
+
+          <View className="mb-4">
+            <Text className="text-lg font-medium mb-2">Data de Início *</Text>
+            <TouchableOpacity
+              onPress={() => setShowStartDatePicker(true)}
+              className={`w-full border mb-1 ${
+                errors.startDate ? "border-red-500" : "border-gray-300"
+              } rounded-md py-4 px-3 text-base`}
+            >
+              <Text className={formData.startDate ? "" : "text-gray-400"}>
+                {formData.startDate
+                  ? formatDateForDisplay(formData.startDate)
+                  : "Selecione a data"}
+              </Text>
             </TouchableOpacity>
+            {errors.startDate && (
+              <Text className="text-red-500 text-xs mt-1">
+                {errors.startDate}
+              </Text>
+            )}
           </View>
 
-         <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Campos com placeholders dos valores existentes */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium mb-2">Instituição *</Text>
-              <TextInput
-                value={formData.institution}
-                onChangeText={(text) => handleChange("institution", text)}
-                className="border rounded-md py-2 px-3 text-base"
-                placeholder={education?.institution || "Nome da instituição"}
-              />
-            </View>
+          {showStartDatePicker && (
+            <DateTimePicker
+              value={formData.startDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={(event, date) =>
+                handleDateChange(event, date, "startDate")
+              }
+              maximumDate={new Date()}
+            />
+          )}
 
-            <View className="mb-4">
-              <Text className="text-sm font-medium mb-2">Curso/Grau *</Text>
-              <TextInput
-                value={formData.courseDegree}
-                onChangeText={(text) => handleChange("courseDegree", text)}
-                className="border rounded-md py-2 px-3 text-base"
-                placeholder={education?.courseDegree || "Ex: Bacharelado em Ciência da Computação"}
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-sm font-medium mb-2">Área de Estudo</Text>
-              <TextInput
-                value={formData.fieldOfStudy}
-                onChangeText={(text) => handleChange("fieldOfStudy", text)}
-                className="border rounded-md py-2 px-3 text-base"
-                placeholder={education?.fieldOfStudy || "Ex: Ciência da Computação"}
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-sm font-medium mb-2">Data de Início *</Text>
-              <TextInput
-                value={formData.startDate}
-                onChangeText={(text) => handleChange("startDate", text)}
-                className="border rounded-md py-2 px-3 text-base"
-                placeholder={education?.startDate ? formatDisplayDate(education.startDate) : "DD/MM/AAAA"}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View className="mb-4">
-              <Text className="text-sm font-medium mb-2">Data de Término</Text>
-              <TextInput
-                value={formData.endDate}
-                onChangeText={(text) => handleChange("endDate", text)}
-                className="border rounded-md py-2 px-3 text-base"
-                placeholder={education?.endDate ? formatDisplayDate(education.endDate) : "DD/MM/AAAA (opcional)"}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View className="mb-6">
-              <Text className="text-sm font-medium mb-2">Descrição</Text>
-              <TextInput
-                value={formData.description}
-                onChangeText={(text) => handleChange("description", text)}
-                className="border rounded-md py-2 px-3 text-base h-24"
-                placeholder={education?.description || "Descrição adicional (opcional)"}
-                multiline={true}
-              />
-            </View>
-          </ScrollView>
-
-          {/* Rodapé com botões */}
-          <View className="flex-row justify-between items-center mt-4">
+          <View className="mb-4">
+            <Text className="text-lg font-medium mb-2">Data de Término</Text>
             <TouchableOpacity
-              onPress={deleteEducation}
-              className="py-2 px-4"
+              onPress={() => setShowEndDatePicker(true)}
+              className={`w-full border mb-1 ${
+                errors.endDate ? "border-red-500" : "border-gray-300"
+              } rounded-md py-4 px-3 text-base`}
+            >
+              <Text className={formData.endDate ? "" : "text-gray-400"}>
+                {formData.endDate
+                  ? formatDateForDisplay(formData.endDate)
+                  : "Selecione a data (opcional)"}
+              </Text>
+            </TouchableOpacity>
+            {errors.endDate && (
+              <Text className="text-red-500 text-xs mt-1">
+                {errors.endDate}
+              </Text>
+            )}
+          </View>
+
+          {showEndDatePicker && (
+            <DateTimePicker
+              value={formData.endDate || new Date()}
+              mode="date"
+              display="default"
+              onChange={(event, date) =>
+                handleDateChange(event, date, "endDate")
+              }
+              minimumDate={formData.startDate}
+            />
+          )}
+
+          <FormField
+            label="Descrição"
+            value={formData.description}
+            onChangeText={(text) => handleChange("description", text)}
+            placeholder="Descrição adicional (opcional)"
+            multiline
+          />
+        </ScrollView>
+
+        <View className="flex-row justify-between items-center mt-4">
+          <TouchableOpacity
+            onPress={deleteEducation}
+            className="py-2 px-4 bg-backgroundDark rounded-md"
+            disabled={loading}
+          >
+            <Text className="text-red-600 font-bold">Excluir</Text>
+          </TouchableOpacity>
+
+          <View className="flex-row">
+            <TouchableOpacity
+              onPress={onClose}
+              className="bg-gray-200 py-2 px-4 rounded-md mr-2"
               disabled={loading}
             >
-              <Text className="text-gray-500 font-bold">Excluir</Text>
+              <Text>Cancelar</Text>
             </TouchableOpacity>
-
-            <View className="flex-row">
-              <TouchableOpacity
-                onPress={onClose}
-                className="bg-gray-200 py-2 px-4 rounded-md mr-2"
-                disabled={loading}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleEdit}
-                className="bg-black py-2 px-4 rounded-md"
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white">Salvar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={handleSubmit}
+              className="bg-black py-2 px-4 rounded-md"
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white">Salvar</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </View>
