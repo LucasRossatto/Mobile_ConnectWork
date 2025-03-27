@@ -10,12 +10,14 @@ export default function ActionButton({
     primary: "bg-black",
     secondary: "bg-gray-200",
     disabled: "bg-gray-400",
+    delete:"bg-red-600"
   };
 
   const textStyles = {
     primary: "text-white",
     secondary: "text-black",
     disabled: "text-white",
+    delete:"text-white"
   };
 
   return (
