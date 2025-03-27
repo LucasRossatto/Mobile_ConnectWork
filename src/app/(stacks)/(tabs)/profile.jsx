@@ -4,30 +4,45 @@ import { UserRound, Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
 import ProgressBar from "@/components/ProgressBar";
 import AsideEducation from "@/components/profile/AsideEducation";
-import AsideExperience from "@/components/AsideExperience";
+import AsideExperience from "@/components/profile/AsideExperience";
 import AddEducationModal from "@/components/profile/ModalAddEducation";
 import EditEducationModal from "@/components/profile/ModalEditEducation";
+import AddExperienceModal from "@/components/profile/ModalAddExperience";
+import EditExperienceModal from "@/components/profile/ModalEditExperience";
 import Post from "@/components/Post";
 
 export default function Profile() {
   const { user } = useContext(AuthContext);
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  // Estados para Education
+  const [isAddEducationModalVisible, setIsAddEducationModalVisible] = useState(false);
+  const [isEditEducationModalVisible, setIsEditEducationModalVisible] = useState(false);
   const [currentEducation, setCurrentEducation] = useState(null);
+  
+  // Estados para Experience
+  const [isAddExperienceModalVisible, setIsAddExperienceModalVisible] = useState(false);
+  const [isEditExperienceModalVisible, setIsEditExperienceModalVisible] = useState(false);
+  const [currentExperience, setCurrentExperience] = useState(null);
+  
   const [refreshFlag, setRefreshFlag] = useState(0);
 
-  const handleRefreshEducations = () => {
+  const handleRefresh = () => {
     setRefreshFlag((prev) => prev + 1);
   };
 
   const handleEditEducation = (education) => {
     setCurrentEducation(education);
-    setIsEditModalVisible(true);
+    setIsEditEducationModalVisible(true);
   };
 
-  const RefreshAside = () => {
-    setIsEditModalVisible(false);
-    handleRefreshEducations();
+  const handleEditExperience = (experience) => {
+    setCurrentExperience(experience);
+    setIsEditExperienceModalVisible(true);
+  };
+
+  const refreshAndCloseModal = () => {
+    setIsEditEducationModalVisible(false);
+    setIsEditExperienceModalVisible(false);
+    handleRefresh();
   };
 
   return (
@@ -81,15 +96,19 @@ export default function Profile() {
       {/* Seção de formações acadêmicas */}
       <View className="px-4 mb-4">
         <AsideEducation
-          onOpenModal={() => setIsAddModalVisible(true)}
+          onOpenModal={() => setIsAddEducationModalVisible(true)}
           onEdit={handleEditEducation}
           refreshFlag={refreshFlag}
         />
       </View>
 
-      {/* Seção de experiências */}
+      {/* Seção de experiências profissionais */}
       <View className="px-4 mb-4">
-        <AsideExperience />
+        <AsideExperience
+          onOpenModal={() => setIsAddExperienceModalVisible(true)}
+          onEdit={handleEditExperience}
+          refreshFlag={refreshFlag}
+        />
       </View>
 
       {/* Seção de posts */}
@@ -102,18 +121,32 @@ export default function Profile() {
         />
       </View>
 
-      {/* Modais */}
+      {/* Modais para Education */}
       <AddEducationModal
-        visible={isAddModalVisible}
-        onClose={() => setIsAddModalVisible(false)}
-        onSuccess={RefreshAside}
+        visible={isAddEducationModalVisible}
+        onClose={() => setIsAddEducationModalVisible(false)}
+        onSuccess={refreshAndCloseModal}
       />
 
       <EditEducationModal
-        visible={isEditModalVisible}
-        onClose={() => setIsEditModalVisible(false)}
+        visible={isEditEducationModalVisible}
+        onClose={() => setIsEditEducationModalVisible(false)}
         education={currentEducation}
-        onUpdateEducation={RefreshAside}
+        onUpdateEducation={refreshAndCloseModal}
+      />
+
+      {/* Modais para Experience */}
+      <AddExperienceModal
+        visible={isAddExperienceModalVisible}
+        onClose={() => setIsAddExperienceModalVisible(false)}
+        onSuccess={refreshAndCloseModal}
+      />
+
+      <EditExperienceModal
+        visible={isEditExperienceModalVisible}
+        onClose={() => setIsEditExperienceModalVisible(false)}
+        experience={currentExperience}
+        onUpdateExperience={refreshAndCloseModal}
       />
     </ScrollView>
   );

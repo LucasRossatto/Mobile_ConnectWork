@@ -109,3 +109,15 @@ export const educationValidations = {
   endDate: (value) => 
     (value && !/^\d{4}-\d{2}-\d{2}$/.test(value) ? 'Formato inválido (use AAAA-MM-DD)' : ''),
 };
+
+export const experienceValidations = {
+  title: (value) => (!value?.trim() ? 'Cargo/função é obrigatório' : ''),
+  company: (value) => (!value?.trim() ? 'Empresa é obrigatória' : ''),
+  startDate: (value) => {
+    if (!value) return 'Data de início é obrigatória';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'Formato inválido (use AAAA-MM-DD)';
+    return '';
+  },
+  endDate: (value) => 
+    (value && !/^\d{4}-\d{2}-\d{2}$/.test(value) ? 'Formato inválido (use AAAA-MM-DD)' : ''),
+};
