@@ -32,13 +32,17 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
       const res = await get(`/user/education/`);
       log.debug("Resposta do GetAll Educations", res);
 
-      if (res) {
-        setEducations(res);
+      if (res?.success && res.data) {
+        const educationsArray = Array.isArray(res.data) ? res.data : [];
+        log.debug("Array convertido:", educationsArray);
+        setEducations(educationsArray);
       } else {
+        setEducations([]);
         throw new Error("Formato de dados inválido");
       }
     } catch (error) {
       setError(error.message);
+      setEducations([]);
       Alert.alert(
         "Erro",
         error.response?.message || "Não foi possível carregar as formações"
@@ -63,8 +67,8 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
   };
 
   const educationsToShow = showAllEducations
-    ? educations
-    : educations.slice(0, 1);
+    ? educations || []
+    : (educations || []).slice(0, 1);
 
   if (loading && educations.length === 0) {
     return (
@@ -167,7 +171,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
 
       {/* Footer */}
       {educations.length > 1 && (
-        <View>
+        <View className="pt-2">
           <TouchableOpacity
             onPress={toggleShowAllEducations}
             activeOpacity={0.7}
