@@ -494,7 +494,7 @@ const MultiStepForm = () => {
       <View className="flex-row justify-between mt-6">
         {step > 1 && (
           <TouchableOpacity
-            className="bg-gray-600 py-3 px-16 rounded-[14]"
+            className="bg-gray-600 py-3 px-16 rounded-full"
             onPress={prevStep}
             disabled={isLoading}
           >
@@ -504,7 +504,7 @@ const MultiStepForm = () => {
 
         {step < steps.length ? (
           <TouchableOpacity
-            className="bg-black py-3 px-16 rounded-[14]"
+            className="bg-black py-3 px-16 rounded-full"
             onPress={nextStep}
             disabled={isLoading}
           >
