@@ -154,7 +154,7 @@ export default function Login() {
 
       <TouchableOpacity
         onPress={handleLogin}
-        className="w-full bg-black p-5 rounded-[14px] mb-8"
+        className="w-full bg-black p-5 rounded-full mb-8"
         disabled={isLoading}
         accessibilityRole="button"
       >

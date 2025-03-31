@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
-import api from '@/services/api';
+import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
@@ -27,44 +27,42 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
       setLoading(true);
       setError(null);
       setRefreshing(true);
-  
+
       if (!user?.id) {
-        throw new Error('ID do usuário não disponível');
+        throw new Error("ID do usuário não disponível");
       }
-  
+
       const res = await api.get(`/user/education/`);
       log.debug("Resposta do GetAll Educations", res);
-  
+
       if (!res?.success) {
         throw handleError(
-          new Error('Resposta da API sem flag de sucesso'),
-          'validacao_educacao',
+          new Error("Resposta da API sem flag de sucesso"),
+          "validacao_educacao",
           {
             metadata: { response: res },
-            showToUser: false
+            showToUser: false,
           }
         );
       }
-  
+
       const educationsArray = Array.isArray(res.data) ? res.data : [];
       log.debug("Array convertido:", educationsArray);
       setEducations(educationsArray);
-  
     } catch (error) {
-      const handledError = handleError(error, 'buscar_educacoes', {
+      const handledError = handleError(error, "buscar_educacoes", {
         metadata: { userId: user?.id },
-        customMessage: 'Falha ao carregar formações acadêmicas'
+        customMessage: "Falha ao carregar formações acadêmicas",
       });
-  
+
       setError(handledError.message);
       setEducations([]);
-      
-      log.error('Erro no getEducations', {
+
+      log.error("Erro no getEducations", {
         errorType: handledError.errorType,
         context: handledError.context,
-        originalError: handledError.originalError
+        originalError: handledError.originalError,
       });
-  
     } finally {
       setLoading(false);
       setRefreshing(false);

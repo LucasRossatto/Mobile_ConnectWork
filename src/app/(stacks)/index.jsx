@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { View, Image, Text } from "react-native";
+import { View, Image, Text, TouchableOpacity } from "react-native";
 
 export default function Home() {
   return (
@@ -13,18 +13,20 @@ export default function Home() {
       </View>
 
       <View className="bg-white flex gap-4 pt-14 pr-6 pl-6 w-full pb-6 rounded-t-[56]">
-        <Link
-          className="border bg-black text-white p-5 rounded-[14] text-center text-lg font-medium"
-          href={"/(stacks)/login"}
-        >
-          <Text>Login</Text>
+        <Link href={"/(stacks)/login"} asChild>
+          <TouchableOpacity
+            className="border bg-black text-white p-5 rounded-full flex items-center"
+          >
+            <Text className="text-white text-lg font-medium">Login</Text>
+          </TouchableOpacity>
         </Link>
 
-        <Link
-          className="border p-5 rounded-[14] text-center text-lg font-medium"
-          href={"/(stacks)/register"}
-        >
-          <Text>Cadastre-se</Text>
+        <Link href={"/(stacks)/register"} asChild>
+          <TouchableOpacity
+            className="border border-gray-300 shadow-md p-5 rounded-full flex items-center"
+          >
+            <Text className="text-black text-lg font-medium">Cadastre-se</Text>
+          </TouchableOpacity>
         </Link>
       </View>
     </View>
