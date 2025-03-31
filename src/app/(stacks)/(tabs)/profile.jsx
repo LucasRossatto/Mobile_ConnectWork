@@ -1,5 +1,5 @@
 import React, { useContext, useState, useCallback } from "react";
-import { Text, View, TouchableOpacity, ScrollView, Image } from "react-native";
+import { Text, View, TouchableOpacity, ScrollView, Image, RefreshControl } from "react-native";
 import { UserRound, Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
 import ProgressBar from "@/components/ProgressBar";
@@ -10,14 +10,16 @@ import EditEducationModal from "@/components/profile/ModalEditEducation";
 import AddExperienceModal from "@/components/profile/ModalAddExperience";
 import EditExperienceModal from "@/components/profile/ModalEditExperience";
 import Post from "@/components/Post";
+import EditProfileModal from "@/components/profile/ModalEditProfile";
 
 export default function Profile() {
-  const { user } = useContext(AuthContext);
+  const { user, refreshUserData } = useContext(AuthContext);
   const [modalState, setModalState] = useState({
     addEducation: false,
     editEducation: false,
     addExperience: false,
     editExperience: false,
+    editProfile: false,
   });
 
   const [currentItem, setCurrentItem] = useState({
@@ -26,11 +28,19 @@ export default function Profile() {
   });
 
   const [refreshFlag, setRefreshFlag] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Funções de callback memorizadas
-  const handleRefresh = useCallback(() => {
-    setRefreshFlag((prev) => prev + 1);
-  }, []);
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshUserData();
+      setRefreshFlag((prev) => prev + 1); 
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshUserData]);
 
   const handleEditItem = useCallback((type, item) => {
     setCurrentItem((prev) => ({ ...prev, [type]: item }));
@@ -46,6 +56,7 @@ export default function Profile() {
       editEducation: false,
       addExperience: false,
       editExperience: false,
+      editProfile: false,
     });
   }, []);
 
@@ -54,18 +65,28 @@ export default function Profile() {
     handleRefresh();
   }, [closeAllModals, handleRefresh]);
 
-  // Dados do perfil
   const profileData = {
     name: user?.nome || "Nome de usuário",
     course: user?.course || "Curso",
     class: user?.userClass || "Turma",
+    school: user?.school || "Escola",
     image: user?.profile_img,
+    banner: user?.banner_img,
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" testID="profile-scrollview">
-      {/* Container do perfil */}
-      <View className="bg-white shadow-md pb-5 mb-4">
+    <ScrollView 
+      className="flex-1 bg-gray-50" 
+      testID="profile-scrollview"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+        />
+      }
+    >
+      {/* Container do perfil com key para forçar rerender */}
+      <View key={`profile-${refreshFlag}`} className="bg-white shadow-md pb-5 mb-4">
         {/* Banner */}
         <View className="bg-[#181818] h-[100px] relative">
           <TouchableOpacity
@@ -79,7 +100,7 @@ export default function Profile() {
           <View className="h-[90px] w-[90px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
             {profileData.image ? (
               <Image
-                source={{ uri: profileData.image }}
+                source={{ uri: `${profileData.image}?${refreshFlag}` }} // Adiciona query param para evitar cache
                 className="h-full w-full rounded-full"
                 resizeMode="cover"
                 accessibilityLabel="Foto do perfil"
@@ -91,6 +112,7 @@ export default function Profile() {
             <TouchableOpacity
               className="absolute bottom-1 right-1 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center"
               accessibilityLabel="Editar foto de perfil"
+              onPress={() => setModalState(prev => ({...prev, editProfile: true}))}
             >
               <Pencil width={15} color="white" />
             </TouchableOpacity>
@@ -103,13 +125,17 @@ export default function Profile() {
             <Text className="font-semibold text-2xl" accessibilityRole="header">
               {profileData.name}
             </Text>
-            <TouchableOpacity accessibilityLabel="Editar perfil">
+            <TouchableOpacity 
+              onPress={() => setModalState(prev => ({...prev, editProfile: true}))}
+              accessibilityLabel="Editar perfil"
+            >
               <Pencil width={15} color="black" />
             </TouchableOpacity>
           </View>
 
           <Text className="text-base mt-1">{profileData.course}</Text>
-          <Text className="text-base mt-1">{profileData.class}</Text>
+          <Text className="text-base mt-1">{profileData.school}, {profileData.class}</Text>
+
 
           <View className="mt-5">
             <ProgressBar />
@@ -149,7 +175,7 @@ export default function Profile() {
         />
       </View>
 
-      {/* Modais para Education */}
+      {/* Modais */}
       <AddEducationModal
         visible={modalState.addEducation}
         onClose={() =>
@@ -167,7 +193,6 @@ export default function Profile() {
         onUpdateEducation={refreshAndClose}
       />
 
-      {/* Modais para Experience */}
       <AddExperienceModal
         visible={modalState.addExperience}
         onClose={() =>
@@ -183,6 +208,13 @@ export default function Profile() {
         }
         experience={currentItem.experience}
         onUpdateExperience={refreshAndClose}
+      />
+
+      <EditProfileModal
+        visible={modalState.editProfile}
+        onClose={() => setModalState(prev => ({...prev, editProfile: false}))}
+        user={user}
+        onUpdateUser={refreshAndClose}
       />
     </ScrollView>
   );

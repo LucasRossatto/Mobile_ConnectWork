@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import api from "@/services/api";
 
 export const AuthContext = createContext();
 
@@ -92,6 +93,30 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUserData = useCallback(async () => {
+    if (!user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    try {
+      const response = await api.get(`/user/users/${user.id}`);
+      
+      if (!response?.id) {
+        throw new Error("Dados inválidos recebidos");
+      }
+
+      const updatedUser = { ...user, ...response };
+      setUser(updatedUser);
+      
+      await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+      throw error;
+    }
+  }, [user]);
+
   const isAuthenticated = !!user?.token;
 
   return (
@@ -101,6 +126,7 @@ const AuthProvider = ({ children }) => {
         setUser,
         login,
         logout,
+        refreshUserData,
         isAuthenticated,
         isLoading,
       }}

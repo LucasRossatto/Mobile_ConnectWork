@@ -103,7 +103,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
       });
 
       const res = await api
-        .post(`/user/education/${user.id}`, formattedData)
+        .post(`/user/education/`, formattedData)
         .catch((error) => {
           throw handleError(error, "criar_educacao", {
             metadata: { payload: formattedData },
@@ -111,7 +111,9 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
           });
         });
 
-      if (!res?.education) {
+        log.debug("Resposta da api", res)
+
+      if (!res?.success) {
         throw handleError(
           new Error("Resposta inválida da API"),
           "resposta_educacao_invalida",
@@ -122,7 +124,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
         );
       }
 
-      log.info("Educação criada com sucesso:", res.education);
+      log.info("Educação criada com sucesso:", res);
 
       Alert.alert("Sucesso!", "Educação acadêmica adicionada com sucesso", [
         {
