@@ -108,7 +108,7 @@ export default function Login() {
   return (
     <View className="flex-1 justify-center bg-backgroundLight p-4">
       <Text className="text-4xl font-medium mb-10 text-center">
-        Faça o seu login
+        Entre com sua conta
       </Text>
 
       <TextInput
@@ -145,7 +145,7 @@ export default function Login() {
         </TouchableOpacity>
       </View>
 
-      <View className="items-end mb-14">
+      <View className="items-end mb-8">
         <Link
           href="/forgot-password"
           className="text-gray-400 text-base font-medium underline"
@@ -154,6 +154,15 @@ export default function Login() {
           Esqueceu a senha?
         </Link>
       </View>
+      
+      {error ? (
+        <Text className="text-red-500 text-center mb-4">{error}</Text>
+      ) : null}
+
+      {success ? (
+        <Text className="text-green-500 text-center mb-4">{success}</Text>
+      ) : null}
+
 
       <TouchableOpacity
         onPress={handleLogin}
@@ -170,14 +179,7 @@ export default function Login() {
         )}
       </TouchableOpacity>
 
-      {error ? (
-        <Text className="text-red-500 text-center mb-4">{error}</Text>
-      ) : null}
-
-      {success ? (
-        <Text className="text-green-500 text-center mb-4">{success}</Text>
-      ) : null}
-
+      
       <View className="flex-row justify-center items-center">
         <Text className="text-gray-600">Não tem uma conta? </Text>
         <Link

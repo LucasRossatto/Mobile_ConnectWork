@@ -17,7 +17,7 @@ export default function Home() {
           <TouchableOpacity
             className="border bg-black text-white p-5 rounded-full flex items-center"
           >
-            <Text className="text-white text-lg font-medium">Login</Text>
+            <Text className="text-white text-lg font-medium">Entrar</Text>
           </TouchableOpacity>
         </Link>
 
