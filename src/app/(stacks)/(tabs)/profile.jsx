@@ -7,7 +7,7 @@ import {
   Image,
   RefreshControl,
 } from "react-native";
-import { UserRound, Pencil } from "lucide-react-native";
+import { Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
 import ProgressBar from "@/components/ProgressBar";
 import AsideEducation from "@/components/profile/AsideEducation";
@@ -96,13 +96,6 @@ export default function Profile() {
       >
         {/* Banner */}
         <View className="bg-[#181818] h-[100px] relative">
-          <TouchableOpacity
-            className="absolute top-2 right-2 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center"
-            accessibilityLabel="Editar banner"
-          >
-            <Pencil width={15} color="white" />
-          </TouchableOpacity>
-
           {/* Foto de perfil */}
 
           <View className="h-[86px] w-[86px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
@@ -115,23 +108,11 @@ export default function Profile() {
               />
             ) : (
               <View className="flex-1 justify-center items-center">
-                {" "}
-                {/* Container extra para centralização */}
-                <Text className="text-6xl font-bold text-black text-center leading-[86px]">
+                <Text className="text-6xl font-bold text-black text-center leading-[86px] -mt-1">
                   {user?.nome?.charAt(0)?.toUpperCase()}
                 </Text>
               </View>
             )}
-
-            <TouchableOpacity
-              className="absolute bottom-1 right-1 w-[26px] h-[26px] rounded-full bg-black flex justify-center items-center"
-              accessibilityLabel="Editar foto de perfil"
-              onPress={() =>
-                setModalState((prev) => ({ ...prev, editProfile: true }))
-              }
-            >
-              <Pencil width={15} color="white" />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -142,12 +123,13 @@ export default function Profile() {
               {profileData.name}
             </Text>
             <TouchableOpacity
+              className="bg-black rounded-full w-[34] h-[34] flex items-center justify-center"
               onPress={() =>
                 setModalState((prev) => ({ ...prev, editProfile: true }))
               }
               accessibilityLabel="Editar perfil"
             >
-              <Pencil width={15} color="black" />
+              <Pencil width={16} color="white" />
             </TouchableOpacity>
           </View>
 
