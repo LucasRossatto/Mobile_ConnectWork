@@ -33,9 +33,9 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
       }
 
       const res = await api.get(`/user/education/`);
-      log.debug("Resposta do GetAll Educations", res);
+      log.debug("Resposta do GetAll Educations", res.data);
 
-      if (!res?.success) {
+      if (!res.data?.success) {
         throw handleError(
           new Error("Resposta da API sem flag de sucesso"),
           "validacao_educacao",
@@ -47,7 +47,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
       }
 
       const educationsArray = Array.isArray(res.data) ? res.data : [];
-      log.debug("Array convertido:", educationsArray);
+      log.debug("Lista de Formações academicas convertida:", educationsArray);
       setEducations(educationsArray);
     } catch (error) {
       const handledError = handleError(error, "buscar_educacoes", {

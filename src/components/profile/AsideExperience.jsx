@@ -30,9 +30,9 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
       if (!user?.id) return;
 
       const res = await api.get(`/user/experience/`);
-      log.debug("Resposta do GetAll Experiences", res);
+      log.debug("Resposta do GetAll Experiences", res.data);
 
-      if (!res?.success) {
+      if (!res.data?.success) {
         throw handleError(
           new Error("Resposta da API sem flag de sucesso"),
           "validacao_educacao",
@@ -44,7 +44,7 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
       }
 
       const experiencesArray = Array.isArray(res.data) ? res.data : [];
-      log.debug("Array convertido:", experiencesArray);
+      log.debug("Lista de experiencias convertida:", experiencesArray);
       setExperiences(experiencesArray);
     } catch (error) {
       const handledError = handleError(error, "buscar_experiencias", {
