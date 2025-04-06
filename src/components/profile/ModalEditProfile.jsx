@@ -54,7 +54,7 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
 
       log.debug("Dados enviados para edição:", payload);
       const res = await api.put(`/user/user/${user.id}`, payload);
-      log.debug("Resposta da API:", res);
+      log.debug("Resposta da API:", res.data);
 
       if ((res.status = 200)) {
         const updatedUser = {

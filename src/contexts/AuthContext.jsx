@@ -101,7 +101,7 @@ const AuthProvider = ({ children }) => {
     try {
       const response = await api.get(`/user/users/${user.id}`);
       
-      if (!response?.id) {
+      if (!response?.data.id) {
         throw new Error("Dados inválidos recebidos");
       }
 
