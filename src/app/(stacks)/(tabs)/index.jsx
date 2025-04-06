@@ -42,7 +42,7 @@ export default function Home() {
       const response = await api.get(`/user/users/${user.id}`);
       log.debug("Resposta completa:", response);
 
-      const userData = response;
+      const userData = response.data;
 
       if (userData) {
         setUser((prevUser) => ({
@@ -64,7 +64,7 @@ export default function Home() {
       return userData;
     } catch (error) {
       console.error("Erro ao buscar dados:", {
-        message: error.message,
+        message: error.data.message,
         status: error.response?.status,
         data: error.response?.data,
       });
@@ -88,7 +88,7 @@ export default function Home() {
         throw new Error("No response received");
       }
 
-      if (!res.posts || !Array.isArray(res.posts)) {
+      if (!res.data.posts || !Array.isArray(res.data.posts)) {
         throw new Error("Expected an array of posts, but got something else");
       }
 
@@ -134,7 +134,7 @@ export default function Home() {
   }, [user?.token]);
 
   const loadMorePosts = () => {
-    if (!isLoading && posts.length < totalPosts) {
+    if (!isLoading && posts?.length < totalPosts) {
       const newOffset = offset + limit;
       setOffset(newOffset);
       getPosts(newOffset);
@@ -187,9 +187,8 @@ export default function Home() {
   return (
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
-      <View className="bg-backgroundDark h-5 w-full"></View>
       <View className="bg-white flex-row items-center p-4">
-        <View className="h-12 w-12 rounded-full bg-[#c2c2c2] flex justify-center items-center">
+        <View className="h-12 w-12 rounded-full bg-gray-400 flex justify-center items-center">
           {user?.profile_img ? (
             <Image
               source={{ uri: user.profile_img }}
@@ -197,7 +196,9 @@ export default function Home() {
               resizeMode="cover"
             />
           ) : (
-            <UserRound size={36} color="black" />
+            <Text className="text-xl font-bold text-black">
+              {user.nome?.charAt(0)?.toUpperCase()}
+            </Text>
           )}
         </View>
 
@@ -282,7 +283,6 @@ export default function Home() {
         ListEmptyComponent={renderEmptyList}
       />
 
-      {/* Modal para exibir o Settings em tela cheia */}
       <Modal
         visible={showSettings}
         transparent={true}

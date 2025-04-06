@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import log from "@/utils/logger";
 import Icon from "react-native-vector-icons/Octicons";
 import { Link, useRouter } from "expo-router";
 import api from "@/services/api";
@@ -79,12 +80,14 @@ export default function Login() {
     try {
       setIsLoading(true);
       const response = await api.post("/user/login", { email, password });
+      log.debug("Resposta ao tentar logar:", response)
 
-      if (response.message === "Login bem-sucedido!") {
+
+      if (response.status === 200) {
         const userData = {
-          id: response.id,
-          token: response.token,
-          email: response.email || email,
+          id: response.data.id,
+          token: response.data.token,
+          email: response.data.email || email,
           role: response.role || "user",
         };
 

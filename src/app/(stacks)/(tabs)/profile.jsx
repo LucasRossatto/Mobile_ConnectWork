@@ -1,5 +1,12 @@
 import React, { useContext, useState, useCallback } from "react";
-import { Text, View, TouchableOpacity, ScrollView, Image, RefreshControl } from "react-native";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  RefreshControl,
+} from "react-native";
 import { UserRound, Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
 import ProgressBar from "@/components/ProgressBar";
@@ -34,7 +41,7 @@ export default function Profile() {
     setRefreshing(true);
     try {
       await refreshUserData();
-      setRefreshFlag((prev) => prev + 1); 
+      setRefreshFlag((prev) => prev + 1);
     } catch (error) {
       console.error("Error refreshing data:", error);
     } finally {
@@ -75,18 +82,18 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView 
-      className="flex-1 bg-gray-50" 
+    <ScrollView
+      className="flex-1 bg-gray-50"
       testID="profile-scrollview"
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
       {/* Container do perfil com key para forçar rerender */}
-      <View key={`profile-${refreshFlag}`} className="bg-white shadow-md pb-5 mb-4">
+      <View
+        key={`profile-${refreshFlag}`}
+        className="bg-white shadow-md pb-5 mb-4"
+      >
         {/* Banner */}
         <View className="bg-[#181818] h-[100px] relative">
           <TouchableOpacity
@@ -97,22 +104,31 @@ export default function Profile() {
           </TouchableOpacity>
 
           {/* Foto de perfil */}
-          <View className="h-[90px] w-[90px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
+
+          <View className="h-[86px] w-[86px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
             {profileData.image ? (
               <Image
-                source={{ uri: `${profileData.image}?${refreshFlag}` }} // Adiciona query param para evitar cache
+                source={{ uri: `${profileData.image}?${refreshFlag}` }}
                 className="h-full w-full rounded-full"
                 resizeMode="cover"
                 accessibilityLabel="Foto do perfil"
               />
             ) : (
-              <UserRound width={50} height={50} color="black" />
+              <View className="flex-1 justify-center items-center">
+                {" "}
+                {/* Container extra para centralização */}
+                <Text className="text-6xl font-bold text-black text-center leading-[86px]">
+                  {user?.nome?.charAt(0)?.toUpperCase()}
+                </Text>
+              </View>
             )}
 
             <TouchableOpacity
-              className="absolute bottom-1 right-1 w-[30px] h-[30px] rounded-full bg-black flex justify-center items-center"
+              className="absolute bottom-1 right-1 w-[26px] h-[26px] rounded-full bg-black flex justify-center items-center"
               accessibilityLabel="Editar foto de perfil"
-              onPress={() => setModalState(prev => ({...prev, editProfile: true}))}
+              onPress={() =>
+                setModalState((prev) => ({ ...prev, editProfile: true }))
+              }
             >
               <Pencil width={15} color="white" />
             </TouchableOpacity>
@@ -125,8 +141,10 @@ export default function Profile() {
             <Text className="font-semibold text-2xl" accessibilityRole="header">
               {profileData.name}
             </Text>
-            <TouchableOpacity 
-              onPress={() => setModalState(prev => ({...prev, editProfile: true}))}
+            <TouchableOpacity
+              onPress={() =>
+                setModalState((prev) => ({ ...prev, editProfile: true }))
+              }
               accessibilityLabel="Editar perfil"
             >
               <Pencil width={15} color="black" />
@@ -134,8 +152,9 @@ export default function Profile() {
           </View>
 
           <Text className="text-base mt-1">{profileData.course}</Text>
-          <Text className="text-base mt-1">{profileData.school}, {profileData.class}</Text>
-
+          <Text className="text-base mt-1">
+            {profileData.school}, {profileData.class}
+          </Text>
 
           <View className="mt-5">
             <ProgressBar />
@@ -212,7 +231,9 @@ export default function Profile() {
 
       <EditProfileModal
         visible={modalState.editProfile}
-        onClose={() => setModalState(prev => ({...prev, editProfile: false}))}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editProfile: false }))
+        }
         user={user}
         onUpdateUser={refreshAndClose}
       />
