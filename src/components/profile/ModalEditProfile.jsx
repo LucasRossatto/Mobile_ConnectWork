@@ -7,6 +7,8 @@ import {
   Alert,
   ScrollView,
   Image,
+  ActionSheetIOS,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -26,10 +28,11 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
     nome: "",
     course: "",
     school: "",
-    userClass:"",
+    userClass: "",
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [showImageActions, setShowImageActions] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -46,17 +49,35 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
     })();
   }, [visible]);
 
+  const showImagePickerOptions = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancelar", "Escolher da biblioteca", "Remover foto"],
+          cancelButtonIndex: 0,
+          destructiveButtonIndex: user?.profile_img || profileImage ? 2 : -1,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) pickImage();
+          if (buttonIndex === 2) confirmDeleteImage();
+        }
+      );
+    } else {
+      setShowImageActions(true);
+    }
+  };
+
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.5,
         base64: true,
       });
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         const base64Length = result.assets[0].base64.length;
         const sizeInBytes = base64Length * (3 / 4);
 
@@ -73,6 +94,41 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
     } catch (error) {
       Alert.alert("Erro", "Não foi possível selecionar a imagem");
       log.error("Erro ao selecionar imagem:", error);
+    } finally {
+      setShowImageActions(false);
+    }
+  };
+
+  const confirmDeleteImage = () => {
+    Alert.alert(
+      "Remover foto",
+      "Tem certeza que deseja remover sua foto de perfil?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Remover", onPress: deleteProfileImage, style: "destructive" },
+      ]
+    );
+  };
+
+  const deleteProfileImage = async () => {
+    try {
+      setImgLoading(true);
+      const res = await api.put(`/user/profile_img/${user.id}`, {
+        profile_img: null,
+      });
+
+      if (res.status === 200) {
+        setProfileImage(null);
+        const updatedUser = { ...user, profile_img: null };
+        setUser(updatedUser);
+        Alert.alert("Sucesso", "Foto removida com sucesso");
+      }
+    } catch (error) {
+      log.error("Erro ao deletar imagem:", error);
+      Alert.alert("Erro", "Não foi possível remover a foto");
+    } finally {
+      setImgLoading(false);
+      setShowImageActions(false);
     }
   };
 
@@ -89,37 +145,13 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
 
       const res = await api.put(`/user/profile_img/${user.id}`, imagePayload);
 
-      log.debug("Resposta da edicao de profilei mg", res.data);
+      log.debug("Resposta da edicao de profile img", res.data);
 
       if (res.status === 200) {
         return res.data.imageUrl;
       }
     } catch (error) {
       log.error("Erro ao enviar imagem:", error);
-      throw error;
-    } finally {
-      setImgLoading(false);
-    }
-  };
-
-  const deleteProfileImage = async () => {
-    if (!profileImage) return;
-
-    try {
-      setImgLoading(true);
-      const nullRequest = {
-        profile_img: null,
-      };
-
-      const res = await api.put(`/user/profile_img/${user.id}`, nullRequest);
-
-      log.debug("Resposta da removoção de profile img", res.data);
-
-      if (res.status === 200) {
-        return res.data.imageUrl;
-      }
-    } catch (error) {
-      log.error("Erro ao deletar imagem:", error);
       throw error;
     } finally {
       setImgLoading(false);
@@ -136,7 +168,7 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
       nome: "",
       course: "",
       school: "",
-      userClass:""
+      userClass: "",
     });
     setErrors({});
     setProfileImage(null);
@@ -157,7 +189,7 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
         nome: formData.nome.trim(),
         course: formData.course.trim(),
         school: formData.school.trim() || null,
-        userClass: formData.userClass.trim()
+        userClass: formData.userClass.trim(),
       };
       log.debug("Payload:", payload);
 
@@ -212,7 +244,7 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
         nome: user.nome || "",
         course: user.course || "",
         school: user.school || "",
-        userClass: user.userClass || ""
+        userClass: user.userClass || "",
       });
       setErrors({});
       setFormSubmitted(false);
@@ -241,7 +273,7 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
       <View className="flex-1 bg-white p-5">
         <ScrollView showsVerticalScrollIndicator={false}>
           <View className="items-center mb-6">
-            <TouchableOpacity onPress={pickImage}>
+            <TouchableOpacity onPress={showImagePickerOptions}>
               <View className="h-[120px] w-[120px] rounded-full bg-[#D9D9D9] flex justify-center items-center overflow-hidden">
                 {profileImage ? (
                   <Image
@@ -264,11 +296,69 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
                 )}
               </View>
 
-              <Text className="text-center mt-2  text-blue-500 font-medium">
+              <Text className="text-center mt-2 text-blue-500 font-medium">
                 Toque para Alterar
               </Text>
             </TouchableOpacity>
           </View>
+
+          {showImageActions && (
+            <Modal
+              transparent={true}
+              animationType="slide"
+              visible={showImageActions}
+              onRequestClose={() => setShowImageActions(false)}
+            >
+              <TouchableOpacity
+                className="flex-1 bg-black/50"
+                activeOpacity={1}
+                onPress={() => setShowImageActions(false)}
+              >
+                <View className="absolute bottom-0 w-full bg-white p-4 rounded-t-2xl">
+                  <TouchableOpacity
+                    className="py-4 border-b border-gray-200 flex-row items-center justify-center"
+                    onPress={pickImage}
+                  >
+                    <Ionicons
+                      name="image"
+                      size={20}
+                      color="#000"
+                      className="mr-2"
+                    />
+                    <Text className="text-lg text-center">
+                      Escolher da biblioteca
+                    </Text>
+                  </TouchableOpacity>
+
+                  {(user?.profile_img || profileImage) && (
+                    <TouchableOpacity
+                      className="py-4 flex-row items-center justify-center"
+                      onPress={confirmDeleteImage}
+                    >
+                      <Ionicons
+                        name="trash-bin"
+                        size={20}
+                        color="#dc2626"
+                        className="mr-2"
+                      />
+                      <Text className="text-lg text-center text-red-600">
+                        Remover foto
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    className="py-4 mt-2 flex-row items-center justify-center"
+                    onPress={() => setShowImageActions(false)}
+                  >
+                    <Text className="text-lg text-center text-gray-500">
+                      Cancelar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
 
           <FormField
             label="Nome"
@@ -292,7 +382,8 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
             onChangeText={(text) => handleChange("school", text)}
             placeholder="Ex: Universidade Federal"
           />
-           <FormField
+
+          <FormField
             label="Turma"
             value={formData.userClass}
             onChangeText={(text) => handleChange("userClass", text)}
