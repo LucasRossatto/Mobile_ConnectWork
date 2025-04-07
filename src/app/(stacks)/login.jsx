@@ -80,8 +80,7 @@ export default function Login() {
     try {
       setIsLoading(true);
       const response = await api.post("/user/login", { email, password });
-      log.debug("Resposta ao tentar logar:", response.data)
-
+      log.debug("Resposta ao tentar logar:", response.data);
 
       if (response.status === 200) {
         const userData = {
@@ -105,9 +104,13 @@ export default function Login() {
   };
 
   return (
-    <View className="flex-1 justify-center bg-backgroundLight p-4">
-      <Text className="text-4xl font-medium mb-10 text-center">
+    <View className="flex-1 bg-white p-4">
+      <Text className="text-4xl font-medium mb-4 mt-32 text-center">
         Entre com sua conta
+      </Text>
+
+      <Text className="text-2xl font-medium mb-10 text-gray-400 text-center">
+        Bem-vindo de volta!
       </Text>
 
       <TextInput
@@ -153,7 +156,7 @@ export default function Login() {
           Esqueceu a senha?
         </Link>
       </View>
-      
+
       {error ? (
         <Text className="text-red-500 text-center mb-4">{error}</Text>
       ) : null}
@@ -162,32 +165,32 @@ export default function Login() {
         <Text className="text-green-500 text-center mb-4">{success}</Text>
       ) : null}
 
-
-      <TouchableOpacity
-        onPress={handleLogin}
-        className="w-full bg-black p-5 rounded-full mb-8"
-        disabled={isLoading}
-        accessibilityRole="button"
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="text-white text-center text-lg font-medium">
-            Entre agora
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      
-      <View className="flex-row justify-center items-center">
-        <Text className="text-gray-600">Não tem uma conta? </Text>
-        <Link
-          href="/(stacks)/register"
-          className="text-blue-500 text-base font-medium underline"
-          accessibilityRole="link"
+      <View className="mt-40">
+        <TouchableOpacity
+          onPress={handleLogin}
+          className="w-full bg-black p-5 rounded-full mb-8"
+          disabled={isLoading}
+          accessibilityRole="button"
         >
-          Cadastre-se
-        </Link>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-white text-center text-lg font-medium">
+              Entre agora
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <View className="flex-row justify-center items-center">
+          <Text className="text-gray-600">Não tem uma conta? </Text>
+          <Link
+            href="/(stacks)/register"
+            className="text-blue-500 text-base font-medium underline"
+            accessibilityRole="link"
+          >
+            Cadastre-se
+          </Link>
+        </View>
       </View>
     </View>
   );
