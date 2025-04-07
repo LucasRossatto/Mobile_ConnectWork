@@ -75,7 +75,7 @@ const ModalEditExperience = ({
               setLoading(true);
               const res = await api.delete(`/user/experience/${experience.id}`);
 
-              log.debug("Res Tentativa de deletar", res);
+              log.debug("Res Tentativa de deletar experiencia", res.data);
               if ((res.status = 200)) {
                 Alert.alert(
                   "Sucesso",

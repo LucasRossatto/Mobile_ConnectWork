@@ -75,7 +75,7 @@ const ModalEditEducation = ({
               setLoading(true);
               const res = await api.delete(`/user/education/${education.id}`);
 
-              log.debug("Res Tentativa de deletar", res);
+              log.debug("Res Tentativa de deletar fromação academica", res.data);
               if ((res.status = 200)) {
                 Alert.alert(
                   "Sucesso",
@@ -124,7 +124,7 @@ const ModalEditEducation = ({
       if ((res.status = 200)) {
         Alert.alert("Sucesso", "Formação acadêmica editada com sucesso");
       }
-      log.debug("Debug tentativa de editar:", res);
+      log.debug("Debug tentativa de editar:", res.data);
       if (onUpdateEducation) {
         onUpdateEducation({ action: "update", data: res });
       }

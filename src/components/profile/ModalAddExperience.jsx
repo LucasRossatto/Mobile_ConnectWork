@@ -72,7 +72,13 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
         "Tem certeza que deseja sair? Todas as alterações serão perdidas.",
         [
           { text: "Cancelar", style: "cancel" },
-          { text: "Sair", onPress: onClose },
+          {
+            text: "Sair",
+            onPress: () => {
+              resetForm();
+              onClose();
+            },
+          },
         ]
       );
     } else {
@@ -108,7 +114,7 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
           });
         });
 
-      if (!res?.experience) {
+      if (!res?.data.experience) {
         throw handleError(
           new Error("Resposta inválida da API"),
           "resposta_experiencia_invalida",
@@ -180,7 +186,6 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View className="flex-row items-center mx-2">
-            <Ionicons name="briefcase" size={24} color="white" />
             <Text className="text-2xl font-bold text-white ml-2">
               Adicionar Experiência Profissional
             </Text>
@@ -195,7 +200,7 @@ const ModalExperience = ({ visible, onClose, onSuccess }) => {
               value={formData.title}
               onChangeText={(text) => handleChange("title", text)}
               error={errors.title}
-              placeholder="Seu cargo na empresa"
+              placeholder="Cargo na empresa"
               required
             />
 

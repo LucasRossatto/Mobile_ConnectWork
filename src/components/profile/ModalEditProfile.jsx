@@ -6,8 +6,10 @@ import {
   Modal,
   Alert,
   ScrollView,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import api from "@/services/api";
 import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
@@ -18,13 +20,111 @@ import CoursePicker from "@/components/register/CoursePicker";
 const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
   const { setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [imgLoading, setImgLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     nome: "",
     course: "",
     school: "",
+    userClass:"",
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      if (visible) {
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permissão necessária",
+            "Precisamos acessar sua galeria para alterar a foto"
+          );
+        }
+      }
+    })();
+  }, [visible]);
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled) {
+        const base64Length = result.assets[0].base64.length;
+        const sizeInBytes = base64Length * (3 / 4);
+
+        if (sizeInBytes > 2 * 1024 * 1024) {
+          Alert.alert(
+            "Imagem muito grande",
+            "Por favor, selecione uma imagem menor que 2MB"
+          );
+          return;
+        }
+
+        setProfileImage(result.assets[0]);
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível selecionar a imagem");
+      log.error("Erro ao selecionar imagem:", error);
+    }
+  };
+
+  const uploadProfileImage = async () => {
+    if (!profileImage) return;
+
+    try {
+      setImgLoading(true);
+      const imagePayload = {
+        profile_img: `data:${profileImage.mimeType || "image/jpeg"};base64,${
+          profileImage.base64
+        }`,
+      };
+
+      const res = await api.put(`/user/profile_img/${user.id}`, imagePayload);
+
+      log.debug("Resposta da edicao de profilei mg", res.data);
+
+      if (res.status === 200) {
+        return res.data.imageUrl;
+      }
+    } catch (error) {
+      log.error("Erro ao enviar imagem:", error);
+      throw error;
+    } finally {
+      setImgLoading(false);
+    }
+  };
+
+  const deleteProfileImage = async () => {
+    if (!profileImage) return;
+
+    try {
+      setImgLoading(true);
+      const nullRequest = {
+        profile_img: null,
+      };
+
+      const res = await api.put(`/user/profile_img/${user.id}`, nullRequest);
+
+      log.debug("Resposta da removoção de profile img", res.data);
+
+      if (res.status === 200) {
+        return res.data.imageUrl;
+      }
+    } catch (error) {
+      log.error("Erro ao deletar imagem:", error);
+      throw error;
+    } finally {
+      setImgLoading(false);
+    }
+  };
 
   const handleChange = useCallback((name, value) => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -36,8 +136,10 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
       nome: "",
       course: "",
       school: "",
+      userClass:""
     });
     setErrors({});
+    setProfileImage(null);
   };
 
   const handleSubmit = useCallback(async () => {
@@ -46,21 +148,30 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
     try {
       setLoading(true);
 
+      let imageUrl = user.profile_img;
+      if (profileImage) {
+        imageUrl = await uploadProfileImage();
+      }
+
       const payload = {
         nome: formData.nome.trim(),
         course: formData.course.trim(),
         school: formData.school.trim() || null,
+        userClass: formData.userClass.trim()
       };
+      log.debug("Payload:", payload);
 
-      log.debug("Dados enviados para edição:", payload);
       const res = await api.put(`/user/user/${user.id}`, payload);
-      log.debug("Resposta da API:", res.data);
+      log.debug("Resposta edicao geral API:", res.data);
 
-      if ((res.status = 200)) {
+      if (res.status === 200) {
         const updatedUser = {
           ...user,
           ...payload,
+          profile_img: imageUrl,
         };
+
+        log.debug("updated user:", updatedUser);
 
         Alert.alert("Sucesso!", "Perfil atualizado com sucesso", [
           {
@@ -78,14 +189,22 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
       }
     } catch (error) {
       log.error("Erro ao editar perfil:", error);
-      Alert.alert(
-        "Erro",
-        error.response?.data?.message || "Não foi possível salvar as alterações"
-      );
+      let errorMessage = "Não foi possível salvar as alterações";
+
+      if (error.response) {
+        if (error.response.status === 413) {
+          errorMessage =
+            "A imagem selecionada é muito grande. Por favor, escolha uma imagem menor.";
+        } else {
+          errorMessage = error.response.data?.message || errorMessage;
+        }
+      }
+
+      Alert.alert("Erro", errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [formData, user, setUser, onUpdateUser, onClose]);
+  }, [formData, user, setUser, onUpdateUser, onClose, profileImage]);
 
   useEffect(() => {
     if (visible && user) {
@@ -93,9 +212,11 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
         nome: user.nome || "",
         course: user.course || "",
         school: user.school || "",
+        userClass: user.userClass || ""
       });
       setErrors({});
       setFormSubmitted(false);
+      setProfileImage(null);
     }
   }, [visible, user]);
 
@@ -111,22 +232,50 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <View className="flex-1 flex-row items-center mx-2">
-          <Ionicons name="person" size={24} color="white" />
           <Text className="text-2xl font-bold text-white ml-2">
-            Editar Informações Básicas
+            Editar Perfil
           </Text>
         </View>
       </View>
 
-      <View className="flex-1 bg-white p-6">
+      <View className="flex-1 bg-white p-5">
         <ScrollView showsVerticalScrollIndicator={false}>
+          <View className="items-center mb-6">
+            <TouchableOpacity onPress={pickImage}>
+              <View className="h-[120px] w-[120px] rounded-full bg-[#D9D9D9] flex justify-center items-center overflow-hidden">
+                {profileImage ? (
+                  <Image
+                    source={{ uri: profileImage.uri }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                ) : user?.profile_img ? (
+                  <Image
+                    source={{ uri: user.profile_img }}
+                    className="h-full w-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View className="flex-1 justify-center items-center">
+                    <Text className="text-6xl font-bold text-black text-center leading-[120px]">
+                      {user?.nome?.charAt(0)?.toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text className="text-center mt-2  text-blue-500 font-medium">
+                Toque para Alterar
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <FormField
             label="Nome"
             value={formData.nome}
             onChangeText={(text) => handleChange("nome", text)}
             error={errors.nome}
             placeholder="Seu nome completo"
-            required
           />
 
           <Text className="text-lg font-medium mb-2">Curso</Text>
@@ -138,19 +287,33 @@ const ModalEditProfile = ({ visible, onClose, user, onUpdateUser }) => {
           />
 
           <FormField
-            label="Escola"
+            label="Instituição de Ensino"
             value={formData.school}
             onChangeText={(text) => handleChange("school", text)}
             placeholder="Ex: Universidade Federal"
+          />
+           <FormField
+            label="Turma"
+            value={formData.userClass}
+            onChangeText={(text) => handleChange("userClass", text)}
+            placeholder="Ex: Manhã"
           />
         </ScrollView>
 
         <View className="flex mt-4 gap-4">
           <ActionButton
             onPress={handleSubmit}
-            text={loading ? "Salvando..." : "Salvar"}
-            disabled={loading}
-            className="bg-black py-4 px-4 w-full rounded-full"
+            text={
+              loading
+                ? imgLoading
+                  ? "Enviando imagem..."
+                  : "Salvando..."
+                : "Salvar"
+            }
+            disabled={loading || imgLoading}
+            className={`bg-black py-4 px-4 w-full rounded-full ${
+              loading ? "opacity-70" : ""
+            }`}
           />
         </View>
       </View>

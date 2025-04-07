@@ -80,7 +80,7 @@ export default function Login() {
     try {
       setIsLoading(true);
       const response = await api.post("/user/login", { email, password });
-      log.debug("Resposta ao tentar logar:", response)
+      log.debug("Resposta ao tentar logar:", response.data)
 
 
       if (response.status === 200) {
@@ -93,7 +93,6 @@ export default function Login() {
 
         await login(userData);
         setSuccess("Login realizado com sucesso!");
-        router.replace("/(stacks)/(tabs)");
       } else {
         setError(response.message || "Erro inesperado ao realizar o login.");
       }

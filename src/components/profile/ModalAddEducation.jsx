@@ -74,7 +74,13 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
         "Tem certeza que deseja sair? Todas as alterações serão perdidas.",
         [
           { text: "Cancelar", style: "cancel" },
-          { text: "Sair", onPress: onClose },
+          {
+            text: "Sair",
+            onPress: () => {
+              resetForm();
+              onClose();
+            },
+          },
         ]
       );
     } else {
@@ -111,9 +117,9 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
           });
         });
 
-        log.debug("Resposta da api", res)
+      log.debug("Resposta da api ao criar education", res.data);
 
-      if (!res?.success) {
+      if (!res?.data.education) {
         throw handleError(
           new Error("Resposta inválida da API"),
           "resposta_educacao_invalida",
@@ -124,7 +130,7 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
         );
       }
 
-      log.info("Educação criada com sucesso:", res);
+      log.info("Educação criada com sucesso:", res.data);
 
       Alert.alert("Sucesso!", "Educação acadêmica adicionada com sucesso", [
         {
@@ -180,7 +186,6 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
             <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <View className="flex-row items-center mx-2">
-            <Ionicons name="school" size={24} color="white" />
             <Text className="text-2xl font-bold text-white ml-2">
               Adicionar Formação acadêmica
             </Text>

@@ -40,7 +40,7 @@ export default function Home() {
       }
 
       const response = await api.get(`/user/users/${user.id}`);
-      log.debug("Resposta completa:", response);
+      log.debug("Resposta completa do getUserData:", response.data);
 
       const userData = response.data;
 
@@ -120,7 +120,7 @@ export default function Home() {
     const fetchData = async () => {
       try {
         await Promise.all([getPosts(), getUserData()]);
-        log.debug("userContext effect", user);
+        log.debug("userContext: ", user);
       } catch (error) {
         console.error("Error in useEffect:", error);
       }

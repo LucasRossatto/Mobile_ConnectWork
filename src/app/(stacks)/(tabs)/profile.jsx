@@ -99,9 +99,9 @@ export default function Profile() {
           {/* Foto de perfil */}
 
           <View className="h-[86px] w-[86px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
-            {profileData.image ? (
+            {user?.profile_img ? (
               <Image
-                source={{ uri: `${profileData.image}?${refreshFlag}` }}
+                source={{ uri: user?.profile_img }}
                 className="h-full w-full rounded-full"
                 resizeMode="cover"
                 accessibilityLabel="Foto do perfil"

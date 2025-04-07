@@ -22,6 +22,23 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
   const [error, setError] = useState(null);
   const [showAllExperiences, setShowAllExperiences] = useState(false);
 
+  const handleError = (error, context, options = {}) => {
+    const defaultMessage = "Ocorreu um erro inesperado";
+    const errorMessage = error.response?.data?.message || 
+                        options.customMessage || 
+                        defaultMessage;
+    
+    if (options.showToUser !== false) {
+      Alert.alert("Erro", errorMessage);
+    }
+    
+    return {
+      message: errorMessage,
+      errorType: error.name,
+      originalError: error
+    };
+  };
+
   const getExperiences = async () => {
     try {
       setLoading(true);
@@ -32,28 +49,26 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
       const res = await api.get(`/user/experience/`);
       log.debug("Resposta do GetAll Experiences", res.data);
 
-      if (!res.data?.success) {
+      if (!res.data?.success && !Array.isArray(res.data)) {
         throw handleError(
-          new Error("Resposta da API sem flag de sucesso"),
-          "validacao_educacao",
-          {
-            metadata: { response: res },
-            showToUser: false,
-          }
+          new Error("Formato inválido de resposta da API"),
+          "validacao_experiencia",
+          { metadata: { response: res } }
         );
       }
 
-      const experiencesArray = Array.isArray(res.data) ? res.data : [];
+      const experiencesArray = Array.isArray(res.data) ? res.data : 
+                             (res.data.data || []);
       log.debug("Lista de experiencias convertida:", experiencesArray);
       setExperiences(experiencesArray);
     } catch (error) {
       const handledError = handleError(error, "buscar_experiencias", {
         metadata: { userId: user?.id },
-        customMessage: "Falha ao carregar expeiencias profissionais",
+        customMessage: "Falha ao carregar experiências profissionais",
       });
 
       setError(handledError.message);
-      setEducations([]);
+      setExperiences([]);
 
       log.error("Erro no getExperience", {
         errorType: handledError.errorType,
@@ -101,8 +116,9 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
           onPress={onOpenModal}
           className="p-2"
           activeOpacity={0.7}
+          accessibilityLabel="Adicionar experiência"
         >
-          <Plus size={24} color="#3b82f6" />
+          <Plus size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -127,59 +143,58 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
             className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
             activeOpacity={0.7}
           >
-            <Plus size={18} color="#60a5fa" className="mr-2" />
-            <Text className="text-blue-400 font-medium">
+            <Plus size={18} color="#fff" className="mr-2" />
+            <Text className="text-white font-medium">
               Adicionar experiência
             </Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#3b82f6"]}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {experiencesToShow.map((experience) => (
-            <View
-              key={`experience-${experience.id}`}
-              className="mb-4 pb-3 border-b border-gray-100 last:border-0"
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="text-lg font-bold text-gray-900 mb-1">
-                    {experience.title}
-                  </Text>
-                  <Text className="font-medium text-gray-800 mb-1">
-                    {experience.company}
-                  </Text>
-                  <Text className="text-gray-500 text-sm mb-2">
-                    {formatDisplayDate(experience.startDate)} -{" "}
-                    {experience.endDate
-                      ? formatDisplayDate(experience.endDate)
-                      : "Atual"}
-                  </Text>
-                  {experience.description && (
-                    <Text className="text-sm text-gray-600">
-                      {experience.description}
+        <View>
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3b82f6"]}
+          />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {experiencesToShow.map((experience) => (
+              <View
+                key={`experience-${experience.id}`}
+                className="mb-4 pb-3 border-b border-gray-100 last:border-0"
+              >
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold text-gray-900 mb-1">
+                      {experience.title}
                     </Text>
-                  )}
+                    <Text className="font-medium text-gray-800 mb-1">
+                      {experience.company}
+                    </Text>
+                    <Text className="text-gray-500 text-sm mb-2">
+                      {formatDisplayDate(experience.startDate)} -{" "}
+                      {experience.endDate
+                        ? formatDisplayDate(experience.endDate)
+                        : "Atual"}
+                    </Text>
+                    {experience.description && (
+                      <Text className="text-sm text-gray-600">
+                        {experience.description}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => onEdit(experience)}
+                    className="p-2 ml-2"
+                    activeOpacity={0.7}
+                    accessibilityLabel="Editar experiência"
+                  >
+                    <Pencil size={16} color="#6b7280" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={() => onEdit(experience)}
-                  className="p-2 ml-2"
-                  activeOpacity={0.7}
-                >
-                  <Pencil size={16} color="#6b7280" />
-                </TouchableOpacity>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {/* Footer */}
@@ -201,4 +216,4 @@ const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
   );
 };
 
-export default AsideExperience;
+export default React.memo(AsideExperience);

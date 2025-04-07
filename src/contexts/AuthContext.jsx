@@ -104,8 +104,9 @@ const AuthProvider = ({ children }) => {
       if (!response?.data.id) {
         throw new Error("Dados inválidos recebidos");
       }
+      
 
-      const updatedUser = { ...user, ...response };
+      const updatedUser = { ...user, ...response.data };
       setUser(updatedUser);
       
       await AsyncStorage.setItem("user", JSON.stringify(updatedUser));

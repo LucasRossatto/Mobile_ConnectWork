@@ -19,7 +19,7 @@ export default function FormField({
       <TextInput
         className={`w-full border mb-1 ${
           error ? "border-red-500" : "border-gray-300"
-        } rounded-md py-4 px-3 text-base ${
+        } rounded-2xl py-4 px-4 text-base ${
           multiline ? "h-34 text-align-top" : ""
         }`}
         placeholder={placeholder}

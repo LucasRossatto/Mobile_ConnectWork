@@ -22,11 +22,26 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
   const [error, setError] = useState(null);
   const [showAllEducations, setShowAllEducations] = useState(false);
 
+  const handleError = (error, context, options = {}) => {
+    const defaultMessage = "Ocorreu um erro inesperado";
+    const errorMessage =
+      error.response?.data?.message || options.customMessage || defaultMessage;
+
+    if (options.showToUser !== false) {
+      Alert.alert("Erro", errorMessage);
+    }
+
+    return {
+      message: errorMessage,
+      errorType: error.name,
+      originalError: error,
+    };
+  };
+
   const getEducations = async () => {
     try {
       setLoading(true);
       setError(null);
-      setRefreshing(true);
 
       if (!user?.id) {
         throw new Error("ID do usuário não disponível");
@@ -35,19 +50,18 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
       const res = await api.get(`/user/education/`);
       log.debug("Resposta do GetAll Educations", res.data);
 
-      if (!res.data?.success) {
+      if (!res.data?.success && !Array.isArray(res.data)) {
         throw handleError(
-          new Error("Resposta da API sem flag de sucesso"),
+          new Error("Formato inválido de resposta da API"),
           "validacao_educacao",
-          {
-            metadata: { response: res },
-            showToUser: false,
-          }
+          { metadata: { response: res.data } }
         );
       }
 
-      const educationsArray = Array.isArray(res.data) ? res.data : [];
-      log.debug("Lista de Formações academicas convertida:", educationsArray);
+      const educationsArray = Array.isArray(res.data)
+        ? res.data
+        : res.data.data || [];
+      log.debug("Lista de Formações acadêmicas convertida:", educationsArray);
       setEducations(educationsArray);
     } catch (error) {
       const handledError = handleError(error, "buscar_educacoes", {
@@ -104,8 +118,9 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
           onPress={onOpenModal}
           className="p-2"
           activeOpacity={0.7}
+          accessibilityLabel="Adicionar formação acadêmica"
         >
-          <Plus size={24} color="#3b82f6" />
+          <Plus size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -116,6 +131,7 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
             onPress={getEducations}
             className="bg-blue-500 px-4 py-2 rounded-lg"
             activeOpacity={0.7}
+            accessibilityLabel="Tentar carregar formações novamente"
           >
             <Text className="text-white font-medium">Tentar novamente</Text>
           </TouchableOpacity>
@@ -129,60 +145,60 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
             onPress={onOpenModal}
             className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
             activeOpacity={0.7}
+            accessibilityLabel="Adicionar primeira formação acadêmica"
           >
-            <Plus size={18} color="#60a5fa" className="mr-2" />
-            <Text className="text-blue-400 font-medium">
+            <Plus size={18} color="#fff" className="mr-2" />
+            <Text className="text-white font-medium">
               Adicionar formação
             </Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#3b82f6"]}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {educationsToShow.map((education) => (
-            <View
-              key={`education-${education.id}`}
-              className="mb-4 pb-3 border-b border-gray-100 last:border-0"
-            >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <Text className="text-lg font-bold text-gray-900 mb-1">
-                    {education.institution}
-                  </Text>
-                  <Text className="font-medium text-gray-800 mb-1">
-                    {education.courseDegree}
-                  </Text>
-                  <Text className="text-gray-500 text-sm mb-2">
-                    {formatDisplayDate(education.startDate)} -{" "}
-                    {education.endDate
-                      ? formatDisplayDate(education.endDate)
-                      : "Atual"}
-                  </Text>
-                  {education.description && (
-                    <Text className="text-sm text-gray-600">
-                      {education.description}
+        <View>
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#3b82f6"]}
+          />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {educationsToShow.map((education) => (
+              <View
+                key={`education-${education.id}`}
+                className="mb-4 pb-3 border-b border-gray-100 last:border-0"
+              >
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    <Text className="text-lg font-bold text-gray-900 mb-1">
+                      {education.institution}
                     </Text>
-                  )}
+                    <Text className="font-medium text-gray-800 mb-1">
+                      {education.courseDegree}
+                    </Text>
+                    <Text className="text-gray-500 text-sm mb-2">
+                      {formatDisplayDate(education.startDate)} -{" "}
+                      {education.endDate
+                        ? formatDisplayDate(education.endDate)
+                        : "Atual"}
+                    </Text>
+                    {education.description && (
+                      <Text className="text-sm text-gray-600">
+                        {education.description}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => onEdit(education)}
+                    className="p-2 ml-2"
+                    activeOpacity={0.7}
+                    accessibilityLabel={`Editar formação ${education.courseDegree}`}
+                  >
+                    <Pencil size={16} color="#6b7280" />
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  onPress={() => onEdit(education)}
-                  className="p-2 ml-2"
-                  activeOpacity={0.7}
-                >
-                  <Pencil size={16} color="#6b7280" />
-                </TouchableOpacity>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       {/* Footer */}
@@ -191,6 +207,11 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
           <TouchableOpacity
             onPress={toggleShowAllEducations}
             activeOpacity={0.7}
+            accessibilityLabel={
+              showAllEducations
+                ? "Mostrar menos formações"
+                : "Mostrar todas as formações"
+            }
           >
             <Text className="font-medium text-sm text-blue-500 text-center">
               {showAllEducations
@@ -204,4 +225,4 @@ const AsideEducation = ({ onOpenModal, onEdit, refreshFlag }) => {
   );
 };
 
-export default AsideEducation;
+export default React.memo(AsideEducation);
