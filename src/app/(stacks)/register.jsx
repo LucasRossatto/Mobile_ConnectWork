@@ -441,7 +441,7 @@ const MultiStepForm = () => {
   };
 
   return (
-    <View className="flex-1 justify-center p-4 bg-gray-100">
+    <View className="flex-1 justify-center p-4 bg-white">
       <Text className="text-4xl font-medium mb-12 text-center">
         Crie sua conta!
       </Text>
