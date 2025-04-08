@@ -84,7 +84,7 @@ export default function Home() {
         params: { limit, offset: newOffset },
       });
 
-      if (!res) {
+      if (!res.data) {
         throw new Error("No response received");
       }
 
@@ -93,12 +93,12 @@ export default function Home() {
       }
 
       if (newOffset === 0) {
-        setPosts(res.posts);
+        setPosts(res.data.posts);
       } else {
-        setPosts((prevPosts) => [...prevPosts, ...res.posts]);
+        setPosts((prevPosts) => [...prevPosts, ...res.data.posts]);
       }
       setTotalPosts(res.totalPosts);
-      log.debug("Posts recebidos:", res.posts);
+      log.debug("Posts recebidos:", res.data.posts);
       return res;
     } catch (error) {
       console.error("Error fetching posts:", {
@@ -150,7 +150,7 @@ export default function Home() {
   const renderPost = ({ item }) => (
     <Post
       author={item.user.nome}
-      course={item.course}
+      author_profileImg={item.user.profile_img}
       content={item.content}
       img={item?.image_based64}
     />

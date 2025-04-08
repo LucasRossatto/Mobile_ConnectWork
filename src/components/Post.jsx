@@ -2,7 +2,12 @@ import React from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-export default function Post({ author, course, content, img }) {
+export default function Post({
+  author,
+  author_profileImg,
+  content,
+  img,
+}) {
   // Função para validar se a string é uma imagem Base64 válida
   const isValidBase64Image = (base64) => {
     if (!base64 || typeof base64 !== "string") return false;
@@ -10,16 +15,24 @@ export default function Post({ author, course, content, img }) {
   };
 
   return (
-    <View className="mb-6 max-h-[396] bg-white p-4 rounded-lg border border-textSecondary">
+    <View className="mb-6 max-h-[396] shadow-md bg-white p-4 rounded-lg ">
       <View className="flex-row items-center mb-3">
-        <Image className="w-12 h-12 rounded-full bg-black" />
+        {author_profileImg ? (
+          <Image
+            source={{ uri: author_profileImg }}
+            className="w-12 h-12 rounded-full"
+            resizeMode="cover"
+          />
+        ) : (
+          <Text className="text-xl font-bold text-black">
+            {author?.charAt(0)?.toUpperCase()}
+          </Text>
+        )}{" "}
         <View className="ml-3">
           <Text className="font-bold text-lg text-gray-900">{author}</Text>
-          <Text className="text-gray-600 text-sm">{course}</Text>
         </View>
       </View>
-      <View> 
-        
+      <View>
         <Text className="text-gray-800 text-base mb-4">{content}</Text>
       </View>
 
