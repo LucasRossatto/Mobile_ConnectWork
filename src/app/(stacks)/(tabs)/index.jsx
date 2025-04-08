@@ -152,7 +152,8 @@ export default function Home() {
       author={item.user.nome}
       author_profileImg={item.user.profile_img}
       content={item.content}
-      img={item?.image_based64}
+      img={item.images}
+      LikeCount={item.numberLikes}
     />
   );
 
@@ -191,7 +192,7 @@ export default function Home() {
         <View className="h-12 w-12 rounded-full bg-gray-400 flex justify-center items-center">
           {user?.profile_img ? (
             <Image
-              source={{ uri: user.profile_img }}
+              source={{ uri: user?.profile_img }}
               className="h-full w-full rounded-full"
               resizeMode="cover"
             />
