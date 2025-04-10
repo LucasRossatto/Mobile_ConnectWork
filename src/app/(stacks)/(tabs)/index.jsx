@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   TextInput,
@@ -13,141 +13,99 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Post from "@/components/Post";
 import Settings from "@/components/index/Settings";
-import log from "@/utils/logger";
 import { AuthContext } from "@/contexts/AuthContext";
+import { Menu } from "lucide-react-native";
+import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import api from "@/services/api";
-import { UserRound } from "lucide-react-native";
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const { user, setUser } = useContext(AuthContext);
-  const [posts, setPosts] = useState([]);
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [limit, setLimit] = useState(10);
-  const [offset, setOffset] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState([
     { id: 1, text: "Desenvolvedor FullStack" },
     { id: 2, text: "Operador Logístico" },
     { id: 3, text: "Auxiliar de Administração" },
   ]);
 
-  const getUserData = async () => {
-    try {
+  const {
+    data: userData,
+    isLoading: isLoadingUserData,
+    error: userDataError,
+  } = useQuery({
+    queryKey: ["userData", user?.id],
+    queryFn: async () => {
       if (!user?.id) {
         throw new Error("ID do usuário não disponível");
       }
 
       const response = await api.get(`/user/users/${user.id}`);
-      log.debug("Resposta completa do getUserData:", response.data);
-
-      const userData = response.data;
-
-      if (userData) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          nome: userData.nome,
-          school: userData.school,
-          course: userData.course,
-          userClass: userData.userClass,
-          profile_img: userData.profile_img,
-          banner_img: userData.banner_img,
+      return response.data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        setUser((previousUser) => ({
+          ...previousUser,
+          nome: data.nome,
+          school: data.school,
+          course: data.course,
+          userClass: data.userClass,
+          profile_img: data.profile_img,
+          banner_img: data.banner_img,
         }));
-
-        log.debug("Contexto atualizado:", {
-          ...user,
-          ...userData,
-        });
       }
+    },
+    enabled: !!user?.token,
+  });
 
-      return userData;
-    } catch (error) {
-      console.error("Erro ao buscar dados:", {
-        message: error.data.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-      throw error;
-    }
-  };
-
-  const getPosts = async (newOffset = 0) => {
-    try {
-      if (!user?.token) {
-        throw new Error("No user token available");
-      }
-
-      setIsLoading(true);
-      log.debug("Token sendo enviado:", user.token);
-      const res = await api.get("/user/posts", {
-        params: { limit, offset: newOffset },
+  const {
+    data: postsData,
+    fetchNextPage: fetchNextPostsPage,
+    hasNextPage: hasMorePosts,
+    isLoading: isLoadingPosts,
+    isFetching: isFetchingPosts,
+    isFetchingNextPage: isFetchingMorePosts,
+    error: postsError,
+  } = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const response = await api.get("/user/posts", {
+        params: { limit: 10, offset: pageParam },
       });
 
-      if (!res.data) {
-        throw new Error("No response received");
+      if (!response.data.posts || !Array.isArray(response.data.posts)) {
+        throw new Error("Dados de posts recebidos em formato inválido");
       }
 
-      if (!res.data.posts || !Array.isArray(res.data.posts)) {
-        throw new Error("Expected an array of posts, but got something else");
-      }
+      return {
+        posts: response.data.posts,
+        totalPosts: response.data.totalPosts,
+        nextOffset: pageParam + 10,
+      };
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.posts.length < 10) return undefined;
+      return lastPage.nextOffset;
+    },
+    initialPageParam: 0,
+  });
 
-      if (newOffset === 0) {
-        setPosts(res.data.posts);
-      } else {
-        setPosts((prevPosts) => [...prevPosts, ...res.data.posts]);
-      }
-      setTotalPosts(res.totalPosts);
-      log.debug("Posts recebidos:", res.data.posts);
-      return res;
-    } catch (error) {
-      console.error("Error fetching posts:", {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
+  const { mutate: removeSearchItem } = useMutation({
+    mutationFn: (searchItemId) => {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(searchItemId), 300);
       });
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    onSuccess: (removedSearchItemId) => {
+      setRecentSearches((previousSearches) =>
+        previousSearches.filter(
+          (searchItem) => searchItem.id !== removedSearchItemId
+        )
+      );
+    },
+  });
 
-  useEffect(() => {
-    if (!user?.token) return;
-
-    let isMounted = true;
-
-    const fetchData = async () => {
-      try {
-        await Promise.all([getPosts(), getUserData()]);
-        log.debug("userContext: ", user);
-      } catch (error) {
-        console.error("Error in useEffect:", error);
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.token]);
-
-  const loadMorePosts = () => {
-    if (!isLoading && posts?.length < totalPosts) {
-      const newOffset = offset + limit;
-      setOffset(newOffset);
-      getPosts(newOffset);
-    }
-  };
-
-  const removeSearchItem = (id) => {
-    setRecentSearches((prevSearches) =>
-      prevSearches.filter((item) => item.id !== id)
-    );
-  };
-
-  const renderPost = ({ item }) => (
+  const renderPostItem = ({ item }) => (
     <Post
       author={item.user.nome}
       author_profileImg={item.user.profile_img}
@@ -171,13 +129,13 @@ export default function Home() {
     </View>
   );
 
-  const renderFooter = () => {
-    if (!isLoading) return null;
+  const renderFooterComponent = () => {
+    if (!isFetchingMorePosts) return null;
     return <ActivityIndicator size="large" color="#0000ff" />;
   };
 
-  const renderEmptyList = () => {
-    if (isLoading) {
+  const renderEmptyListComponent = () => {
+    if (isFetchingPosts) {
       return null;
     }
     return (
@@ -187,23 +145,40 @@ export default function Home() {
     );
   };
 
+  const allPosts = postsData?.pages.flatMap((page) => page.posts) || [];
+
+  const renderUserAvatar = () => {
+    const profileImageUri = userData?.profile_img || user?.profile_img;
+    const userNameInitial = (userData?.nome || user?.nome || "U")
+      .charAt(0)
+      .toUpperCase();
+
+    return (
+      <View className="h-11 w-11 rounded-full bg-gray-400 flex justify-center items-center">
+        {profileImageUri ? (
+          <Image
+            source={{ uri: profileImageUri }}
+            className="h-full w-full rounded-full"
+            resizeMode="cover"
+          />
+        ) : (
+          <Text className="text-xl font-bold text-black">{userNameInitial}</Text>
+        )}
+      </View>
+    );
+  };
+
+  const handleLoadMorePosts = () => {
+    if (hasMorePosts && !isFetchingMorePosts) {
+      fetchNextPostsPage();
+    }
+  };
+
   return (
-    <View className="flex-1 bg-backgroundGray">
+    <View className="flex-1 space-x-0 bg-backgroundGray">
       {/* Barra de pesquisa */}
       <View className="bg-white flex-row items-center p-4">
-        <View className="h-11 w-11 rounded-full bg-gray-400 flex justify-center items-center">
-          {user?.profile_img ? (
-            <Image
-              source={{ uri: user?.profile_img }}
-              className="h-full w-full rounded-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <Text className="text-xl font-bold text-black">
-              {user.nome?.charAt(0)?.toUpperCase()}
-            </Text>
-          )}
-        </View>
+        {renderUserAvatar()}
 
         <TouchableOpacity
           className="bg-gray-200 rounded-full flex-row items-center py-3 flex-1 ml-2 mr-2"
@@ -221,7 +196,7 @@ export default function Home() {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
-          <Icon name="cog" size={30} color="#4B5563" />
+          <Menu size={27} color={"#000"} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
@@ -233,7 +208,6 @@ export default function Home() {
         onRequestClose={() => setShowSearchModal(false)}
       >
         <View className="flex-1 bg-white">
-          {/* Cabeçalho branco */}
           <View className="bg-white p-4 flex-row items-center border-b border-gray-200">
             <TouchableOpacity
               onPress={() => setShowSearchModal(false)}
@@ -256,7 +230,6 @@ export default function Home() {
             </TouchableOpacity>
           </View>
 
-          {/* Conteúdo */}
           <View className="p-4">
             <Text className="text-lg font-bold mb-4 text-gray-800">
               Pesquisas recentes
@@ -276,16 +249,17 @@ export default function Home() {
 
       {/* Lista de posts */}
       <FlatList
-        data={posts}
-        renderItem={renderPost}
+        data={allPosts}
+        renderItem={renderPostItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24 }}
-        onEndReached={loadMorePosts}
+        onEndReached={handleLoadMorePosts}
         onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmptyList}
+        ListFooterComponent={renderFooterComponent}
+        ListEmptyComponent={renderEmptyListComponent}
       />
 
+      {/* Modal de Configurações */}
       <Modal
         visible={showSettings}
         transparent={true}

@@ -16,7 +16,7 @@ export default function Post({
   const [isCommented, setIsCommented] = useState(false);
 
   return (
-    <View className="mb-6 shadow-md bg-white p-4 rounded-lg">
+    <View className="mb-10 rounded-lg">
       {/* Cabeçalho com informações do autor */}
       <View className="flex-row justify-between items-start mb-3">
         <View className="flex-row items-center">
@@ -61,7 +61,7 @@ export default function Post({
       {img && img.length > 0 && (
         <Image
           source={{ uri: img[0] }}
-          className="w-64 h-64 rounded-lg mx-auto"
+          className="w-full h-64 rounded-lg mx-auto"
           resizeMode="cover"
         />
       )}
