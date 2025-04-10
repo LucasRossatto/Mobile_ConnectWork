@@ -3,6 +3,7 @@ import React from "react";
 import "@/styles/global.css";
 import AuthContext from "@/contexts/AuthContext";
 import { StatusBar } from "react-native";
+import Toast from 'react-native-toast-message';
 
 export default function _layout() {
   return (
@@ -13,7 +14,7 @@ export default function _layout() {
           name="index"
           options={{ title: "Home", headerShown: false }}
         />
-        <Stack.Screen name="login" options={{ title: "Login" }} />
+        <Stack.Screen name="login" options={{ title: "Entrar" }} />
         <Stack.Screen name="register" options={{ title: "Cadastro" }} />
         <Stack.Screen
           name="pendingAccount"
@@ -23,7 +24,12 @@ export default function _layout() {
           name="(tabs)"
           options={{ title: "tabs", headerShown: false }}
         />
+        <Stack.Screen
+          name="forgotPassword"
+          options={{ title: ""}}
+        />
       </Stack>
+      
     </AuthContext>
   );
 }

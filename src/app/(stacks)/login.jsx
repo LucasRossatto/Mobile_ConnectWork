@@ -149,7 +149,7 @@ export default function Login() {
 
       <View className="items-end mb-8">
         <Link
-          href="/forgot-password"
+          href="/(stacks)/forgotPassword"
           className="text-gray-400 text-base font-medium underline"
           accessibilityRole="link"
         >
