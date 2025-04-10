@@ -152,6 +152,8 @@ export default function Home() {
       author={item.user.nome}
       author_profileImg={item.user.profile_img}
       content={item.content}
+      date={item.createdAt}
+      category={item.category}
       img={item.images}
       LikeCount={item.numberLikes}
     />
@@ -189,7 +191,7 @@ export default function Home() {
     <View className="flex-1 bg-backgroundGray">
       {/* Barra de pesquisa */}
       <View className="bg-white flex-row items-center p-4">
-        <View className="h-12 w-12 rounded-full bg-gray-400 flex justify-center items-center">
+        <View className="h-11 w-11 rounded-full bg-gray-400 flex justify-center items-center">
           {user?.profile_img ? (
             <Image
               source={{ uri: user?.profile_img }}
@@ -204,7 +206,7 @@ export default function Home() {
         </View>
 
         <TouchableOpacity
-          className="bg-gray-200 rounded-full flex-row items-center p-1 flex-1 ml-2 mr-2"
+          className="bg-gray-200 rounded-full flex-row items-center py-3 flex-1 ml-2 mr-2"
           onPress={() => setShowSearchModal(true)}
         >
           <Icon
