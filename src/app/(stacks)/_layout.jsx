@@ -18,8 +18,10 @@ export default function _layout() {
             name="index"
             options={{ title: "Home", headerShown: false }}
           />
-          <Stack.Screen name="login" options={{ title: "Login" }} />
+          <Stack.Screen name="login" options={{ title: "Entrar" }} />
           <Stack.Screen name="register" options={{ title: "Cadastro" }} />
+          <Stack.Screen name="forgotPassword" options={{ title: "Esqueceu a senha" }} />
+
           <Stack.Screen
             name="pendingAccount"
             options={{ title: "Conta Solicitada", headerShown: false }}
