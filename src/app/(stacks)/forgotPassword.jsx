@@ -12,7 +12,7 @@ import * as SecureStore from "expo-secure-store";
 
 const ForgotPasswordScreen = () => {
   const router = useRouter();
-  const [step, setStep] = useState(3);
+  const [step, setStep] = useState(1);
   const [state, setState] = useState({
     email: "",
     token: "",
