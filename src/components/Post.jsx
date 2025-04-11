@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { Heart, MessageCircle, MoreVertical } from "lucide-react-native";
+import { Heart, MessageCircle, Ellipsis  } from "lucide-react-native";
 import { formatPostDate } from "../utils/formatPostDate";
 
 export default function Post({
@@ -16,9 +16,9 @@ export default function Post({
   const [isCommented, setIsCommented] = useState(false);
 
   return (
-    <View className="mb-10 rounded-lg">
+    <View className="border-b border-gray-100 py-5">
       {/* Cabeçalho com informações do autor */}
-      <View className="flex-row justify-between items-start mb-3">
+      <View className="flex-row justify-between items-start mb-3 px-4">
         <View className="flex-row items-center">
           {author_profileImg ? (
             <Image
@@ -48,12 +48,12 @@ export default function Post({
 
         {/* Três pontos verticais */}
         <TouchableOpacity className="mt-2 mr-2">
-          <MoreVertical size={20} color="#4b5563" />
+          <Ellipsis  size={20} color="#6b7280" />
         </TouchableOpacity>
       </View>
 
       {/* Conteúdo do post */}
-      <View>
+      <View className="px-4">
         <Text className="text-gray-800 text-base mb-4">{content}</Text>
       </View>
 
@@ -61,13 +61,13 @@ export default function Post({
       {img && img.length > 0 && (
         <Image
           source={{ uri: img[0] }}
-          className="w-full h-64 rounded-lg mx-auto"
+          className="w-full h-64 mx-auto"
           resizeMode="cover"
         />
       )}
 
       {/* Rodapé com ações */}
-      <View className="flex-row items-center space-x-4 mt-4">
+      <View className="flex-row items-center space-x-4 mt-4 px-5">
         <TouchableOpacity
           className="flex-row items-center"
           onPress={() => setIsLiked(!isLiked)}

@@ -175,9 +175,9 @@ export default function Home() {
   };
 
   return (
-    <View className="flex-1 space-x-0 bg-backgroundGray">
+    <View className="flex-1 space-x-0 bg-white ">
       {/* Barra de pesquisa */}
-      <View className="bg-white flex-row items-center p-4">
+      <View className="bg-white flex-row items-center p-4 border-b border-gray-100">
         {renderUserAvatar()}
 
         <TouchableOpacity
@@ -252,7 +252,6 @@ export default function Home() {
         data={allPosts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 24 }}
         onEndReached={handleLoadMorePosts}
         onEndReachedThreshold={0.1}
         ListFooterComponent={renderFooterComponent}
