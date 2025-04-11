@@ -35,10 +35,10 @@ const VerifyCodeStep = ({
         <Text className="text-4xl font-medium mb-4 mt-10 text-center">
           Verifique seu Email
         </Text>
-        <Text className="text-xl text-gray-500 mb-10 text-center">
-          Enviamos um código para {"\n"}
-          {email}
+        <Text className="text-xl text-green-500 text-center">
+          Enviamos o código para
         </Text>
+        <Text className="text-xl mb-10 font-semibold">{email}</Text>
       </View>
 
       <TextInput

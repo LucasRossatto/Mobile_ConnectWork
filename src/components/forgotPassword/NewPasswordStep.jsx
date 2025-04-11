@@ -3,8 +3,12 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import Toast from "react-native-toast-message";
 import { validatePassword } from "@/utils/validations";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Icon from "react-native-vector-icons/Octicons";
+
 
 const NewPasswordStep = ({ onSubmit, loading, error }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  
   const [form, setForm] = useState({
     password: "",
     confirmPassword: "",
@@ -57,14 +61,29 @@ const NewPasswordStep = ({ onSubmit, loading, error }) => {
         Sua nova senha deve ser diferente da antiga
       </Text>
 
-      <TextInput
-        className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 mb-6"
-        placeholder="Nova senha"
-        secureTextEntry
-        value={form.password}
-        onChangeText={(text) => setForm({ ...form, password: text })}
-        accessibilityLabel="Campo para digitar nova senha"
-      />
+
+       <View className="relative mb-4 w-full">
+              <TextInput
+                className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 pr-12"
+                placeholder="Nova senha"
+                placeholderTextColor="#666"
+                secureTextEntry={!showPassword}
+                value={form.password}
+                onChangeText={(text) => setForm({ ...form, password: text })}
+                accessibilityLabel="Campo para digitar nova senha"
+              />
+              <TouchableOpacity
+                className="absolute right-4 top-5"
+                onPress={() => setShowPassword(!showPassword)}
+                accessibilityLabel={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                <Icon
+                  name={showPassword ? "eye" : "eye-closed"}
+                  size={24}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
 
       <TextInput
         className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 mb-6"
