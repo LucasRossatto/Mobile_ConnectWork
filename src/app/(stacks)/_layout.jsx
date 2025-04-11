@@ -10,8 +10,8 @@ const queryClient = new QueryClient();
 
 export default function _layout() {
   return (
-    <AuthContext>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext>
         <StatusBar style="light" backgroundColor="#ffffff" />
         <Stack>
           <Stack.Screen
@@ -20,7 +20,10 @@ export default function _layout() {
           />
           <Stack.Screen name="login" options={{ title: "Entrar" }} />
           <Stack.Screen name="register" options={{ title: "Cadastro" }} />
-          <Stack.Screen name="forgotPassword" options={{ title: "Esqueceu a senha" }} />
+          <Stack.Screen
+            name="forgotPassword"
+            options={{ title: "Esqueceu a senha" }}
+          />
 
           <Stack.Screen
             name="pendingAccount"
@@ -31,7 +34,7 @@ export default function _layout() {
             options={{ title: "tabs", headerShown: false }}
           />
         </Stack>
-      </QueryClientProvider>
-    </AuthContext>
+      </AuthContext>
+    </QueryClientProvider>
   );
 }
