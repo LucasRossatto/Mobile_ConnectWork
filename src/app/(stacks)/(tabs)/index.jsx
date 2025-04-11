@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import {
   View,
   TextInput,
@@ -15,10 +15,11 @@ import Post from "@/components/Post";
 import Settings from "@/components/index/Settings";
 import { AuthContext } from "@/contexts/AuthContext";
 import { Menu } from "lucide-react-native";
-import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import api from "@/services/api";
 
-export default function Home() {
+
+export default function HomeScreen () {
   const [showSettings, setShowSettings] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const { user, setUser } = useContext(AuthContext);
@@ -28,24 +29,87 @@ export default function Home() {
     { id: 3, text: "Auxiliar de Administração" },
   ]);
 
+  const getUserData = useCallback(async () => {
+    try {
+      console.log('[getUserData] Iniciando busca de dados do usuário...');
+      
+      if (!user?.id) {
+        const errorMsg = 'ID do usuário não disponível';
+        console.error('[getUserData] Erro:', errorMsg);
+        throw new Error(errorMsg);
+      }
+  
+      console.log('[getUserData] Fazendo requisição para API...', {
+        userId: user.id,
+        endpoint: `/user/users/${user.id}`
+      });
+  
+      const response = await api.get(`/user/users/${user.id}`);
+      
+      console.log('[getUserData] Resposta recebida:', {
+        status: response.status,
+        data: response.data
+      });
+  
+      const userData = response.data;
+  
+      if (!userData) {
+        const errorMsg = 'Dados do usuário não retornados pela API';
+        console.error('[getUserData] Erro:', errorMsg);
+        throw new Error(errorMsg);
+      }
+  
+      console.log('[getUserData] Dados recebidos com sucesso:', {
+        nome: userData.nome,
+        school: userData.school,
+        course: userData.course,
+        profile_img: !!userData.profile_img
+      });
+  
+      setUser((prevUser) => {
+        const updatedUser = {
+          ...prevUser,
+          nome: userData.nome,
+          school: userData.school,
+          course: userData.course,
+          userClass: userData.userClass,
+          profile_img: userData.profile_img,
+          banner_img: userData.banner_img,
+        };
+        
+        console.log('[getUserData] Contexto do usuário atualizado:', {
+          previousUser: prevUser,
+          updatedUser: updatedUser
+        });
+        
+        return updatedUser;
+      });
+  
+      return userData;
+    } catch (error) {
+      console.error('[getUserData] Erro durante a busca de dados:', {
+        error: error,
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      throw error;
+    }
+  }, [user?.id, setUser]);
+
   const {
     data: userData,
     isLoading: isLoadingUserData,
+    isError: isUserDataError,
     error: userDataError,
   } = useQuery({
     queryKey: ["userData", user?.id],
-    queryFn: async () => {
-      if (!user?.id) {
-        throw new Error("ID do usuário não disponível");
-      }
-
-      const response = await api.get(`/user/users/${user.id}`);
-      return response.data;
-    },
+    queryFn: getUserData,
     onSuccess: (data) => {
       if (data) {
-        setUser((previousUser) => ({
-          ...previousUser,
+        setUser((prevUser) => ({
+          ...prevUser,
           nome: data.nome,
           school: data.school,
           course: data.course,
@@ -56,15 +120,17 @@ export default function Home() {
       }
     },
     enabled: !!user?.token,
+    staleTime: 1000 * 60 * 5,
   });
 
   const {
     data: postsData,
-    fetchNextPage: fetchNextPostsPage,
-    hasNextPage: hasMorePosts,
+    fetchNextPage,
+    hasNextPage,
     isLoading: isLoadingPosts,
     isFetching: isFetchingPosts,
-    isFetchingNextPage: isFetchingMorePosts,
+    isFetchingNextPage,
+    isError: isPostsError,
     error: postsError,
   } = useInfiniteQuery({
     queryKey: ["posts"],
@@ -88,6 +154,7 @@ export default function Home() {
       return lastPage.nextOffset;
     },
     initialPageParam: 0,
+    staleTime: 1000 * 60 * 10,
   });
 
   const { mutate: removeSearchItem } = useMutation({
@@ -97,15 +164,13 @@ export default function Home() {
       });
     },
     onSuccess: (removedSearchItemId) => {
-      setRecentSearches((previousSearches) =>
-        previousSearches.filter(
-          (searchItem) => searchItem.id !== removedSearchItemId
-        )
+      setRecentSearches((prevSearches) =>
+        prevSearches.filter((item) => item.id !== removedSearchItemId)
       );
     },
   });
 
-  const renderPostItem = ({ item }) => (
+  const renderPostItem = useCallback(({ item }) => (
     <Post
       author={item.user.nome}
       author_profileImg={item.user.profile_img}
@@ -115,9 +180,9 @@ export default function Home() {
       img={item.images}
       LikeCount={item.numberLikes}
     />
-  );
+  ), []);
 
-  const renderSearchItem = ({ item }) => (
+  const renderSearchItem = useCallback(({ item }) => (
     <View className="flex-row justify-between items-center py-3 px-4">
       <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
       <TouchableOpacity
@@ -127,31 +192,66 @@ export default function Home() {
         <Ionicons name="close" size={18} color="#9CA3AF" />
       </TouchableOpacity>
     </View>
-  );
+  ), []);
 
-  const renderFooterComponent = () => {
-    if (!isFetchingMorePosts) return null;
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  };
+  const renderFooterComponent = useCallback(() => {
+    if (!isFetchingNextPage) return null;
+    return (
+      <View className="py-4">
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }, [isFetchingNextPage]);
 
-  const renderEmptyListComponent = () => {
+  const renderEmptyListComponent = useCallback(() => {
     if (isFetchingPosts) {
-      return null;
+      return (
+        <View className="flex-1 justify-center items-center mt-10">
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      );
     }
+    
+    if (isPostsError) {
+      return (
+        <View className="flex-1 justify-center items-center mt-10">
+          <Text className="text-red-500 text-lg">
+            Erro ao carregar posts: {postsError?.message}
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <View className="flex-1 justify-center items-center mt-10">
         <Text className="text-gray-500 text-lg">Nenhum post encontrado.</Text>
       </View>
     );
-  };
+  }, [isFetchingPosts, isPostsError, postsError]);
 
   const allPosts = postsData?.pages.flatMap((page) => page.posts) || [];
 
-  const renderUserAvatar = () => {
+  const renderUserAvatar = useCallback(() => {
     const profileImageUri = userData?.profile_img || user?.profile_img;
     const userNameInitial = (userData?.nome || user?.nome || "U")
       .charAt(0)
       .toUpperCase();
+
+    if (isLoadingUserData) {
+      return (
+        <View className="h-11 w-11 rounded-full bg-gray-200 flex justify-center items-center">
+          <ActivityIndicator size="small" color="#0000ff" />
+        </View>
+      );
+    }
+
+    if (isUserDataError) {
+      return (
+        <View className="h-11 w-11 rounded-full bg-gray-200 flex justify-center items-center">
+          <Text className="text-xl font-bold text-black">!</Text>
+        </View>
+      );
+    }
 
     return (
       <View className="h-11 w-11 rounded-full bg-gray-400 flex justify-center items-center">
@@ -166,18 +266,17 @@ export default function Home() {
         )}
       </View>
     );
-  };
+  }, [userData, user, isLoadingUserData, isUserDataError]);
 
-  const handleLoadMorePosts = () => {
-    if (hasMorePosts && !isFetchingMorePosts) {
-      fetchNextPostsPage();
+  const handleLoadMorePosts = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
-    <View className="flex-1 space-x-0 bg-white ">
-      {/* Barra de pesquisa */}
-      <View className="bg-white flex-row items-center p-4 border-b border-gray-100">
+    <View className="flex-1 space-x-0 bg-white">
+      <View className="bg-white flex-row items-center border-b border-gray-100 p-4">
         {renderUserAvatar()}
 
         <TouchableOpacity
@@ -200,7 +299,6 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* Modal de Pesquisa */}
       <Modal
         visible={showSearchModal}
         transparent={false}
@@ -247,7 +345,6 @@ export default function Home() {
         </View>
       </Modal>
 
-      {/* Lista de posts */}
       <FlatList
         data={allPosts}
         renderItem={renderPostItem}
@@ -258,7 +355,6 @@ export default function Home() {
         ListEmptyComponent={renderEmptyListComponent}
       />
 
-      {/* Modal de Configurações */}
       <Modal
         visible={showSettings}
         transparent={true}
@@ -288,4 +384,5 @@ export default function Home() {
       </Modal>
     </View>
   );
-}
+};
+

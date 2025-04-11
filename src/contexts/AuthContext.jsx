@@ -94,29 +94,23 @@ const AuthProvider = ({ children }) => {
   };
 
   const refreshUserData = useCallback(async () => {
-    if (!user?.id) {
-      throw new Error("Usuário não autenticado");
-    }
-
     try {
+      if (!user?.id) return;
+      
       const response = await api.get(`/user/users/${user.id}`);
+      const userData = response.data;
       
-      if (!response?.data.id) {
-        throw new Error("Dados inválidos recebidos");
-      }
+      setUser((prev) => ({
+        ...prev,
+        ...userData
+      }));
       
-
-      const updatedUser = { ...user, ...response.data };
-      setUser(updatedUser);
-      
-      await AsyncStorage.setItem("user", JSON.stringify(updatedUser));
-      
-      return updatedUser;
+      return userData;
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      console.error("Failed to refresh user data:", error);
       throw error;
     }
-  }, [user]);
+  }, [user?.id]);
 
   const isAuthenticated = !!user?.token;
 

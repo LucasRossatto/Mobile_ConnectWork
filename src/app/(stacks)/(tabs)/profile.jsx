@@ -18,9 +18,13 @@ import AddExperienceModal from "@/components/profile/ModalAddExperience";
 import EditExperienceModal from "@/components/profile/ModalEditExperience";
 import Post from "@/components/Post";
 import EditProfileModal from "@/components/profile/ModalEditProfile";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 export default function Profile() {
   const { user, refreshUserData } = useContext(AuthContext);
+  const queryClient = useQueryClient(); 
+
   const [modalState, setModalState] = useState({
     addEducation: false,
     editEducation: false,
@@ -36,18 +40,32 @@ export default function Profile() {
 
   const [refreshFlag, setRefreshFlag] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshUserData();
+      // Invalida as queries relacionadas ao usuário
+      queryClient.invalidateQueries(['userData', user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
       console.error("Error refreshing data:", error);
     } finally {
       setRefreshing(false);
     }
-  }, [refreshUserData]);
+  }, [refreshUserData, queryClient, user?.id]);
+
+  const handleProfileUpdate = useCallback(async () => {
+    try {
+      // Atualização otimista - atualiza imediatamente a UI
+      await refreshUserData();
+      
+      // Invalida as queries para garantir sincronização
+      queryClient.invalidateQueries(['userData', user?.id]);
+      setRefreshFlag((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    }
+  }, [refreshUserData, queryClient, user?.id]);
 
   const handleEditItem = useCallback((type, item) => {
     setCurrentItem((prev) => ({ ...prev, [type]: item }));
@@ -211,13 +229,11 @@ export default function Profile() {
         onUpdateExperience={refreshAndClose}
       />
 
-      <EditProfileModal
+<EditProfileModal
         visible={modalState.editProfile}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editProfile: false }))
-        }
+        onClose={() => setModalState((prev) => ({ ...prev, editProfile: false }))}
         user={user}
-        onUpdateUser={refreshAndClose}
+        onUpdateUser={handleProfileUpdate}
       />
     </ScrollView>
   );
