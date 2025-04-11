@@ -23,14 +23,14 @@ const ForgotPasswordScreen = () => {
   const [error, setError] = useState("");
 
   const handleApiError = (error) => {
-    log.debug("[handleApiError] Error details:", {
-      message: error.message,
-      code: error.code,
+    log.debug("[Erro na API] Detalhes do erro:", {
+      mensagem: error.message,
+      codigo: error.code,
       status: error.response?.status,
-      responseData: error.response?.data,
-      config: {
+      dadosResposta: error.response?.data,
+      configuracao: {
         url: error.config?.url,
-        method: error.config?.method,
+        metodo: error.config?.method,
       },
     });
 
@@ -43,14 +43,14 @@ const ForgotPasswordScreen = () => {
         : "Erro ao processar sua solicitação");
 
     setError(message);
-    log.error("[API Error]", message);
+    log.error("[Erro na API]", message);
   };
 
   const validateStep = (currentStep, data) => {
-    log.debug(`[validateStep] Validating step ${currentStep} with data:`, {
-      email: data.email ? "******" : "empty",
-      code: data.code ? "******" : "empty",
-      password: data.password ? "******" : "empty",
+    log.debug(`[Validação] Validando passo ${currentStep} com dados:`, {
+      email: data.email || "vazio",
+      codigo: data.code || "vazio",
+      senha: data.password ? "******" : "vazio",
     });
 
     if (currentStep === 1 && !validateEmail(data.email || "")) {
@@ -76,7 +76,7 @@ const ForgotPasswordScreen = () => {
 
   const handleRequestCode = async (email) => {
     log.info(
-      "[handleRequestCode] Starting password reset flow for email:",
+      "[Solicitação de Código] Iniciando fluxo de redefinição para o email:",
       `${email.substring(0, 3)}...`
     );
     setLoading(true);
@@ -84,48 +84,48 @@ const ForgotPasswordScreen = () => {
 
     const validationError = validateStep(1, { email });
     if (validationError) {
-      log.warn("[handleRequestCode] Validation failed:", validationError);
+      log.warn("[Solicitação de Código] Validação falhou:", validationError);
       setError(validationError);
       setLoading(false);
       return;
     }
 
     try {
-      log.debug("[handleRequestCode] Calling API: /user/forgot-password");
+      log.debug("[Solicitação de Código] Chamando API: /user/forgot-password");
       const res = await api.post("/user/forgot-password", { email });
 
-      log.debug("[handleRequestCode] API response:", {
+      log.debug("[Solicitação de Código] Resposta da API:", {
         status: res.status,
-        data: res.data,
+        dados: res.data,
       });
 
       if (res.status === 200) {
-        log.info("[handleRequestCode] Code sent successfully");
+        log.info("[Solicitação de Código] Código enviado com sucesso");
         setState((prev) => ({ ...prev, email }));
         setStep(2);
       } else {
         const errorMsg = res.data?.message || "Erro desconhecido";
-        log.warn("[handleRequestCode] API returned error:", errorMsg);
+        log.warn("[Solicitação de Código] API retornou erro:", errorMsg);
         setError(errorMsg);
       }
     } catch (err) {
-      log.error("[handleRequestCode] Failed to request code:", err);
+      log.error("[Solicitação de Código] Falha ao solicitar código:", err);
       handleApiError(err);
     } finally {
       setLoading(false);
-      log.debug("[handleRequestCode] Finished request code flow");
+      log.debug("[Solicitação de Código] Fluxo de solicitação concluído");
     }
   };
 
   const handleVerifyCode = async (code) => {
-    log.info("[handleVerifyCode] Verifying code");
+    log.info("[Verificação de Código] Verificando código");
     setLoading(true);
     setError("");
     setState((prev) => ({ ...prev, code }));
 
     const validationError = validateStep(2, { code });
     if (validationError) {
-      log.warn("[handleVerifyCode] Code validation failed:", validationError);
+      log.warn("[Verificação de Código] Validação falhou:", validationError);
       setError(validationError);
       setLoading(false);
       return;
@@ -138,78 +138,75 @@ const ForgotPasswordScreen = () => {
       };
 
       log.debug(
-        "[handleVerifyCode] Calling API: /user/verify-reset-code with payload:",
+        "[Verificação de Código] Chamando API: /user/verify-reset-code com:",
         {
           email: `${payload.email.substring(0, 3)}...`,
-          code: "******",
+          codigo: "******",
         }
       );
 
       const res = await api.post("/user/verify-reset-code", payload);
 
-      log.debug("[handleVerifyCode] API response:", {
+      log.debug("[Verificação de Código] Resposta da API:", {
         status: res.status,
-        hasToken: !!res.data.resetToken,
+        possuiToken: !!res.data.resetToken,
       });
 
       if (res.status === 200) {
         const token = res.data.resetToken;
-        log.info("[handleVerifyCode] Code verified successfully");
+        log.info("[Verificação de Código] Código verificado com sucesso");
         setState((prev) => ({ ...prev, token }));
 
-        log.debug("[handleVerifyCode] Storing token in SecureStore");
+        log.debug("[Verificação de Código] Armazenando token no SecureStore");
         await SecureStore.setItemAsync("resetToken", token);
 
         setStep(3);
       }
     } catch (err) {
-      log.error("[handleVerifyCode] Failed to verify code:", err);
+      log.error("[Verificação de Código] Falha ao verificar código:", err);
       handleApiError(err);
     } finally {
       setLoading(false);
-      log.debug("[handleVerifyCode] Finished verification flow");
+      log.debug("[Verificação de Código] Fluxo de verificação concluído");
     }
   };
 
   const handleNewPassword = async (newPassword) => {
-    log.info("[handleNewPassword] Setting new password");
+    log.info("[Nova Senha] Definindo nova senha");
     setLoading(true);
     setError("");
     setState((prev) => ({ ...prev, password: newPassword }));
 
     const validationError = validateStep(3, { password: newPassword });
     if (validationError) {
-      log.warn(
-        "[handleNewPassword] Password validation failed:",
-        validationError
-      );
+      log.warn("[Nova Senha] Validação falhou:", validationError);
       setError(validationError);
       setLoading(false);
       return;
     }
 
     try {
-      log.debug("[handleNewPassword] Retrieving token from SecureStore");
+      log.debug("[Nova Senha] Recuperando token do SecureStore");
       const token =
         (await SecureStore.getItemAsync("resetToken")) || state.token;
 
-      log.debug("[handleNewPassword] Calling API: /user/reset-password with:", {
+      log.debug("[Nova Senha] Chamando API: /user/reset-password com:", {
         email: `${state.email.substring(0, 3)}...`,
-        hasToken: !!token,
+        possuiToken: !!token,
       });
 
       const res = await api.post("/user/reset-password", {
         resetToken: token,
         newPassword,
       });
-      resizeTo;
-      log.debug("[handleNewPassword] API response:", {
+
+      log.debug("[Nova Senha] Resposta da API:", {
         status: res.status,
-        message: res.data?.message,
+        mensagem: res.data?.message,
       });
 
       if (res.status === 200) {
-        log.info("[handleNewPassword] Password reset successfully");
+        log.info("[Nova Senha] Senha redefinida com sucesso");
         Toast.show({
           type: "success",
           text1: "Senha alterada com sucesso!",
@@ -217,20 +214,20 @@ const ForgotPasswordScreen = () => {
         router.push("/(stacks)/login");
       } else {
         const errorMsg = res.data?.message || "Erro ao redefinir senha";
-        log.warn("[handleNewPassword] API returned error:", errorMsg);
+        log.warn("[Nova Senha] API retornou erro:", errorMsg);
         setError(errorMsg);
       }
     } catch (err) {
-      log.error("[handleNewPassword] Failed to set new password:", err);
+      log.error("[Nova Senha] Falha ao definir nova senha:", err);
       handleApiError(err);
     } finally {
       setLoading(false);
-      log.debug("[handleNewPassword] Finished password reset flow");
+      log.debug("[Nova Senha] Fluxo de redefinição concluído");
     }
   };
 
   const handleResendCode = async () => {
-    log.info("[handleResendCode] Resending code to email:", state.email);
+    log.info("[Reenvio de Código] Reenviando código para:", state.email);
     setLoading(true);
     setError("");
 
@@ -241,18 +238,18 @@ const ForgotPasswordScreen = () => {
     }
 
     try {
-      log.debug("[handleResendCode] Calling API: /user/forgot-password");
+      log.debug("[Reenvio de Código] Chamando API: /user/forgot-password");
       const res = await api.post("/user/forgot-password", {
         email: state.email,
       });
 
-      log.debug("[handleResendCode] API response:", {
+      log.debug("[Reenvio de Código] Resposta da API:", {
         status: res.status,
-        data: res.data,
+        dados: res.data,
       });
 
       if (res.status === 200) {
-        log.info("[handleResendCode] Code resent successfully");
+        log.info("[Reenvio de Código] Código reenviado com sucesso");
         Toast.show({
           type: "success",
           text1: "Código reenviado com sucesso!",
@@ -260,34 +257,31 @@ const ForgotPasswordScreen = () => {
         });
       } else {
         const errorMsg = res.data?.message || "Erro ao reenviar código";
-        log.warn("[handleResendCode] API returned error:", errorMsg);
+        log.warn("[Reenvio de Código] API retornou erro:", errorMsg);
         setError(errorMsg);
       }
     } catch (err) {
-      log.error("[handleResendCode] Failed to resend code:", err);
+      log.error("[Reenvio de Código] Falha ao reenviar código:", err);
       handleApiError(err);
     } finally {
       setLoading(false);
-      log.debug("[handleResendCode] Finished resend code flow");
+      log.debug("[Reenvio de Código] Fluxo de reenvio concluído");
     }
   };
 
   React.useEffect(() => {
-    log.debug("[State Update - Dados Completos]", {
-      step,
-      loading,
-      error,
-      state: {
-        email: state.email ? `${state.email.substring(0, 3)}...` : "empty",
-        token: state.token ? `${state.token.substring(0, 3)}...` : "empty",
-        code: state.code ? `${state.code.substring(0, 3)}...` : "empty",
-        password: state.password
-          ? `${state.password.substring(0, 3)}...`
-          : "empty",
-      },
+    log.debug("[Atualização de Estado]", {
+      passo: step,
+      carregando: loading,
+      erro: error,
+      estado: {
+        email: state.email ? `${state.email.substring(0, 3)}...` : 'vazio',
+        token: state.token ? '*****' : 'vazio',
+        codigo: state.code ? '******' : 'vazio',
+        senha: state.password ? '*****' : 'vazio'
+      }
     });
   }, [step, loading, error, state]);
-
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1">
