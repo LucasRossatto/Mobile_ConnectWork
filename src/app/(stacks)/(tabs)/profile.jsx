@@ -19,33 +19,39 @@ import EditExperienceModal from "@/components/profile/ModalEditExperience";
 import Post from "@/components/Post";
 import EditProfileModal from "@/components/profile/ModalEditProfile";
 import { useQueryClient } from "@tanstack/react-query";
-
+import AsideVolunteerWork from "@/components/profile/AsideVolunteerWork";
+import ModalEditVolunteerWork from "@/components/profile/ModalEditVolunteerWork";
+import ModalVolunteerWork from "@/components/profile/ModalVolunteerWork";
 
 export default function Profile() {
   const { user, refreshUserData } = useContext(AuthContext);
-  const queryClient = useQueryClient(); 
+  const queryClient = useQueryClient();
 
   const [modalState, setModalState] = useState({
     addEducation: false,
     editEducation: false,
     addExperience: false,
     editExperience: false,
+    addVolunteerWork: false,
+    editVolunteerWork: false,
     editProfile: false,
   });
 
   const [currentItem, setCurrentItem] = useState({
     education: null,
     experience: null,
+    volunteerWork: null, // Novo estado
   });
 
   const [refreshFlag, setRefreshFlag] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshUserData();
       // Invalida as queries relacionadas ao usuário
-      queryClient.invalidateQueries(['userData', user?.id]);
+      queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
       console.error("Error refreshing data:", error);
@@ -58,9 +64,9 @@ export default function Profile() {
     try {
       // Atualização otimista - atualiza imediatamente a UI
       await refreshUserData();
-      
+
       // Invalida as queries para garantir sincronização
-      queryClient.invalidateQueries(['userData', user?.id]);
+      queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -81,6 +87,8 @@ export default function Profile() {
       editEducation: false,
       addExperience: false,
       editExperience: false,
+      addVolunteerWork: false,
+      editVolunteerWork: false,
       editProfile: false,
     });
   }, []);
@@ -112,10 +120,7 @@ export default function Profile() {
         key={`profile-${refreshFlag}`}
         className="bg-white shadow-md pb-5 mb-4"
       >
-        {/* Banner */}
         <View className="bg-[#181818] h-[100px] relative">
-          {/* Foto de perfil */}
-
           <View className="h-[86px] w-[86px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
             {user?.profile_img ? (
               <Image
@@ -134,7 +139,6 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Informações do perfil */}
         <View className="px-5 pt-[50px] mb-4">
           <View className="flex-row justify-between items-center">
             <Text className="font-semibold text-2xl" accessibilityRole="header">
@@ -184,10 +188,19 @@ export default function Profile() {
         />
       </View>
 
-      {/* Seção de posts */}
-      <View className="px-4 mb-6">
-        
+      <View className="px-4 mb-4" testID="volunteer-work-section">
+        <AsideVolunteerWork
+          onOpenModal={() =>
+            setModalState((prev) => ({ ...prev, addVolunteerWork: true }))
+          }
+          onEdit={(volunteerWork) =>
+            handleEditItem("volunteerWork", volunteerWork)
+          }
+          refreshFlag={refreshFlag}
+        />
       </View>
+
+      <View className="px-4 mb-6"></View>
 
       {/* Modais */}
       <AddEducationModal
@@ -224,9 +237,29 @@ export default function Profile() {
         onUpdateExperience={refreshAndClose}
       />
 
-<EditProfileModal
+      {/* NOVOS MODAIS: Trabalhos Voluntários */}
+      <ModalVolunteerWork
+        visible={modalState.addVolunteerWork}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, addVolunteerWork: false }))
+        }
+        onSuccess={refreshAndClose}
+      />
+
+      <ModalEditVolunteerWork
+        visible={modalState.editVolunteerWork}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editVolunteerWork: false }))
+        }
+        volunteerWork={currentItem.volunteerWork}
+        onUpdateVolunteerWork={refreshAndClose}
+      />
+
+      <EditProfileModal
         visible={modalState.editProfile}
-        onClose={() => setModalState((prev) => ({ ...prev, editProfile: false }))}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editProfile: false }))
+        }
         user={user}
         onUpdateUser={handleProfileUpdate}
       />
