@@ -186,12 +186,7 @@ export default function Profile() {
 
       {/* Seção de posts */}
       <View className="px-4 mb-6">
-        <Text className="text-xl font-medium mb-3">Meus Posts</Text>
-        <Post
-          author="Thiago"
-          course="Desenvolvimento de sistemas"
-          content="conteúdo da postagem"
-        />
+        
       </View>
 
       {/* Modais */}
