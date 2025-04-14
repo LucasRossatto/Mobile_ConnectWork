@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useRef } from "react";
 import {
   View,
   TextInput,
@@ -8,20 +8,36 @@ import {
   Image,
   FlatList,
   ActivityIndicator,
+  Animated,
+  Easing,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Post from "@/components/Post";
 import Settings from "@/components/index/Settings";
 import { AuthContext } from "@/contexts/AuthContext";
-import { Menu } from "lucide-react-native";
-import { useQuery, useInfiniteQuery, useMutation, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Menu,
+  BarChart3,
+  Briefcase,
+  Search,
+  Settings as SettingsIcon,
+  User,
+  House,
+} from "lucide-react-native";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import api from "@/services/api";
 
-
-export default function HomeScreen () {
+export default function HomeScreen() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const { user, setUser } = useContext(AuthContext);
   const [recentSearches, setRecentSearches] = useState([
     { id: 1, text: "Desenvolvedor FullStack" },
@@ -29,43 +45,74 @@ export default function HomeScreen () {
     { id: 3, text: "Auxiliar de Administração" },
   ]);
 
+  const sidebarAnim = useRef(new Animated.Value(0)).current;
+
+  const toggleSidebar = () => {
+    if (showSidebar) {
+      Animated.timing(sidebarAnim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start(() => setShowSidebar(false));
+    } else {
+      setShowSidebar(true);
+      Animated.timing(sidebarAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.ease,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const sidebarTranslateX = sidebarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-300, 0],
+  });
+
+  const overlayOpacity = sidebarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.5],
+  });
+
   const getUserData = useCallback(async () => {
     try {
-      console.log('[getUserData] Iniciando busca de dados do usuário...');
-      
+      console.log("[getUserData] Iniciando busca de dados do usuário...");
+
       if (!user?.id) {
-        const errorMsg = 'ID do usuário não disponível';
-        console.error('[getUserData] Erro:', errorMsg);
+        const errorMsg = "ID do usuário não disponível";
+        console.error("[getUserData] Erro:", errorMsg);
         throw new Error(errorMsg);
       }
-  
-      console.log('[getUserData] Fazendo requisição para API...', {
+
+      console.log("[getUserData] Fazendo requisição para API...", {
         userId: user.id,
-        endpoint: `/user/users/${user.id}`
+        endpoint: `/user/users/${user.id}`,
       });
-  
+
       const response = await api.get(`/user/users/${user.id}`);
-      
-      console.log('[getUserData] Resposta recebida:', {
+
+      console.log("[getUserData] Resposta recebida:", {
         status: response.status,
-        data: response.data
+        data: response.data,
       });
-  
+
       const userData = response.data;
-  
+
       if (!userData) {
-        const errorMsg = 'Dados do usuário não retornados pela API';
-        console.error('[getUserData] Erro:', errorMsg);
+        const errorMsg = "Dados do usuário não retornados pela API";
+        console.error("[getUserData] Erro:", errorMsg);
         throw new Error(errorMsg);
       }
-  
-      console.log('[getUserData] Dados recebidos com sucesso:', {
+
+      console.log("[getUserData] Dados recebidos com sucesso:", {
         nome: userData.nome,
         school: userData.school,
         course: userData.course,
-        profile_img: !!userData.profile_img
+        profile_img: !!userData.profile_img,
       });
-  
+
       setUser((prevUser) => {
         const updatedUser = {
           ...prevUser,
@@ -76,24 +123,24 @@ export default function HomeScreen () {
           profile_img: userData.profile_img,
           banner_img: userData.banner_img,
         };
-        
-        console.log('[getUserData] Contexto do usuário atualizado:', {
+
+        console.log("[getUserData] Contexto do usuário atualizado:", {
           previousUser: prevUser,
-          updatedUser: updatedUser
+          updatedUser: updatedUser,
         });
-        
+
         return updatedUser;
       });
-  
+
       return userData;
     } catch (error) {
-      console.error('[getUserData] Erro durante a busca de dados:', {
+      console.error("[getUserData] Erro durante a busca de dados:", {
         error: error,
         message: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
       });
-      
+
       throw error;
     }
   }, [user?.id, setUser]);
@@ -170,29 +217,35 @@ export default function HomeScreen () {
     },
   });
 
-  const renderPostItem = useCallback(({ item }) => (
-    <Post
-      author={item.user.nome}
-      author_profileImg={item.user.profile_img}
-      content={item.content}
-      date={item.createdAt}
-      category={item.category}
-      img={item.images}
-      LikeCount={item.numberLikes}
-    />
-  ), []);
+  const renderPostItem = useCallback(
+    ({ item }) => (
+      <Post
+        author={item.user.nome}
+        author_profileImg={item.user.profile_img}
+        content={item.content}
+        date={item.createdAt}
+        category={item.category}
+        img={item.images}
+        LikeCount={item.numberLikes}
+      />
+    ),
+    []
+  );
 
-  const renderSearchItem = useCallback(({ item }) => (
-    <View className="flex-row justify-between items-center py-3 px-4">
-      <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
-      <TouchableOpacity
-        onPress={() => removeSearchItem(item.id)}
-        className="p-2"
-      >
-        <Ionicons name="close" size={18} color="#9CA3AF" />
-      </TouchableOpacity>
-    </View>
-  ), []);
+  const renderSearchItem = useCallback(
+    ({ item }) => (
+      <View className="flex-row justify-between items-center py-3 px-4">
+        <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
+        <TouchableOpacity
+          onPress={() => removeSearchItem(item.id)}
+          className="p-2"
+        >
+          <Ionicons name="close" size={18} color="#9CA3AF" />
+        </TouchableOpacity>
+      </View>
+    ),
+    []
+  );
 
   const renderFooterComponent = useCallback(() => {
     if (!isFetchingNextPage) return null;
@@ -211,7 +264,7 @@ export default function HomeScreen () {
         </View>
       );
     }
-    
+
     if (isPostsError) {
       return (
         <View className="flex-1 justify-center items-center mt-10">
@@ -262,7 +315,9 @@ export default function HomeScreen () {
             resizeMode="cover"
           />
         ) : (
-          <Text className="text-xl font-bold text-black">{userNameInitial}</Text>
+          <Text className="text-xl font-bold text-black">
+            {userNameInitial}
+          </Text>
         )}
       </View>
     );
@@ -274,8 +329,16 @@ export default function HomeScreen () {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const MenuItem = ({ icon: Icon, text, onPress }) => (
+    <TouchableOpacity className="flex-row items-center" onPress={onPress}>
+      <Icon size={27} color="#fff" />
+      <Text className="text-[17px] py-4 text-white pl-2 font-bold">{text}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View className="flex-1 space-x-0 bg-white">
+    <View className="flex-1 bg-white">
+      {/* Main Content */}
       <View className="bg-white flex-row items-center border-b border-gray-100 p-4">
         {renderUserAvatar()}
 
@@ -294,10 +357,85 @@ export default function HomeScreen () {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowSettings(true)} className="p-2">
+        <TouchableOpacity onPress={toggleSidebar} className="p-2">
           <Menu size={27} color={"#000"} strokeWidth={2} />
         </TouchableOpacity>
       </View>
+
+      {/* Sidebar Overlay - sempre renderizado mas invisível quando fechado */}
+      <Animated.View
+        className="absolute top-0 left-0 right-0 bottom-0 bg-black z-10"
+        style={{
+          opacity: overlayOpacity,
+          display: showSidebar ? "flex" : "none",
+        }}
+      >
+        <TouchableOpacity
+          className="flex-1"
+          onPress={toggleSidebar}
+          activeOpacity={1}
+        />
+      </Animated.View>
+
+      {/* Sidebar - sempre renderizado mas fora da tela quando fechado */}
+      <Animated.View
+        className="absolute top-0 left-0 bottom-0 w-80 bg-[#1B1D2A] z-20 shadow-xl"
+        style={{
+          transform: [{ translateX: sidebarTranslateX }],
+          display: showSidebar ? "flex" : "none",
+        }}
+      >
+        <View className="p-4">
+          {/* User Profile Section */}
+
+          <View className="flex items-center space-x-4 mb-6 mt-12">
+            <View className="relative w-16 h-16 mb-2 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
+              {userData?.profile_img ? (
+                <Image
+                  source={{ uri: userData.profile_img }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
+              ) : (
+                <User
+                  fill="#6a7282"
+                  className="w-full h-13 text-gray-500 top-3 absolute"
+                />
+              )}
+            </View>
+
+            <View>
+              <Text className="font-bold text-lg text-white text-[21px]">
+                {userData?.nome || "Visitante"}
+              </Text>
+              <Text className="text-sm text-white text-center">
+                {userData?.course || "Nenhum curso selecionado"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Menu Items */}
+          <View className="space-y-4 py-2 ml-3 mt-10">
+            <TouchableOpacity className="flex-row items-center">
+              <House size={27} color={"#9ca3af"} />
+              <Text className="text-[17px] py-3 text-gray-400 pl-2 font-bold">
+                Home
+              </Text>
+            </TouchableOpacity>
+            <MenuItem icon={Search} text="Procurar Vagas" />
+            <MenuItem icon={Briefcase} text="Vagas em espera" />
+            <MenuItem icon={BarChart3} text="Frequência" />
+            <MenuItem
+              icon={SettingsIcon}
+              text="Configurações"
+              onPress={() => {
+                toggleSidebar();
+                setShowSettings(true);
+              }}
+            />
+          </View>
+        </View>
+      </Animated.View>
 
       <Modal
         visible={showSearchModal}
@@ -384,5 +522,4 @@ export default function HomeScreen () {
       </Modal>
     </View>
   );
-};
-
+}

@@ -1,22 +1,23 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StatusBar } from "react-native";
+import { House, UserRound } from "lucide-react-native";
 
 export default function _TabsLayout() {
   return (
     <>
-      <StatusBar style="light" backgroundColor="#ffffff" />
+      <StatusBar style="light" backgroundColor="#000" />
       <Tabs
         screenOptions={{
           tabBarStyle: {
-            backgroundColor: "#181818",
+            backgroundColor: "#1B1D2A",
             height: 58,
             paddingTop: 8,
           },
-         
-          tabBarActiveTintColor: "#F2F2F2",
-          tabBarInactiveTintColor: "#676D75",
+
+          tabBarActiveTintColor: "#676D75",
+          tabBarInactiveTintColor: "#F2F2F2",
           tabBarShowLabel: false,
         }}
       >
@@ -25,10 +26,10 @@ export default function _TabsLayout() {
           options={{
             headerShown: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons 
-                name={focused ? "home" : "home-outline"} 
-                size={28} 
-                color={color} 
+              <House
+                name={focused ? "home" : "home-outline"}
+                size={28}
+                color={color}
               />
             ),
           }}
@@ -38,10 +39,10 @@ export default function _TabsLayout() {
           options={{
             headerShown: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons 
-                name={focused ? "briefcase" : "briefcase-outline"} 
-                size={28} 
-                color={color} 
+              <Ionicons
+                name={focused ? "briefcase" : "briefcase-outline"}
+                size={28}
+                color={color}
               />
             ),
           }}
@@ -51,10 +52,10 @@ export default function _TabsLayout() {
           options={{
             headerShown: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons 
-                name={focused ? "add-circle" : "add-circle-outline"} 
-                size={30} 
-                color={color} 
+              <Ionicons
+                name={focused ? "add-circle" : "add-circle-outline"}
+                size={30}
+                color={color}
               />
             ),
           }}
@@ -64,10 +65,10 @@ export default function _TabsLayout() {
           options={{
             headerShown: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons 
-                name={focused ? "notifications" : "notifications-outline"} 
-                size={28} 
-                color={color} 
+              <Ionicons
+                name={focused ? "notifications" : "notifications-outline"}
+                size={28}
+                color={color}
               />
             ),
           }}
@@ -77,10 +78,10 @@ export default function _TabsLayout() {
           options={{
             headerShown: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons 
-                name={focused ? "person-circle-sharp" : "person-circle-outline"} 
-                size={30} 
-                color={color} 
+              <UserRound
+                name={focused ? "person-circle-sharp" : "person-circle-outline"}
+                size={28}
+                color={color}
               />
             ),
           }}
