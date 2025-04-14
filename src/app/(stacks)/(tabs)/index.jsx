@@ -25,6 +25,7 @@ import {
   User,
   House,
 } from "lucide-react-native";
+import { Menu } from "lucide-react-native";
 import {
   useQuery,
   useInfiniteQuery,
@@ -33,6 +34,7 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import api from "@/services/api";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function HomeScreen() {
   const [showSettings, setShowSettings] = useState(false);
@@ -483,15 +485,17 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <FlatList
-        data={allPosts}
-        renderItem={renderPostItem}
-        keyExtractor={(item) => item.id.toString()}
-        onEndReached={handleLoadMorePosts}
-        onEndReachedThreshold={0.1}
-        ListFooterComponent={renderFooterComponent}
-        ListEmptyComponent={renderEmptyListComponent}
-      />
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <FlatList
+          data={allPosts}
+          renderItem={renderPostItem}
+          keyExtractor={(item) => item.id.toString()}
+          onEndReached={handleLoadMorePosts}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={renderFooterComponent}
+          ListEmptyComponent={renderEmptyListComponent}
+        />
+      </GestureHandlerRootView>
 
       <Modal
         visible={showSettings}
