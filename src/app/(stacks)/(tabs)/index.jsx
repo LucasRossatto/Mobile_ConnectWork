@@ -14,7 +14,6 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Post from "@/components/Post";
-import Settings from "@/components/index/Settings";
 import { AuthContext } from "@/contexts/AuthContext";
 import {
   Menu,
@@ -25,7 +24,6 @@ import {
   User,
   House,
 } from "lucide-react-native";
-import { Menu } from "lucide-react-native";
 import {
   useQuery,
   useInfiniteQuery,
@@ -35,17 +33,14 @@ import {
 } from "@tanstack/react-query";
 import api from "@/services/api";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ModalSearch from "../../../components/index/ModalSearch";
 
 export default function HomeScreen() {
-  const [showSettings, setShowSettings] = useState(false);
-  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [modalState, setModalState] = useState({
+    ModalSearch: false,
+  });
   const [showSidebar, setShowSidebar] = useState(false);
   const { user, setUser } = useContext(AuthContext);
-  const [recentSearches, setRecentSearches] = useState([
-    { id: 1, text: "Desenvolvedor FullStack" },
-    { id: 2, text: "Operador Logístico" },
-    { id: 3, text: "Auxiliar de Administração" },
-  ]);
 
   const sidebarAnim = useRef(new Animated.Value(0)).current;
 
@@ -206,19 +201,6 @@ export default function HomeScreen() {
     staleTime: 1000 * 60 * 10,
   });
 
-  const { mutate: removeSearchItem } = useMutation({
-    mutationFn: (searchItemId) => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(searchItemId), 300);
-      });
-    },
-    onSuccess: (removedSearchItemId) => {
-      setRecentSearches((prevSearches) =>
-        prevSearches.filter((item) => item.id !== removedSearchItemId)
-      );
-    },
-  });
-
   const renderPostItem = useCallback(
     ({ item }) => (
       <Post
@@ -230,21 +212,6 @@ export default function HomeScreen() {
         img={item.images}
         LikeCount={item.numberLikes}
       />
-    ),
-    []
-  );
-
-  const renderSearchItem = useCallback(
-    ({ item }) => (
-      <View className="flex-row justify-between items-center py-3 px-4">
-        <Text className="text-base text-gray-800 flex-1">{item.text}</Text>
-        <TouchableOpacity
-          onPress={() => removeSearchItem(item.id)}
-          className="p-2"
-        >
-          <Ionicons name="close" size={18} color="#9CA3AF" />
-        </TouchableOpacity>
-      </View>
     ),
     []
   );
@@ -346,7 +313,9 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           className="bg-gray-200 rounded-full flex-row items-center py-3 flex-1 ml-2 mr-2"
-          onPress={() => setShowSearchModal(true)}
+          onPress={() =>
+            setModalState((prev) => ({ ...prev, ModalSearch: true }))
+          }
         >
           <Icon
             name="search"
@@ -439,52 +408,6 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
-      <Modal
-        visible={showSearchModal}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={() => setShowSearchModal(false)}
-      >
-        <View className="flex-1 bg-white">
-          <View className="bg-white p-4 flex-row items-center border-b border-gray-200">
-            <TouchableOpacity
-              onPress={() => setShowSearchModal(false)}
-              className="flex-row items-center"
-            >
-              <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
-
-            <View className="flex-1 mx-2">
-              <TextInput
-                className="bg-gray-100 rounded-full px-4 py-2 text-black"
-                placeholder="Pesquisar vagas"
-                placeholderTextColor="#9CA3AF"
-                autoFocus={true}
-              />
-            </View>
-
-            <TouchableOpacity>
-              <MaterialIcons name="filter-list" size={24} color="black" />
-            </TouchableOpacity>
-          </View>
-
-          <View className="p-4">
-            <Text className="text-lg font-bold mb-4 text-gray-800">
-              Pesquisas recentes
-            </Text>
-
-            <FlatList
-              data={recentSearches}
-              renderItem={renderSearchItem}
-              keyExtractor={(item) => item.id.toString()}
-              ItemSeparatorComponent={() => (
-                <View className="h-px bg-gray-200 mx-4" />
-              )}
-            />
-          </View>
-        </View>
-      </Modal>
-
       <GestureHandlerRootView style={{ flex: 1 }}>
         <FlatList
           data={allPosts}
@@ -497,33 +420,11 @@ export default function HomeScreen() {
         />
       </GestureHandlerRootView>
 
-      <Modal
-        visible={showSettings}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowSettings(false)}
-      >
-        <View className="flex-1 bg-white">
-          <View className="bg-black p-4 flex-row items-center">
-            <TouchableOpacity
-              onPress={() => setShowSettings(false)}
-              className="flex-row items-center"
-            >
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-
-            <View className="flex-row items-center mx-2">
-              <Ionicons name="settings" size={24} color="white" />
-
-              <Text className="text-2xl font-bold text-white ml-2">
-                Configurações
-              </Text>
-            </View>
-          </View>
-
-          <Settings />
-        </View>
-      </Modal>
+      {/** modal de pesquisa */}
+      <ModalSearch
+        visible={modalState.ModalSearch}
+        onClose={() => setModalState(False)}
+      />
     </View>
   );
 }
