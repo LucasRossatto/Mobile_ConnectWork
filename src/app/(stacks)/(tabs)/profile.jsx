@@ -17,6 +17,7 @@ import EditEducationModal from "@/components/profile/ModalEditEducation";
 import AddExperienceModal from "@/components/profile/ModalAddExperience";
 import EditExperienceModal from "@/components/profile/ModalEditExperience";
 import Post from "@/components/Post";
+import ModalEditBanner from "../../../components/profile/ModalEditBanner";
 import EditProfileModal from "@/components/profile/ModalEditProfile";
 import { useQueryClient } from "@tanstack/react-query";
 import AsideVolunteerWork from "@/components/profile/AsideVolunteerWork";
@@ -35,12 +36,13 @@ export default function Profile() {
     addVolunteerWork: false,
     editVolunteerWork: false,
     editProfile: false,
+    editBanner: false,
   });
 
   const [currentItem, setCurrentItem] = useState({
     education: null,
     experience: null,
-    volunteerWork: null, // Novo estado
+    volunteerWork: null,
   });
 
   const [refreshFlag, setRefreshFlag] = useState(0);
@@ -50,7 +52,6 @@ export default function Profile() {
     setRefreshing(true);
     try {
       await refreshUserData();
-      // Invalida as queries relacionadas ao usuário
       queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
@@ -62,10 +63,7 @@ export default function Profile() {
 
   const handleProfileUpdate = useCallback(async () => {
     try {
-      // Atualização otimista - atualiza imediatamente a UI
       await refreshUserData();
-
-      // Invalida as queries para garantir sincronização
       queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
@@ -115,16 +113,35 @@ export default function Profile() {
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
-      {/* Container do perfil com key para forçar rerender */}
       <View
         key={`profile-${refreshFlag}`}
         className="bg-white shadow-md pb-5 mb-4"
       >
-        <View className="bg-[#181818] h-[100px] relative">
-          <View className="h-[86px] w-[86px] rounded-full bg-[#D9D9D9] absolute top-[60px] left-5 flex justify-center items-center">
+        <TouchableOpacity
+          className="bg-white rounded-full w-[34] h-[34] flex items-center justify-center absolute left-[88%] mt-4 z-10"
+          onPress={() =>
+            setModalState((prev) => ({ ...prev, editBanner: true }))
+          }
+          accessibilityLabel="Editar Banner"
+        >
+          <Pencil width={16} color="black" />
+        </TouchableOpacity>
+        <View className="h-[100px] relative">
+          {user?.banner_img ? (
+            <Image
+              source={{ uri: user.banner_img }}
+              className="absolute top-0 left-0 right-0 bottom-0"
+              resizeMode="cover"
+              blurRadius={2}
+              accessibilityLabel="Fundo do perfil"
+            />
+          ) : (
+            <View className="absolute top-0 left-0 right-0 bottom-0 bg-gray-400" />
+          )}
+          <View className="h-[86px] w-[86px] rounded-full bg-gray-200 absolute top-[60px] left-5 flex justify-center items-center">
             {user?.profile_img ? (
               <Image
-                source={{ uri: user?.profile_img }}
+                source={{ uri: user.profile_img }}
                 className="h-full w-full rounded-full"
                 resizeMode="cover"
                 accessibilityLabel="Foto do perfil"
@@ -166,7 +183,6 @@ export default function Profile() {
         </View>
       </View>
 
-      {/* Seção de formações acadêmicas */}
       <View className="px-4 mb-4" testID="education-section">
         <AsideEducation
           onOpenModal={() =>
@@ -177,7 +193,6 @@ export default function Profile() {
         />
       </View>
 
-      {/* Seção de experiências profissionais */}
       <View className="px-4 mb-4" testID="experience-section">
         <AsideExperience
           onOpenModal={() =>
@@ -202,7 +217,6 @@ export default function Profile() {
 
       <View className="px-4 mb-6"></View>
 
-      {/* Modais */}
       <AddEducationModal
         visible={modalState.addEducation}
         onClose={() =>
@@ -237,7 +251,6 @@ export default function Profile() {
         onUpdateExperience={refreshAndClose}
       />
 
-      {/* NOVOS MODAIS: Trabalhos Voluntários */}
       <ModalVolunteerWork
         visible={modalState.addVolunteerWork}
         onClose={() =>
@@ -259,6 +272,15 @@ export default function Profile() {
         visible={modalState.editProfile}
         onClose={() =>
           setModalState((prev) => ({ ...prev, editProfile: false }))
+        }
+        user={user}
+        onUpdateUser={handleProfileUpdate}
+      />
+
+      <ModalEditBanner
+        visible={modalState.editBanner}
+        onClose={() =>
+          setModalState((prev) => ({ ...prev, editBanner: false }))
         }
         user={user}
         onUpdateUser={handleProfileUpdate}
