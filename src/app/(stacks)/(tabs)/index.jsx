@@ -1,9 +1,7 @@
 import React, { useState, useContext, useCallback, useRef } from "react";
 import {
   View,
-  TextInput,
   TouchableOpacity,
-  Modal,
   Text,
   Image,
   FlatList,
@@ -12,41 +10,45 @@ import {
   Easing,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import Post from "@/components/Post";
 import { AuthContext } from "@/contexts/AuthContext";
 import {
-  Menu,
+  Menu as MenuIcon,
   BarChart3,
   Briefcase,
-  Search,
+  Search as SearchIcon,
   Settings as SettingsIcon,
-  User,
-  House,
+  User as UserIcon,
+  Home as HomeIcon,
+  UserRound,
 } from "lucide-react-native";
-import {
-  useQuery,
-  useInfiniteQuery,
-  useMutation,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import api from "@/services/api";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ModalSearch from "../../../components/index/ModalSearch";
+import ModalSearch from "@/components/index/ModalSearch";
 
-export default function HomeScreen() {
-  const [modalState, setModalState] = useState({
-    ModalSearch: false,
-  });
+const HomeScreen = () => {
+  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { user, setUser } = useContext(AuthContext);
 
-  const sidebarAnim = useRef(new Animated.Value(0)).current;
+  const sidebarAnimation = useRef(new Animated.Value(0)).current;
+
+  const handleOpenSearch = () => {
+    setIsSearchModalVisible(true);
+    if (showSidebar) {
+      toggleSidebar();
+    }
+  };
+
+  const handleCloseSearch = () => {
+    setIsSearchModalVisible(false);
+  };
 
   const toggleSidebar = () => {
     if (showSidebar) {
-      Animated.timing(sidebarAnim, {
+      Animated.timing(sidebarAnimation, {
         toValue: 0,
         duration: 300,
         easing: Easing.ease,
@@ -54,7 +56,7 @@ export default function HomeScreen() {
       }).start(() => setShowSidebar(false));
     } else {
       setShowSidebar(true);
-      Animated.timing(sidebarAnim, {
+      Animated.timing(sidebarAnimation, {
         toValue: 1,
         duration: 300,
         easing: Easing.ease,
@@ -63,81 +65,42 @@ export default function HomeScreen() {
     }
   };
 
-  const sidebarTranslateX = sidebarAnim.interpolate({
+  const sidebarTranslateX = sidebarAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [-300, 0],
   });
 
-  const overlayOpacity = sidebarAnim.interpolate({
+  const overlayOpacity = sidebarAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.5],
   });
 
   const getUserData = useCallback(async () => {
     try {
-      console.log("[getUserData] Iniciando busca de dados do usuário...");
-
       if (!user?.id) {
-        const errorMsg = "ID do usuário não disponível";
-        console.error("[getUserData] Erro:", errorMsg);
-        throw new Error(errorMsg);
+        throw new Error("ID do usuário não disponível");
       }
 
-      console.log("[getUserData] Fazendo requisição para API...", {
-        userId: user.id,
-        endpoint: `/user/users/${user.id}`,
-      });
-
       const response = await api.get(`/user/users/${user.id}`);
-
-      console.log("[getUserData] Resposta recebida:", {
-        status: response.status,
-        data: response.data,
-      });
-
       const userData = response.data;
 
       if (!userData) {
-        const errorMsg = "Dados do usuário não retornados pela API";
-        console.error("[getUserData] Erro:", errorMsg);
-        throw new Error(errorMsg);
+        throw new Error("Dados do usuário não retornados pela API");
       }
 
-      console.log("[getUserData] Dados recebidos com sucesso:", {
+      setUser((previousUser) => ({
+        ...previousUser,
         nome: userData.nome,
         school: userData.school,
         course: userData.course,
-        profile_img: !!userData.profile_img,
-      });
-
-      setUser((prevUser) => {
-        const updatedUser = {
-          ...prevUser,
-          nome: userData.nome,
-          school: userData.school,
-          course: userData.course,
-          userClass: userData.userClass,
-          profile_img: userData.profile_img,
-          banner_img: userData.banner_img,
-        };
-
-        console.log("[getUserData] Contexto do usuário atualizado:", {
-          previousUser: prevUser,
-          updatedUser: updatedUser,
-        });
-
-        return updatedUser;
-      });
+        userClass: userData.userClass,
+        profile_img: userData.profile_img,
+        banner_img: userData.banner_img,
+      }));
 
       return userData;
     } catch (error) {
-      console.error("[getUserData] Erro durante a busca de dados:", {
-        error: error,
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
+      console.error("Erro durante a busca de dados:", error);
       throw error;
     }
   }, [user?.id, setUser]);
@@ -146,23 +109,9 @@ export default function HomeScreen() {
     data: userData,
     isLoading: isLoadingUserData,
     isError: isUserDataError,
-    error: userDataError,
   } = useQuery({
     queryKey: ["userData", user?.id],
     queryFn: getUserData,
-    onSuccess: (data) => {
-      if (data) {
-        setUser((prevUser) => ({
-          ...prevUser,
-          nome: data.nome,
-          school: data.school,
-          course: data.course,
-          userClass: data.userClass,
-          profile_img: data.profile_img,
-          banner_img: data.banner_img,
-        }));
-      }
-    },
     enabled: !!user?.token,
     staleTime: 1000 * 60 * 5,
   });
@@ -171,7 +120,6 @@ export default function HomeScreen() {
     data: postsData,
     fetchNextPage,
     hasNextPage,
-    isLoading: isLoadingPosts,
     isFetching: isFetchingPosts,
     isFetchingNextPage,
     isError: isPostsError,
@@ -219,7 +167,7 @@ export default function HomeScreen() {
   const renderFooterComponent = useCallback(() => {
     if (!isFetchingNextPage) return null;
     return (
-      <View className="py-4">
+      <View style={{ paddingVertical: 16 }}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -228,7 +176,14 @@ export default function HomeScreen() {
   const renderEmptyListComponent = useCallback(() => {
     if (isFetchingPosts) {
       return (
-        <View className="flex-1 justify-center items-center mt-10">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            marginTop: 40,
+          }}
+        >
           <ActivityIndicator size="large" color="#0000ff" />
         </View>
       );
@@ -236,8 +191,15 @@ export default function HomeScreen() {
 
     if (isPostsError) {
       return (
-        <View className="flex-1 justify-center items-center mt-10">
-          <Text className="text-red-500 text-lg">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            marginTop: 40,
+          }}
+        >
+          <Text style={{ color: "#EF4444", fontSize: 18 }}>
             Erro ao carregar posts: {postsError?.message}
           </Text>
         </View>
@@ -245,8 +207,17 @@ export default function HomeScreen() {
     }
 
     return (
-      <View className="flex-1 justify-center items-center mt-10">
-        <Text className="text-gray-500 text-lg">Nenhum post encontrado.</Text>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          marginTop: 40,
+        }}
+      >
+        <Text style={{ color: "#6B7280", fontSize: 18 }}>
+          Nenhum post encontrado.
+        </Text>
       </View>
     );
   }, [isFetchingPosts, isPostsError, postsError]);
@@ -261,7 +232,16 @@ export default function HomeScreen() {
 
     if (isLoadingUserData) {
       return (
-        <View className="h-11 w-11 rounded-full bg-gray-200 flex justify-center items-center">
+        <View
+          style={{
+            height: 44,
+            width: 44,
+            borderRadius: 22,
+            backgroundColor: "#E5E7EB",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <ActivityIndicator size="small" color="#0000ff" />
         </View>
       );
@@ -269,22 +249,42 @@ export default function HomeScreen() {
 
     if (isUserDataError) {
       return (
-        <View className="h-11 w-11 rounded-full bg-gray-200 flex justify-center items-center">
-          <Text className="text-xl font-bold text-black">!</Text>
+        <View
+          style={{
+            height: 44,
+            width: 44,
+            borderRadius: 22,
+            backgroundColor: "#E5E7EB",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 20, fontWeight: "bold", color: "black" }}>
+            !
+          </Text>
         </View>
       );
     }
 
     return (
-      <View className="h-11 w-11 rounded-full bg-gray-400 flex justify-center items-center">
+      <View
+        style={{
+          height: 44,
+          width: 44,
+          borderRadius: 22,
+          backgroundColor: "#9CA3AF",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         {profileImageUri ? (
           <Image
             source={{ uri: profileImageUri }}
-            className="h-full w-full rounded-full"
+            style={{ height: "100%", width: "100%", borderRadius: 22 }}
             resizeMode="cover"
           />
         ) : (
-          <Text className="text-xl font-bold text-black">
+          <Text style={{ fontSize: 20, fontWeight: "bold", color: "black" }}>
             {userNameInitial}
           </Text>
         )}
@@ -298,24 +298,53 @@ export default function HomeScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const MenuItem = ({ icon: Icon, text, onPress }) => (
-    <TouchableOpacity className="flex-row items-center" onPress={onPress}>
-      <Icon size={27} color="#fff" />
-      <Text className="text-[17px] py-4 text-white pl-2 font-bold">{text}</Text>
+  const MenuItem = ({ icon: IconComponent, text, onPress }) => (
+    <TouchableOpacity
+      style={{ flexDirection: "row", alignItems: "center" }}
+      onPress={onPress}
+    >
+      <IconComponent size={27} color="#FFFFFF" />
+      <Text
+        style={{
+          fontSize: 17,
+          paddingVertical: 16,
+          color: "white",
+          paddingLeft: 8,
+          fontWeight: "bold",
+        }}
+      >
+        {text}
+      </Text>
     </TouchableOpacity>
   );
 
   return (
-    <View className="flex-1 bg-white">
-      {/* Main Content */}
-      <View className="bg-white flex-row items-center border-b border-gray-100 p-4">
+    <View style={{ flex: 1, backgroundColor: "white" }}>
+      <View
+        style={{
+          backgroundColor: "white",
+          flexDirection: "row",
+          alignItems: "center",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F3F4F6",
+          padding: 16,
+        }}
+      >
         {renderUserAvatar()}
 
         <TouchableOpacity
-          className="bg-gray-200 rounded-full flex-row items-center py-3 flex-1 ml-2 mr-2"
-          onPress={() =>
-            setModalState((prev) => ({ ...prev, ModalSearch: true }))
-          }
+          style={{
+            backgroundColor: "#E5E7EB",
+            borderRadius: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 12,
+            flex: 1,
+            marginLeft: 8,
+            marginRight: 8,
+          }}
+          onPress={handleOpenSearch}
+          testID="search-button"
         >
           <Icon
             name="search"
@@ -323,44 +352,77 @@ export default function HomeScreen() {
             color="#9CA3AF"
             style={{ marginLeft: 15, marginRight: 8 }}
           />
-          <Text className="text-gray-700 text-base flex-1">
+          <Text style={{ color: "#374151", fontSize: 16, flex: 1 }}>
             Busque por vagas
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={toggleSidebar} className="p-2">
-          <Menu size={27} color={"#000"} strokeWidth={2} />
+        <TouchableOpacity onPress={toggleSidebar} style={{ padding: 8 }}>
+          <MenuIcon size={27} color={"black"} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
-      {/* Sidebar Overlay - sempre renderizado mas invisível quando fechado */}
       <Animated.View
-        className="absolute top-0 left-0 right-0 bottom-0 bg-black z-10"
         style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "black",
+          zIndex: 10,
           opacity: overlayOpacity,
           display: showSidebar ? "flex" : "none",
         }}
       >
         <TouchableOpacity
-          className="flex-1"
+          style={{ flex: 1 }}
           onPress={toggleSidebar}
           activeOpacity={1}
         />
       </Animated.View>
 
-      {/* Sidebar - sempre renderizado mas fora da tela quando fechado */}
       <Animated.View
-        className="absolute top-0 left-0 bottom-0 w-80 bg-[#1B1D2A] z-20 shadow-xl"
         style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 320,
+          backgroundColor: "#1B1D2A",
+          zIndex: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 5, height: 0 },
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
           transform: [{ translateX: sidebarTranslateX }],
           display: showSidebar ? "flex" : "none",
         }}
       >
-        <View className="p-4">
-          {/* User Profile Section */}
-
-          <View className="flex items-center space-x-4 mb-6 mt-12">
-            <View className="relative w-16 h-16 mb-2 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
+        <View style={{ padding: 16 }}>
+          <View
+            style={{
+              alignItems: "center",
+              flexDirection: "row",
+              marginBottom: 24,
+              marginTop: 48,
+            }}
+          >
+            <View
+              style={{
+                position: "relative",
+                width: 64,
+                height: 64,
+                marginBottom: 8,
+                marginRight: 14,
+                marginLeft: 20,
+                backgroundColor: "#D1D5DB",
+                borderRadius: 32,
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
               {userData?.profile_img ? (
                 <Image
                   source={{ uri: userData.profile_img }}
@@ -368,32 +430,60 @@ export default function HomeScreen() {
                   resizeMode="cover"
                 />
               ) : (
-                <User
-                  fill="#6a7282"
-                  className="w-full h-13 text-gray-500 top-3 absolute"
+                <UserRound
+                  fill="#6B7280"
+                  style={{
+                    width: "100%",
+                    height: 52,
+                    color: "#6B7280",
+                    position: "absolute",
+                    top: 12,
+                  }}
                 />
               )}
             </View>
 
             <View>
-              <Text className="font-bold text-lg text-white text-[21px]">
+              <Text
+                style={{
+                  fontWeight: "bold",
+                  fontSize: 21,
+                  color: "white",
+                  textAlign: "center",
+                }}
+              >
                 {userData?.nome || "Visitante"}
               </Text>
-              <Text className="text-sm text-white text-center">
+              <Text
+                style={{ fontSize: 14, color: "white", textAlign: "center" }}
+              >
                 {userData?.course || "Nenhum curso selecionado"}
               </Text>
             </View>
           </View>
 
-          {/* Menu Items */}
-          <View className="space-y-4 py-2 ml-3 mt-10">
-            <TouchableOpacity className="flex-row items-center">
-              <House size={27} color={"#9ca3af"} />
-              <Text className="text-[17px] py-3 text-gray-400 pl-2 font-bold">
+          <View style={{ paddingVertical: 8, marginLeft: 12, marginTop: 40 }}>
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center" }}
+            >
+              <HomeIcon size={27} color={"#9CA3AF"} />
+              <Text
+                style={{
+                  fontSize: 17,
+                  paddingVertical: 12,
+                  color: "#9CA3AF",
+                  paddingLeft: 8,
+                  fontWeight: "bold",
+                }}
+              >
                 Home
               </Text>
             </TouchableOpacity>
-            <MenuItem icon={Search} text="Procurar Vagas" />
+            <MenuItem
+              icon={SearchIcon}
+              text="Procurar Vagas"
+              onPress={handleOpenSearch}
+            />
             <MenuItem icon={Briefcase} text="Vagas em espera" />
             <MenuItem icon={BarChart3} text="Frequência" />
             <MenuItem
@@ -408,6 +498,8 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
+      <ModalSearch visible={isSearchModalVisible} onClose={handleCloseSearch} />
+
       <GestureHandlerRootView style={{ flex: 1 }}>
         <FlatList
           data={allPosts}
@@ -419,12 +511,8 @@ export default function HomeScreen() {
           ListEmptyComponent={renderEmptyListComponent}
         />
       </GestureHandlerRootView>
-
-      {/** modal de pesquisa */}
-      <ModalSearch
-        visible={modalState.ModalSearch}
-        onClose={() => setModalState(False)}
-      />
     </View>
   );
-}
+};
+
+export default HomeScreen;
