@@ -16,22 +16,22 @@ import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
 import { AuthContext } from "@/contexts/AuthContext";
 
-const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
-  const { setUser } = useContext(AuthContext);
+const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
+  const { user, setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState(null);
   const [showImageActions, setShowImageActions] = useState(false);
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState("");
 
-  // Verificar e solicitar permissões
   useEffect(() => {
     const checkPermissions = async () => {
       try {
         log.debug("Solicitando permissão da galeria...");
         setDebugInfo("Solicitando permissão...");
 
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         log.debug(`Status da galeria: ${status}`);
         setDebugInfo(`Permissão: Galeria=${status}`);
@@ -77,7 +77,8 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(options, (buttonIndex) => {
         if (buttonIndex === 1) pickImage();
-        if (buttonIndex === options.destructiveButtonIndex) confirmDeleteImage();
+        if (buttonIndex === options.destructiveButtonIndex)
+          confirmDeleteImage();
       });
     } else {
       setShowImageActions(true);
@@ -100,11 +101,11 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
 
       log.debug("Resultado da galeria:", {
         canceled: result.canceled,
-        assets: result.assets?.map(asset => ({
+        assets: result.assets?.map((asset) => ({
           width: asset.width,
           height: asset.height,
-          fileSize: asset.fileSize
-        }))
+          fileSize: asset.fileSize,
+        })),
       });
 
       setDebugInfo(`Resultado: ${result.canceled ? "Cancelado" : "Sucesso"}`);
@@ -113,10 +114,10 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
         if (result.assets[0].base64) {
           const sizeInBytes = (result.assets[0].base64.length * 3) / 4;
           const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-          
+
           log.debug("Tamanho da imagem:", {
             bytes: sizeInBytes,
-            mb: sizeInMB
+            mb: sizeInMB,
           });
 
           setDebugInfo(`Tamanho: ${sizeInMB} MB`);
@@ -137,7 +138,7 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
       log.error(errorMsg, {
         error: err,
         message: err.message,
-        stack: err.stack
+        stack: err.stack,
       });
       setError(errorMsg);
       setDebugInfo(`Erro: ${err.message}`);
@@ -194,7 +195,7 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
       return res.data?.imageUrl || image.uri;
     } catch (error) {
       log.error("Erro ao enviar imagem:", {
-        error: error.response?.data || error.message
+        error: error.response?.data || error.message,
       });
       throw error;
     } finally {
@@ -239,8 +240,8 @@ const ModalEditBanner = ({ visible, onClose, user, onUpdateUser }) => {
 
       <View className="flex-1 bg-white p-5">
         <View className="items-center mb-4">
-          <TouchableOpacity 
-            className="w-full" 
+          <TouchableOpacity
+            className="w-full"
             onPress={showImagePickerOptions}
             accessibilityLabel="Alterar banner"
           >

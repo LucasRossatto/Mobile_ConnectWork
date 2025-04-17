@@ -6,6 +6,8 @@ import {
   ScrollView,
   Image,
   RefreshControl,
+  Modal,
+  Platform,
 } from "react-native";
 import { Pencil } from "lucide-react-native";
 import { AuthContext } from "@/contexts/AuthContext";
@@ -16,13 +18,14 @@ import AddEducationModal from "@/components/profile/ModalAddEducation";
 import EditEducationModal from "@/components/profile/ModalEditEducation";
 import AddExperienceModal from "@/components/profile/ModalAddExperience";
 import EditExperienceModal from "@/components/profile/ModalEditExperience";
-import Post from "@/components/Post";
 import ModalEditBanner from "../../../components/profile/ModalEditBanner";
 import EditProfileModal from "@/components/profile/ModalEditProfile";
 import { useQueryClient } from "@tanstack/react-query";
 import AsideVolunteerWork from "@/components/profile/AsideVolunteerWork";
 import ModalEditVolunteerWork from "@/components/profile/ModalEditVolunteerWork";
 import ModalVolunteerWork from "@/components/profile/ModalVolunteerWork";
+import ListUserPosts from "@/components/profile/ListUserPosts";
+import log from "@/utils/logger"
 
 export default function Profile() {
   const { user, refreshUserData } = useContext(AuthContext);
@@ -55,7 +58,7 @@ export default function Profile() {
       queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
-      console.error("Error refreshing data:", error);
+      log.error("Error refreshing data:", error);
     } finally {
       setRefreshing(false);
     }
@@ -67,7 +70,7 @@ export default function Profile() {
       queryClient.invalidateQueries(["userData", user?.id]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
-      console.error("Error updating profile:", error);
+      log.error("Error updating profile:", error);
     }
   }, [refreshUserData, queryClient, user?.id]);
 
@@ -88,6 +91,7 @@ export default function Profile() {
       addVolunteerWork: false,
       editVolunteerWork: false,
       editProfile: false,
+      editBanner: false,
     });
   }, []);
 
@@ -105,186 +109,206 @@ export default function Profile() {
     banner: user?.banner_img,
   };
 
-  return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      testID="profile-scrollview"
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      <View
-        key={`profile-${refreshFlag}`}
-        className="bg-white shadow-md pb-5 mb-4"
-      >
-        <TouchableOpacity
-          className="bg-white rounded-full w-[34] h-[34] flex items-center justify-center absolute left-[88%] mt-4 z-10"
-          onPress={() =>
-            setModalState((prev) => ({ ...prev, editBanner: true }))
-          }
-          accessibilityLabel="Editar Banner"
+  const renderModal = (Component, visible, props = {}) => {
+    if (Platform.OS === "ios") {
+      return (
+        <Modal
+          visible={visible}
+          transparent={true}
+          animationType="slide"
+          presentationStyle="overFullScreen"
+          onRequestClose={closeAllModals}
         >
-          <Pencil width={16} color="black" />
-        </TouchableOpacity>
-        <View className="h-[100px] relative">
-          {user?.banner_img ? (
-            <Image
-              source={{ uri: user.banner_img }}
-              className="absolute top-0 left-0 right-0 bottom-0"
-              resizeMode="cover"
-              blurRadius={2}
-              accessibilityLabel="Fundo do perfil"
-            />
-          ) : (
-            <View className="absolute top-0 left-0 right-0 bottom-0 bg-gray-400" />
-          )}
-          <View className="h-[86px] w-[86px] rounded-full bg-gray-200 absolute top-[60px] left-5 flex justify-center items-center">
-            {user?.profile_img ? (
+          <Component {...props} />
+        </Modal>
+      );
+    }
+
+    return visible ? (
+      <View
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          zIndex: 1000,
+        }}
+      >
+        <Component {...props} />
+      </View>
+    ) : null;
+  };
+
+  return (
+    <View className="flex-1 bg-gray-50">
+      <ScrollView
+        testID="profile-scrollview"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        <View
+          key={`profile-${refreshFlag}`}
+          className="bg-white shadow-md pb-5 mb-4"
+        >
+          <TouchableOpacity
+            className="bg-white rounded-full w-[34] h-[34] flex items-center justify-center absolute left-[88%] mt-4 z-10"
+            onPress={() =>
+              setModalState((prev) => ({ ...prev, editBanner: true }))
+            }
+            accessibilityLabel="Editar Banner"
+          >
+            <Pencil width={16} color="black" />
+          </TouchableOpacity>
+          <View className="h-[100px] relative">
+            {user?.banner_img ? (
               <Image
-                source={{ uri: user.profile_img }}
-                className="h-full w-full rounded-full"
+                source={{ uri: user.banner_img }}
+                className="absolute top-0 left-0 right-0 bottom-0"
                 resizeMode="cover"
-                accessibilityLabel="Foto do perfil"
+                blurRadius={2}
+                accessibilityLabel="Fundo do perfil"
               />
             ) : (
-              <View className="flex-1 justify-center items-center">
-                <Text className="text-6xl font-bold text-black text-center leading-[86px] -mt-1">
-                  {user?.nome?.charAt(0)?.toUpperCase()}
-                </Text>
-              </View>
+              <View className="absolute top-0 left-0 right-0 bottom-0 bg-gray-400" />
             )}
-          </View>
-        </View>
 
-        <View className="px-5 pt-[50px] mb-4">
-          <View className="flex-row justify-between items-center">
-            <Text className="font-semibold text-2xl" accessibilityRole="header">
-              {profileData.name}
+            <View className="h-[86px] w-[86px] rounded-full bg-gray-200 absolute top-[60px] left-5 flex justify-center items-center">
+              {user?.profile_img ? (
+                <Image
+                  source={{ uri: user.profile_img }}
+                  className="h-full w-full rounded-full"
+                  resizeMode="cover"
+                  accessibilityLabel="Foto do perfil"
+                />
+              ) : (
+                <View className="flex-1 justify-center items-center">
+                  <Text className="text-6xl font-bold text-black text-center leading-[86px] -mt-1">
+                    {user?.nome?.charAt(0)?.toUpperCase()}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View className="px-5 pt-[50px] mb-4">
+            <View className="flex-row justify-between items-center">
+              <Text
+                className="font-semibold text-2xl"
+                accessibilityRole="header"
+              >
+                {profileData.name}
+              </Text>
+              <TouchableOpacity
+                className="bg-black rounded-full w-[34] h-[34] flex items-center justify-center"
+                onPress={() =>
+                  setModalState((prev) => ({ ...prev, editProfile: true }))
+                }
+                accessibilityLabel="Editar perfil"
+              >
+                <Pencil width={16} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            <Text className="text-base mt-1">{profileData.course}</Text>
+            <Text className="text-base mt-1">
+              {profileData.school}, {profileData.class}
             </Text>
-            <TouchableOpacity
-              className="bg-black rounded-full w-[34] h-[34] flex items-center justify-center"
-              onPress={() =>
-                setModalState((prev) => ({ ...prev, editProfile: true }))
-              }
-              accessibilityLabel="Editar perfil"
-            >
-              <Pencil width={16} color="white" />
-            </TouchableOpacity>
-          </View>
 
-          <Text className="text-base mt-1">{profileData.course}</Text>
-          <Text className="text-base mt-1">
-            {profileData.school}, {profileData.class}
-          </Text>
-
-          <View className="mt-5">
-            <ProgressBar />
+            <View className="mt-5">
+              <ProgressBar />
+            </View>
           </View>
         </View>
-      </View>
 
-      <View className="px-4 mb-4" testID="education-section">
-        <AsideEducation
-          onOpenModal={() =>
-            setModalState((prev) => ({ ...prev, addEducation: true }))
-          }
-          onEdit={(education) => handleEditItem("education", education)}
-          refreshFlag={refreshFlag}
-        />
-      </View>
+        <View className="px-4 mb-4" testID="education-section">
+          <AsideEducation
+            onOpenModal={() =>
+              setModalState((prev) => ({ ...prev, addEducation: true }))
+            }
+            onEdit={(education) => handleEditItem("education", education)}
+            refreshFlag={refreshFlag}
+          />
+        </View>
 
-      <View className="px-4 mb-4" testID="experience-section">
-        <AsideExperience
-          onOpenModal={() =>
-            setModalState((prev) => ({ ...prev, addExperience: true }))
-          }
-          onEdit={(experience) => handleEditItem("experience", experience)}
-          refreshFlag={refreshFlag}
-        />
-      </View>
+        <View className="px-4 mb-4" testID="experience-section">
+          <AsideExperience
+            onOpenModal={() =>
+              setModalState((prev) => ({ ...prev, addExperience: true }))
+            }
+            onEdit={(experience) => handleEditItem("experience", experience)}
+            refreshFlag={refreshFlag}
+          />
+        </View>
 
-      <View className="px-4 mb-4" testID="volunteer-work-section">
-        <AsideVolunteerWork
-          onOpenModal={() =>
-            setModalState((prev) => ({ ...prev, addVolunteerWork: true }))
-          }
-          onEdit={(volunteerWork) =>
-            handleEditItem("volunteerWork", volunteerWork)
-          }
-          refreshFlag={refreshFlag}
-        />
-      </View>
+        <View className="px-4 mb-4" testID="volunteer-work-section">
+          <AsideVolunteerWork
+            onOpenModal={() =>
+              setModalState((prev) => ({ ...prev, addVolunteerWork: true }))
+            }
+            onEdit={(volunteerWork) =>
+              handleEditItem("volunteerWork", volunteerWork)
+            }
+            refreshFlag={refreshFlag}
+          />
+        </View>
 
-      <View className="px-4 mb-6"></View>
+        <View className="px-4 mb-4" testID="user-posts-section">
+          <ListUserPosts user={user} scrollEnabled={false} />
+        </View>
+      </ScrollView>
 
-      <AddEducationModal
-        visible={modalState.addEducation}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, addEducation: false }))
-        }
-        onSuccess={refreshAndClose}
-      />
+      {renderModal(AddEducationModal, modalState.addEducation, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, addEducation: false })),
+        onSuccess: refreshAndClose,
+      })}
 
-      <EditEducationModal
-        visible={modalState.editEducation}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editEducation: false }))
-        }
-        education={currentItem.education}
-        onUpdateEducation={refreshAndClose}
-      />
+      {renderModal(EditEducationModal, modalState.editEducation, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, editEducation: false })),
+        education: currentItem.education,
+        onUpdateEducation: refreshAndClose,
+      })}
 
-      <AddExperienceModal
-        visible={modalState.addExperience}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, addExperience: false }))
-        }
-        onSuccess={refreshAndClose}
-      />
+      {renderModal(AddExperienceModal, modalState.addExperience, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, addExperience: false })),
+        onSuccess: refreshAndClose,
+      })}
 
-      <EditExperienceModal
-        visible={modalState.editExperience}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editExperience: false }))
-        }
-        experience={currentItem.experience}
-        onUpdateExperience={refreshAndClose}
-      />
+      {renderModal(EditExperienceModal, modalState.editExperience, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, editExperience: false })),
+        experience: currentItem.experience,
+        onUpdateExperience: refreshAndClose,
+      })}
 
-      <ModalVolunteerWork
-        visible={modalState.addVolunteerWork}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, addVolunteerWork: false }))
-        }
-        onSuccess={refreshAndClose}
-      />
+      {renderModal(ModalVolunteerWork, modalState.addVolunteerWork, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, addVolunteerWork: false })),
+        onSuccess: refreshAndClose,
+      })}
 
-      <ModalEditVolunteerWork
-        visible={modalState.editVolunteerWork}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editVolunteerWork: false }))
-        }
-        volunteerWork={currentItem.volunteerWork}
-        onUpdateVolunteerWork={refreshAndClose}
-      />
+      {renderModal(ModalEditVolunteerWork, modalState.editVolunteerWork, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, editVolunteerWork: false })),
+        volunteerWork: currentItem.volunteerWork,
+        onUpdateVolunteerWork: refreshAndClose,
+      })}
 
-      <EditProfileModal
-        visible={modalState.editProfile}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editProfile: false }))
-        }
-        user={user}
-        onUpdateUser={handleProfileUpdate}
-      />
+      {renderModal(EditProfileModal, modalState.editProfile, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, editProfile: false })),
+        onUpdateUser: handleProfileUpdate,
 
-      <ModalEditBanner
-        visible={modalState.editBanner}
-        onClose={() =>
-          setModalState((prev) => ({ ...prev, editBanner: false }))
-        }
-        user={user}
-        onUpdateUser={handleProfileUpdate}
-      />
-    </ScrollView>
+      })}
+
+      {renderModal(ModalEditBanner, modalState.editBanner, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, editBanner: false })),
+        onUpdateUser: handleProfileUpdate,     
+      })}
+    </View>
   );
 }
