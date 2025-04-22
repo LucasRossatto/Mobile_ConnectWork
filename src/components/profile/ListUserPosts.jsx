@@ -10,7 +10,7 @@ import api from "@/services/api";
 import log from "@/utils/logger";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
-import { Plus } from "lucide-react-native";
+import { Plus, ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
 const MemoizedMyPost = memo(({ item, onSuccess }) => (
@@ -29,13 +29,14 @@ const MemoizedMyPost = memo(({ item, onSuccess }) => (
 
 const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
   const router = useRouter();
-  const goToAddPost = () => {
-    router.replace("/(stacks)/(tabs)/addPost");
-  };
-
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [sortOrder, setSortOrder] = useState('recent');
+
+  const goToAddPost = () => {
+    router.replace("/(stacks)/(tabs)/addPost");
+  };
 
   const getUserPosts = useCallback(async () => {
     setLoading(true);
@@ -55,10 +56,21 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
     getUserPosts();
   }, [getUserPosts, refreshFlag]);
 
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'recent' ? 'oldest' : 'recent');
+  };
+
+  const sortedPosts = [...posts].sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
+  });
+
   const renderPostItem = useCallback(
     ({ item }) => <MemoizedMyPost item={item} onSuccess={onSuccess} />,
     [onSuccess]
   );
+
   const keyExtractor = useCallback((item) => item.id.toString(), []);
 
   if (loading) {
@@ -79,9 +91,33 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
 
   return (
     <GestureHandlerRootView>
-      <Text className="text-2xl font-medium px-2 mb-4">Minhas publicações</Text>
+      <View className="flex-row justify-between items-center px-2 mb-4">
+        <Text className="text-2xl font-medium">Minhas publicações</Text>
+        
+        <View className="flex-row space-x-2">
+          <TouchableOpacity 
+            onPress={toggleSortOrder}
+            className="flex-row items-center bg-black px-3 py-1 rounded-lg gap-1"
+            activeOpacity={0.7}
+          >
+            <Clock size={12} color="#fff" className="mr-1" />
+            {sortOrder === 'recent' ? (
+              <>
+                <ArrowDown size={12} color="#fff" className="mr-1" />
+                <Text className="text-xs text-white">Recentes</Text>
+              </>
+            ) : (
+              <>
+                <ArrowUp size={12} color="#fff" className="mr-1" />
+                <Text className="text-xs text-white">Antigos</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <FlatList
-        data={posts}
+        data={sortedPosts}
         renderItem={renderPostItem}
         keyExtractor={keyExtractor}
         scrollEnabled={false}
