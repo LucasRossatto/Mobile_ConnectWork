@@ -64,7 +64,7 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
   if (loading) {
     return (
       <View className="py-4">
-        <ActivityIndicator size="small" color="#000" />
+        <ActivityIndicator size="large" />
       </View>
     );
   }
