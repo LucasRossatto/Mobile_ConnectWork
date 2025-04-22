@@ -1,9 +1,17 @@
 import React, { useCallback, useState, useEffect, memo } from "react";
-import { Text, FlatList, View, ActivityIndicator } from "react-native";
+import {
+  Text,
+  FlatList,
+  View,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import api from "@/services/api";
 import log from "@/utils/logger";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
+import { Plus } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 const MemoizedMyPost = memo(({ item, onSuccess }) => (
   <MyPost
@@ -20,6 +28,11 @@ const MemoizedMyPost = memo(({ item, onSuccess }) => (
 ));
 
 const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
+  const router = useRouter();
+  const goToAddPost = () => {
+    router.replace("/(stacks)/(tabs)/addPost");
+  };
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +45,7 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
       log.debug(res.data);
     } catch (err) {
       setError(err);
-      console.error("Error fetching posts:", err);
+      log.error("Error fetching posts:", err);
     } finally {
       setLoading(false);
     }
@@ -74,9 +87,21 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
         scrollEnabled={false}
         nestedScrollEnabled={false}
         ListEmptyComponent={
-          <Text className="text-gray-500 px-2 py-4">
-            Nenhuma publicação encontrada
-          </Text>
+          <View className="items-center py-4">
+            <Text className="text-gray-500 px-2 py-4 text-center">
+              Nenhuma publicação encontrada
+            </Text>
+            <TouchableOpacity
+              onPress={goToAddPost}
+              className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
+              activeOpacity={0.7}
+            >
+              <Plus size={18} color="#fff" className="mr-2" />
+              <Text className="text-white font-medium">
+                Adicionar publicação
+              </Text>
+            </TouchableOpacity>
+          </View>
         }
       />
     </GestureHandlerRootView>
