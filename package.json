@@ -36,6 +36,7 @@
     "expo-web-browser": "~14.0.2",
     "lightningcss": "^1.29.1",
     "lucide-react-native": "^0.479.0",
+    "mobile_connectwork": "file:",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.7",
