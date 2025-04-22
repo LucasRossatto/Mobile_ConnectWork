@@ -25,7 +25,7 @@ import AsideVolunteerWork from "@/components/profile/AsideVolunteerWork";
 import ModalEditVolunteerWork from "@/components/profile/ModalEditVolunteerWork";
 import ModalVolunteerWork from "@/components/profile/ModalVolunteerWork";
 import ListUserPosts from "@/components/profile/ListUserPosts";
-import log from "@/utils/logger"
+import log from "@/utils/logger";
 
 export default function Profile() {
   const { user, refreshUserData } = useContext(AuthContext);
@@ -254,7 +254,12 @@ export default function Profile() {
         </View>
 
         <View className="px-4 mb-4" testID="user-posts-section">
-          <ListUserPosts user={user} scrollEnabled={false} />
+          <ListUserPosts
+            onSuccess={refreshAndClose}
+            user={user}
+            scrollEnabled={false}
+            refreshFlag={refreshFlag}
+          />
         </View>
       </ScrollView>
 
@@ -301,13 +306,12 @@ export default function Profile() {
         onClose: () =>
           setModalState((prev) => ({ ...prev, editProfile: false })),
         onUpdateUser: handleProfileUpdate,
-
       })}
 
       {renderModal(ModalEditBanner, modalState.editBanner, {
         onClose: () =>
           setModalState((prev) => ({ ...prev, editBanner: false })),
-        onUpdateUser: handleProfileUpdate,     
+        onUpdateUser: handleProfileUpdate,
       })}
     </View>
   );

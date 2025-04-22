@@ -1,11 +1,13 @@
 import React, { useCallback, useState, useEffect, memo } from "react";
 import { Text, FlatList, View, ActivityIndicator } from "react-native";
 import api from "@/services/api";
+import log from "@/utils/logger";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
 
-const MemoizedMyPost = memo(({ item }) => (
+const MemoizedMyPost = memo(({ item, onSuccess }) => (
   <MyPost
+    id={item.id}
     author={item.user.nome}
     author_profileImg={item.user.profile_img}
     content={item.content}
@@ -13,10 +15,11 @@ const MemoizedMyPost = memo(({ item }) => (
     category={item.category}
     img={item.images}
     LikeCount={item.numberLikes}
+    onSuccess={onSuccess}
   />
 ));
 
-const ListUserPosts = ({ user }) => {
+const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -26,6 +29,7 @@ const ListUserPosts = ({ user }) => {
     try {
       const res = await api.get(`/user/posts/${user.id}`);
       setPosts(res.data);
+      log.debug(res.data);
     } catch (err) {
       setError(err);
       console.error("Error fetching posts:", err);
@@ -36,13 +40,12 @@ const ListUserPosts = ({ user }) => {
 
   useEffect(() => {
     getUserPosts();
-  }, [getUserPosts]);
+  }, [getUserPosts, refreshFlag]);
 
   const renderPostItem = useCallback(
-    ({ item }) => <MemoizedMyPost item={item} />,
-    []
+    ({ item }) => <MemoizedMyPost item={item} onSuccess={onSuccess} />,
+    [onSuccess]
   );
-
   const keyExtractor = useCallback((item) => item.id.toString(), []);
 
   if (loading) {
