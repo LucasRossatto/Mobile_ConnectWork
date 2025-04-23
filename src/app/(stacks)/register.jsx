@@ -229,11 +229,11 @@ const MultiStepForm = () => {
       console.log("Payload sendo enviado:", payload);
 
       const response = await api.post("/user/register", payload);
-      log.info("Resposta do backend:", response);
+      log.info("Resposta do backend:", response.data);
 
-      if (response && response.user && response.user.id) {
-        log.debug("ID do usuário capturado:", response.user.id);
-        setUserId(response.user.id);
+      if (response && response.data.user && response.data.user.id) {
+        log.debug("ID do usuário capturado:", response.data.user.id);
+        setUserId(response.data.user.id);
         setIsCodeSent(true);
         await sendEmail();
         setStep(step + 1);
@@ -300,9 +300,9 @@ const MultiStepForm = () => {
         email: formData.email,
       });
 
-      log.debug("Resposta do backend:", response);
+      log.debug("Resposta do backend:", response.data);
 
-      if (response.status === 200) {
+      if (response.status == 200) {
         setSuccess("Email enviado com sucesso!");
         handleUpdateVerifyEmail(formData.email);
       } else {
@@ -398,7 +398,7 @@ const MultiStepForm = () => {
 
       log.debug("Resposta do backend:", response);
 
-      if (response.message === "Conta verificada com sucesso!") {
+      if (response.data.message === "Conta verificada com sucesso!") {
         Alert.alert("Sucesso", "Cadastro concluído com sucesso!", [
           {
             text: "OK",
