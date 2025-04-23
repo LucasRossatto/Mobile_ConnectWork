@@ -1,44 +1,96 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StatusBar } from "react-native";
+import { StatusBar, Animated, Platform } from "react-native";
+import { Tabs } from "expo-router";
+import { BottomTabBar } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import { House, UserRound } from "lucide-react-native";
 
+/* ---------------------------------
+ *  Configurações visuais constantes
+ * --------------------------------- */
+const TABBAR_HEIGHT = 58; // altura da barra
+const ANIM_DURATION = 200; // ms
+
+/* ---------------------------------
+ *  Animated.Value + helpers globais
+ * --------------------------------- */
+const tabBarAnim = new Animated.Value(0); // 0 = visível • 1 = oculto
+
+export const hideTabBar = () =>
+  Animated.timing(tabBarAnim, {
+    toValue: 1,
+    duration: ANIM_DURATION,
+    useNativeDriver: true,
+  }).start();
+
+export const showTabBar = () =>
+  Animated.timing(tabBarAnim, {
+    toValue: 0,
+    duration: ANIM_DURATION,
+    useNativeDriver: true,
+  }).start();
+
+/* ---------------------------------
+ *  TabBar animado (interno)
+ * --------------------------------- */
+function AnimatedTabBar(props) {
+  const translateY = tabBarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, TABBAR_HEIGHT + 20], // desliza totalmente + folga
+  });
+
+  return (
+    <Animated.View
+      style={{
+        transform: [{ translateY }],
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: TABBAR_HEIGHT + (Platform.OS === "ios" ? 0 : 0),
+        backgroundColor: "#1B1D2A",
+        paddingTop: 8,
+      }}
+    >
+      <BottomTabBar {...props} />
+    </Animated.View>
+  );
+}
+
+/* ---------------------------------
+ *  Layout principal das abas
+ * --------------------------------- */
 export default function _TabsLayout() {
   return (
     <>
-      <StatusBar style="light" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <Tabs
+        // usamos nossa TabBar customizada
+        tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{
           tabBarStyle: {
             backgroundColor: "#1B1D2A",
-            height: 58,
+            height: TABBAR_HEIGHT,
             paddingTop: 8,
           },
-
           tabBarActiveTintColor: "#676D75",
           tabBarInactiveTintColor: "#F2F2F2",
           tabBarShowLabel: false,
+          headerShown: false,
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
-            headerShown: false,
-            tabBarIcon: ({ color, focused, size }) => (
-              <House
-                name={focused ? "home" : "home-outline"}
-                size={28}
-                color={color}
-              />
+            tabBarIcon: ({ color }) => (
+              <House size={28} color={color} strokeWidth={2} />
             ),
           }}
         />
         <Tabs.Screen
           name="vacancys"
           options={{
-            headerShown: false,
-            tabBarIcon: ({ color, focused, size }) => (
+            tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "briefcase" : "briefcase-outline"}
                 size={28}
@@ -50,8 +102,7 @@ export default function _TabsLayout() {
         <Tabs.Screen
           name="addPost"
           options={{
-            headerShown: false,
-            tabBarIcon: ({ color, focused, size }) => (
+            tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "add-circle" : "add-circle-outline"}
                 size={30}
@@ -63,8 +114,7 @@ export default function _TabsLayout() {
         <Tabs.Screen
           name="notifications"
           options={{
-            headerShown: false,
-            tabBarIcon: ({ color, focused, size }) => (
+            tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? "notifications" : "notifications-outline"}
                 size={28}
@@ -76,13 +126,8 @@ export default function _TabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            headerShown: false,
-            tabBarIcon: ({ color, focused, size }) => (
-              <UserRound
-                name={focused ? "person-circle-sharp" : "person-circle-outline"}
-                size={28}
-                color={color}
-              />
+            tabBarIcon: ({ color }) => (
+              <UserRound size={28} color={color} strokeWidth={2} />
             ),
           }}
         />

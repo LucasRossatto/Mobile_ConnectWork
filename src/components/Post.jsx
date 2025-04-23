@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useRef, useContext } from "react";
 import {
   Image,
   Text,
@@ -7,6 +7,8 @@ import {
   Modal,
   TextInput,
   Alert,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import {
   Heart,
@@ -16,6 +18,8 @@ import {
   Trash2,
   Edit,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react-native";
 import { formatPostDate } from "../utils/formatPostDate";
 import Animated, {
@@ -59,6 +63,8 @@ export default function Post({
   const [editedCategory, setEditedCategory] = useState(category);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef(null);
 
   const likeScale = useSharedValue(1);
   const likeOpacity = useSharedValue(1);
