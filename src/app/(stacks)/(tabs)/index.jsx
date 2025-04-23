@@ -1,520 +1,307 @@
-import React, { useState, useContext, useCallback, useRef } from "react";
-import { 
+import React, {
+  useState,
+  useContext,
+  useCallback,
+  useRef,
+  useMemo,
+  useEffect,
+} from "react";
+import {
+  SafeAreaView,
   View,
-  TouchableOpacity,
   Text,
   Image,
-  FlatList,
+  Pressable,
   ActivityIndicator,
   Animated,
-  Easing,
-  Dimensions
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import Icon from "react-native-vector-icons/FontAwesome";
-import Post from "@/components/Post";
-import { AuthContext } from "@/contexts/AuthContext";
-import {
-  Menu as MenuIcon,
-  BarChart3,
-  Briefcase,
-  Search as SearchIcon,
-  Settings as SettingsIcon,
-  User as UserIcon,
-  Home as HomeIcon,
-  UserRound,
-} from "lucide-react-native";
+import { Menu as MenuIcon } from "lucide-react-native";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import api from "@/services/api";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import ModalSearch from "@/components/index/ModalSearch";
 
+import api from "@/services/api";
+import Post from "@/components/Post";
+import ModalSearch from "@/components/index/ModalSearch";
+import SideDrawer from "@/components/index/SideDrawer";
+import { AuthContext } from "@/contexts/AuthContext";
+import { hideTabBar, showTabBar } from "./_layout"; // funções globais
+
+/*********************************
+ *  Constantes                    *
+ *********************************/
+const HEADER_HEIGHT = 76; // altura da barra superior em pixels
+const HIDE_THRESHOLD = 8; // deslocamento para esconder/mostrar
+
+/*********************************
+ *  Componentes Auxiliares        *
+ *********************************/
+
+/**
+ * Avatar do usuário com estados de loading / erro
+ */
+const UserAvatar = ({ uri, nameInitial, pending, error }) => {
+  if (pending) {
+    return (
+      <View className="h-11 w-11 rounded-full bg-gray-200 items-center justify-center">
+        <ActivityIndicator size="small" />
+      </View>
+    );
+  }
+  if (error) {
+    return (
+      <View className="h-11 w-11 rounded-full bg-gray-200 items-center justify-center">
+        <Text className="text-lg font-bold">!</Text>
+      </View>
+    );
+  }
+  return (
+    <View className="h-11 w-11 rounded-full bg-gray-400 overflow-hidden items-center justify-center">
+      {uri ? (
+        <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
+      ) : (
+        <Text className="text-lg font-bold text-black">{nameInitial}</Text>
+      )}
+    </View>
+  );
+};
+
+/**
+ * Header animado que some/volta conforme o scroll
+ */
+const Header = ({ avatarProps, onSearch, onMenu, translateY }) => (
+  <Animated.View
+    style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: HEADER_HEIGHT,
+      transform: [{ translateY }],
+      zIndex: 30,
+    }}
+    className="bg-white border-b border-gray-100 flex-row items-center px-4"
+  >
+    <UserAvatar {...avatarProps} />
+
+    <Pressable
+      onPress={onSearch}
+      className="flex-row flex-1 items-center bg-gray-200 rounded-full py-3 mx-2"
+      accessibilityRole="search"
+      testID="search-button"
+    >
+      <Icon
+        name="search"
+        size={18}
+        color="#9CA3AF"
+        style={{ marginLeft: 16 }}
+      />
+      <Text className="ml-2 text-gray-700">Busque por vagas</Text>
+    </Pressable>
+
+    <Pressable onPress={onMenu} hitSlop={8} accessibilityLabel="Abrir menu">
+      <MenuIcon size={27} strokeWidth={2} color="#000" />
+    </Pressable>
+  </Animated.View>
+);
+
+/*********************************
+ *  Tela Principal                *
+ *********************************/
 const HomeScreen = () => {
-  const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
+
+  const headerAnim = useRef(new Animated.Value(0)).current; // 0 = visível
+  const lastScrollY = useRef(0);
+
   const { user, setUser } = useContext(AuthContext);
 
-  const sidebarAnimation = useRef(new Animated.Value(0)).current;
+  /***********************
+   * Scroll: Header + TabBar
+   ***********************/
+  const handleScroll = useCallback(
+    (event) => {
+      const currentY = event.nativeEvent.contentOffset.y;
+      const deltaY = currentY - lastScrollY.current;
 
-  const handleOpenSearch = () => {
-    setIsSearchModalVisible(true);
-    if (showSidebar) {
-      toggleSidebar();
-    }
-  };
-
-  const handleCloseSearch = () => {
-    setIsSearchModalVisible(false);
-  };
-
-  const toggleSidebar = () => {
-    if (showSidebar) {
-      Animated.timing(sidebarAnimation, {
-        toValue: 0,
-        duration: 300,
-        easing: Easing.ease,
-        useNativeDriver: true,
-      }).start(() => setShowSidebar(false));
-    } else {
-      setShowSidebar(true);
-      Animated.timing(sidebarAnimation, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.ease,
-        useNativeDriver: true,
-      }).start();
-    }
-  };
-
-  const sidebarTranslateX = sidebarAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-300, 0],
-  });
-
-  const overlayOpacity = sidebarAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.5],
-  });
-
-  const getUserData = useCallback(async () => {
-    try {
-      if (!user?.id) {
-        throw new Error("ID do usuário não disponível");
+      if (deltaY > HIDE_THRESHOLD && !headerHidden) {
+        setHeaderHidden(true);
+        hideTabBar();
+        Animated.timing(headerAnim, {
+          toValue: -HEADER_HEIGHT,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      } else if (deltaY < -HIDE_THRESHOLD && headerHidden) {
+        setHeaderHidden(false);
+        showTabBar();
+        Animated.timing(headerAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
       }
 
-      const response = await api.get(`/user/users/${user.id}`);
-      const userData = response.data;
+      lastScrollY.current = currentY;
+    },
+    [headerHidden, headerAnim]
+  );
 
-      if (!userData) {
-        throw new Error("Dados do usuário não retornados pela API");
-      }
-
-      setUser((previousUser) => ({
-        ...previousUser,
-        nome: userData.nome,
-        school: userData.school,
-        course: userData.course,
-        userClass: userData.userClass,
-        profile_img: userData.profile_img,
-        banner_img: userData.banner_img,
-      }));
-
-      return userData;
-    } catch (error) {
-      console.error("Erro durante a busca de dados:", error);
-      throw error;
-    }
+  /***********************
+   * Query: Usuário
+   ***********************/
+  const fetchUser = useCallback(async () => {
+    if (!user?.id) throw new Error("ID do usuário não disponível");
+    const { data } = await api.get(`/user/users/${user.id}`);
+    setUser((prev) => ({ ...prev, ...data }));
+    return data;
   }, [user?.id, setUser]);
 
   const {
     data: userData,
-    isLoading: isLoadingUserData,
-    isError: isUserDataError,
+    isLoading: loadingUser,
+    isError: errorUser,
   } = useQuery({
     queryKey: ["userData", user?.id],
-    queryFn: getUserData,
+    queryFn: fetchUser,
     enabled: !!user?.token,
     staleTime: 1000 * 60 * 5,
   });
 
+  /***********************
+   * Query: Posts
+   ***********************/
   const {
     data: postsData,
     fetchNextPage,
     hasNextPage,
-    isFetching: isFetchingPosts,
     isFetchingNextPage,
-    isError: isPostsError,
+    isFetching: fetchingPosts,
+    isError: errorPosts,
     error: postsError,
   } = useInfiniteQuery({
     queryKey: ["posts"],
     queryFn: async ({ pageParam = 0 }) => {
-      const response = await api.get("/user/posts", {
+      const { data } = await api.get("/user/posts", {
         params: { limit: 10, offset: pageParam },
       });
-
-      if (!response.data.posts || !Array.isArray(response.data.posts)) {
-        throw new Error("Dados de posts recebidos em formato inválido");
-      }
-
-      return {
-        posts: response.data.posts,
-        totalPosts: response.data.totalPosts,
-        nextOffset: pageParam + 10,
-      };
+      return { posts: data.posts, nextOffset: pageParam + 10 };
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.posts.length < 10) return undefined;
-      return lastPage.nextOffset;
-    },
+    getNextPageParam: (lastPage) =>
+      lastPage.posts.length < 10 ? undefined : lastPage.nextOffset,
     initialPageParam: 0,
     staleTime: 1000 * 60 * 10,
   });
 
-  const renderPostItem = useCallback(
-    ({ item }) => {
-      console.log('Dados das imagens do post:', item.images);
-      return (
-        <Post
-          author={item.user.nome}
-          author_profileImg={item.user.profile_img}
-          content={item.content}
-          date={item.createdAt}
-          category={item.category}
-          img={item.images}
-          LikeCount={item.numberLikes}
-        />
-      );
-    },
-    []
+  const allPosts = useMemo(
+    () => postsData?.pages.flatMap((p) => p.posts) || [],
+    [postsData]
   );
 
-  const renderFooterComponent = useCallback(() => {
-    if (!isFetchingNextPage) return null;
-    return (
-      <View style={{ paddingVertical: 16 }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }, [isFetchingNextPage]);
-
-  const renderEmptyListComponent = useCallback(() => {
-    if (isFetchingPosts) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            marginTop: 40,
-          }}
-        >
-          <ActivityIndicator size="large" color="#0000ff" />
-        </View>
-      );
-    }
-
-    if (isPostsError) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            marginTop: 40,
-          }}
-        >
-          <Text style={{ color: "#EF4444", fontSize: 18 }}>
-            Erro ao carregar posts: {postsError?.message}
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          marginTop: 40,
-        }}
-      >
-        <Text style={{ color: "#6B7280", fontSize: 18 }}>
-          Nenhum post encontrado.
-        </Text>
-      </View>
-    );
-  }, [isFetchingPosts, isPostsError, postsError]);
-
-  const allPosts = postsData?.pages.flatMap((page) => page.posts) || [];
-
-  const renderUserAvatar = useCallback(() => {
-    const profileImageUri = userData?.profile_img || user?.profile_img;
-    const userNameInitial = (userData?.nome || user?.nome || "U")
-      .charAt(0)
-      .toUpperCase();
-
-    if (isLoadingUserData) {
-      return (
-        <View
-          style={{
-            height: 44,
-            width: 44,
-            borderRadius: 22,
-            backgroundColor: "#E5E7EB",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <ActivityIndicator size="small" color="#0000ff" />
-        </View>
-      );
-    }
-
-    if (isUserDataError) {
-      return (
-        <View
-          style={{
-            height: 44,
-            width: 44,
-            borderRadius: 22,
-            backgroundColor: "#E5E7EB",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 20, fontWeight: "bold", color: "black" }}>
-            !
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View
-        style={{
-          height: 44,
-          width: 44,
-          borderRadius: 22,
-          backgroundColor: "#9CA3AF",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        {profileImageUri ? (
-          <Image
-            source={{ uri: profileImageUri }}
-            style={{ height: "100%", width: "100%", borderRadius: 22 }}
-            resizeMode="cover"
-          />
-        ) : (
-          <Text style={{ fontSize: 20, fontWeight: "bold", color: "black" }}>
-            {userNameInitial}
-          </Text>
-        )}
-      </View>
-    );
-  }, [userData, user, isLoadingUserData, isUserDataError]);
-
-  const handleLoadMorePosts = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const MenuItem = ({ icon: IconComponent, text, onPress }) => (
-    <TouchableOpacity
-      style={{ flexDirection: "row", alignItems: "center" }}
-      onPress={onPress}
-    >
-      <IconComponent size={27} color="#FFFFFF" />
-      <Text
-        style={{
-          fontSize: 17,
-          paddingVertical: 16,
-          color: "white",
-          paddingLeft: 8,
-          fontWeight: "bold",
-        }}
-      >
-        {text}
-      </Text>
-    </TouchableOpacity>
+  /***********************
+   * Avatar Props
+   ***********************/
+  const avatarProps = useMemo(
+    () => ({
+      uri: userData?.profile_img || user?.profile_img,
+      nameInitial: (userData?.nome || user?.nome || "U")
+        .charAt(0)
+        .toUpperCase(),
+      pending: loadingUser,
+      error: errorUser,
+    }),
+    [userData, user, loadingUser, errorUser]
   );
 
+  /***********************
+   * Render
+   ***********************/
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
-      <View
-        style={{
-          backgroundColor: "white",
-          flexDirection: "row",
-          alignItems: "center",
-          borderBottomWidth: 1,
-          borderBottomColor: "#F3F4F6",
-          padding: 16,
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header animado */}
+      <Header
+        avatarProps={avatarProps}
+        onSearch={() => setSearchVisible(true)}
+        onMenu={() => {
+          setSearchVisible(false); // fecha o modal de busca se estiver aberto
+          setDrawerVisible(true);
         }}
-      >
-        {renderUserAvatar()}
+        translateY={headerAnim}
+      />
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: "#E5E7EB",
-            borderRadius: 20,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 12,
-            flex: 1,
-            marginLeft: 8,
-            marginRight: 8,
-          }}
-          onPress={handleOpenSearch}
-          testID="search-button"
-        >
-          <Icon
-            name="search"
-            size={18}
-            color="#9CA3AF"
-            style={{ marginLeft: 15, marginRight: 8 }}
-          />
-          <Text style={{ color: "#374151", fontSize: 16, flex: 1 }}>
-            Busque por vagas
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={toggleSidebar} style={{ padding: 8 }}>
-          <MenuIcon size={27} color={"black"} strokeWidth={2} />
-        </TouchableOpacity>
-      </View>
-
-      <Animated.View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "black",
-          zIndex: 10,
-          opacity: overlayOpacity,
-          display: showSidebar ? "flex" : "none",
-        }}
-      >
-        <TouchableOpacity
-          style={{ flex: 1 }}
-          onPress={toggleSidebar}
-          activeOpacity={1}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: 320,
-          backgroundColor: "#1B1D2A",
-          zIndex: 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 5, height: 0 },
-          shadowOpacity: 0.2,
-          shadowRadius: 10,
-          transform: [{ translateX: sidebarTranslateX }],
-          display: showSidebar ? "flex" : "none",
-        }}
-      >
-        <View style={{ padding: 16 }}>
-          <View
-            style={{
-              alignItems: "center",
-              flexDirection: "row",
-              marginBottom: 24,
-              marginTop: 48,
-            }}
-          >
-            <View
-              style={{
-                position: "relative",
-                width: 64,
-                height: 64,
-                marginBottom: 8,
-                marginRight: 14,
-                marginLeft: 20,
-                backgroundColor: "#D1D5DB",
-                borderRadius: 32,
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-              }}
-            >
-              {userData?.profile_img ? (
-                <Image
-                  source={{ uri: userData.profile_img }}
-                  style={{ width: "100%", height: "100%", resizeMode: "cover" }}
-                />
+      {/* Feed */}
+      <GestureHandlerRootView className="flex-1">
+        {errorPosts ? (
+          <View className="flex-1 items-center justify-center mt-10">
+            <Text className="text-red-600 text-lg">
+              Erro: {postsError?.message}
+            </Text>
+          </View>
+        ) : (
+          <FlashList
+            data={allPosts}
+            renderItem={({ item }) => (
+              <Post
+                author={item.user.nome}
+                author_profileImg={item.user.profile_img}
+                content={item.content}
+                date={item.createdAt}
+                category={item.category}
+                img={item.images}
+                LikeCount={item.numberLikes}
+              />
+            )}
+            keyExtractor={(item) => String(item.id)}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.1}
+            estimatedItemSize={400}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View className="py-4">
+                  <ActivityIndicator size="large" />
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              fetchingPosts ? (
+                <View className="flex-1 items-center justify-center mt-10">
+                  <ActivityIndicator size="large" />
+                </View>
               ) : (
-                <UserRound
-                  fill="#6B7280"
-                  style={{
-                    width: "100%",
-                    height: 52,
-                    color: "#6B7280",
-                    position: "absolute",
-                    top: 12,
-                  }}
-                />
-              )}
-            </View>
-
-            <View>
-              <Text
-                style={{
-                  fontWeight: "bold",
-                  fontSize: 21,
-                  color: "white",
-                  textAlign: "center",
-                }}
-              >
-                {userData?.nome || "Visitante"}
-              </Text>
-              <Text
-                style={{ fontSize: 14, color: "white", textAlign: "center" }}
-              >
-                {userData?.course || "Nenhum curso selecionado"}
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ paddingVertical: 8, marginLeft: 12, marginTop: 40 }}>
-            <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
-            >
-              <HomeIcon size={27} color={"#9CA3AF"} />
-              <Text
-                style={{
-                  fontSize: 17,
-                  paddingVertical: 12,
-                  color: "#9CA3AF",
-                  paddingLeft: 8,
-                  fontWeight: "bold",
-                }}
-              >
-                Home
-              </Text>
-            </TouchableOpacity>
-            <MenuItem
-              icon={SearchIcon}
-              text="Procurar Vagas"
-              onPress={handleOpenSearch}
-            />
-            <MenuItem icon={Briefcase} text="Vagas em espera" />
-            <MenuItem icon={BarChart3} text="Frequência" />
-            <MenuItem
-              icon={SettingsIcon}
-              text="Configurações"
-              onPress={() => {
-                toggleSidebar();
-                setShowSettings(true);
-              }}
-            />
-          </View>
-        </View>
-      </Animated.View>
-
-      <ModalSearch visible={isSearchModalVisible} onClose={handleCloseSearch} />
-
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <FlatList
-          data={allPosts}
-          renderItem={renderPostItem}
-          keyExtractor={(item) => item.id.toString()}
-          onEndReached={handleLoadMorePosts}
-          onEndReachedThreshold={0.1}
-          ListFooterComponent={renderFooterComponent}
-          ListEmptyComponent={renderEmptyListComponent}
-        />
+                <View className="flex-1 items-center justify-center mt-10">
+                  <Text className="text-gray-500 text-lg">
+                    Nenhum post encontrado.
+                  </Text>
+                </View>
+              )
+            }
+          />
+        )}
       </GestureHandlerRootView>
-    </View>
+
+      {/* Modal de busca */}
+      <ModalSearch
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+      />
+
+      {/* Drawer lateral */}
+      <SideDrawer
+        visible={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        user={userData || user || {}}
+      />
+    </SafeAreaView>
   );
 };
 

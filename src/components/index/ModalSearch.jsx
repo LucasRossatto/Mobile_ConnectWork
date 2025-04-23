@@ -48,7 +48,8 @@ const ModalSearch = ({ visible, onClose }) => {
         right: 0,
         bottom: 0,
         backgroundColor: "white",
-        zIndex: 50,
+        zIndex: 30,
+        elevation: 30,
         padding: 16,
       }}
     >
