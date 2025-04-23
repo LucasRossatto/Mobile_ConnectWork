@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import { View, Image, Text, TouchableOpacity } from "react-native";
 
 export default function Home() {
-  return (
+  return ( 
     <View className="flex-1 justify-between bg-backgroundDark">
       <View className="flex-1 justify-center items-center">
         <Image

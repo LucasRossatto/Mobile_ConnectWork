@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,21 +15,66 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import { Feather } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/services/api";
+import log from "@/utils/logger";
 import { AuthContext } from "@/contexts/AuthContext";
 
 export default function AddPost() {
-  const { user } = useContext(AuthContext);
+  const { user, refreshUserData } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [images, setImages] = useState([]);
   const [postText, setPostText] = useState("");
   const [category, setCategory] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFlag, setRefreshFlag] = useState(0);
 
   const MAX_CHARACTERS = 500;
   const MAX_IMAGES = 3;
-  const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024;
   const textInputRef = useRef();
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshUserData();
+      queryClient.invalidateQueries(["userData", user?.id]);
+      setRefreshFlag((prev) => prev + 1);
+    } catch (error) {
+      log.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshUserData, queryClient, user?.id]);
+
+  const createPostMutation = useMutation({
+    mutationFn: async (postData) => {
+      const response = await api.post(`/user/post/${user.id}`, postData);
+      return response.data;
+    },
+    onSuccess: () => {
+      handleRefresh();
+      setPostText("");
+      setImages([]);
+      setCategory("");
+      setCharacterCount(0);
+      
+      Alert.alert(
+        "Sucesso!",
+        "Publicação criada com sucesso",
+      );
+    },
+    onError: (error) => {
+      let errorMessage = "Não foi possível publicar. Tente novamente.";
+      if (error.response) {
+        errorMessage = error.response.data.error || errorMessage;
+      } else if (error.request) {
+        errorMessage = "Sem resposta do servidor. Verifique sua conexão.";
+      }
+      Alert.alert("Erro", errorMessage);
+    }
+  });
 
   const selectImage = async () => {
     try {
@@ -41,8 +86,7 @@ export default function AddPost() {
         return;
       }
 
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
@@ -65,20 +109,15 @@ export default function AddPost() {
         if (fileInfo.size > MAX_SIZE_BYTES) {
           Alert.alert(
             "Imagem muito grande",
-            `As imagens devem ter no máximo ${
-              MAX_SIZE_BYTES / (1024 * 1024)
-            }MB.`
+            `As imagens devem ter no máximo ${MAX_SIZE_BYTES / (1024 * 1024)}MB.`
           );
           return;
         }
 
-        setImages([
-          ...images,
-          {
-            uri,
-            type: result.assets[0].type || "image/jpeg",
-          },
-        ]);
+        setImages([...images, {
+          uri,
+          type: result.assets[0].type || "image/jpeg",
+        }]);
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -119,23 +158,18 @@ export default function AddPost() {
         if (fileInfo.size > MAX_SIZE_BYTES) {
           Alert.alert(
             "Foto muito grande",
-            `As imagens devem ter no máximo ${
-              MAX_SIZE_BYTES / (1024 * 1024)
-            }MB.`
+            `As imagens devem ter no máximo ${MAX_SIZE_BYTES / (1024 * 1024)}MB.`
           );
           return;
         }
 
-        setImages([
-          ...images,
-          {
-            uri,
-            type: result.assets[0].type || "image/jpeg",
-          },
-        ]);
+        setImages([...images, {
+          uri,
+          type: result.assets[0].type || "image/jpeg",
+        }]);
       }
     } catch (error) {
-      console.error("Error taking photo:", error);
+      log.error("Error taking photo:", error);
       Alert.alert("Erro", "Não foi possível tirar a foto.");
     }
   };
@@ -177,8 +211,6 @@ export default function AddPost() {
     }
 
     try {
-      setIsLoading(true);
-
       const formattedImages = await Promise.all(
         images.map(async (img) => {
           const base64 = await FileSystem.readAsStringAsync(img.uri, {
@@ -195,36 +227,10 @@ export default function AddPost() {
         category,
       };
 
-      const response = await api.post(`/user/post/${user.id}`, postData);
-
-      Alert.alert(
-        response.data.message.includes("sensível") ? "Atenção" : "Sucesso!",
-        response.data.message,
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setPostText("");
-              setImages([]);
-              setCategory("");
-              setCharacterCount(0);
-            },
-          },
-        ]
-      );
+      createPostMutation.mutate(postData);
     } catch (error) {
-      console.error("Post creation error:", error);
-
-      let errorMessage = "Não foi possível publicar. Tente novamente.";
-      if (error.response) {
-        errorMessage = error.response.data.error || errorMessage;
-      } else if (error.request) {
-        errorMessage = "Sem resposta do servidor. Verifique sua conexão.";
-      }
-
-      Alert.alert("Erro", errorMessage);
-    } finally {
-      setIsLoading(false);
+      console.error("Error preparing post data:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao preparar os dados da publicação");
     }
   };
 
@@ -240,9 +246,7 @@ export default function AddPost() {
       >
         <View className="flex-1 p-4">
           <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-2xl font-bold text-gray-900">
-              Nova Publicação
-            </Text>
+            <Text className="text-2xl font-bold text-gray-900">Nova Publicação</Text>
           </View>
 
           <View className="mb-6">
@@ -258,13 +262,7 @@ export default function AddPost() {
               textAlignVertical="top"
               style={{ minHeight: 120 }}
             />
-            <Text
-              className={`text-xs mt-1 text-right ${
-                characterCount > MAX_CHARACTERS
-                  ? "text-red-500"
-                  : "text-gray-500"
-              }`}
-            >
+            <Text className={`text-xs mt-1 text-right ${characterCount > MAX_CHARACTERS ? "text-red-500" : "text-gray-500"}`}>
               {characterCount}/{MAX_CHARACTERS}
             </Text>
           </View>
@@ -286,10 +284,7 @@ export default function AddPost() {
                 <Picker.Item label="Entretenimento" value="Entretenimento" />
                 <Picker.Item label="Educação" value="Educação" />
                 <Picker.Item label="Culinária" value="Culinária" />
-                <Picker.Item
-                  label="Recursos Humanos"
-                  value="Recursos-Humanos"
-                />
+                <Picker.Item label="Recursos Humanos" value="Recursos-Humanos" />
                 <Picker.Item label="Administração" value="Administração" />
                 <Picker.Item label="UX" value="ux" />
                 <Picker.Item label="Outros" value="outros" />
@@ -306,9 +301,7 @@ export default function AddPost() {
               <TouchableOpacity
                 onPress={selectImage}
                 className={`border-2 rounded-full p-4 items-center flex flex-row justify-center ${
-                  images.length >= MAX_IMAGES
-                    ? "border-gray-200 bg-gray-100"
-                    : "border-gray-200 bg-gray-50 "
+                  images.length >= MAX_IMAGES ? "border-gray-200 bg-gray-100" : "border-gray-200 bg-gray-50"
                 }`}
                 activeOpacity={0.7}
                 disabled={images.length >= MAX_IMAGES}
@@ -318,15 +311,12 @@ export default function AddPost() {
                   size={24}
                   color={images.length >= MAX_IMAGES ? "#9CA3AF" : "#6B7280"}
                 />
-               
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={takePhoto}
                 className={`border-2 rounded-full p-4 items-center flex flex-row justify-center ${
-                  images.length >= MAX_IMAGES
-                    ? "border-gray-200 bg-gray-100"
-                    : "border-gray-200 bg-gray-50 "
+                  images.length >= MAX_IMAGES ? "border-gray-200 bg-gray-100" : "border-gray-200 bg-gray-50"
                 }`}
                 activeOpacity={0.7}
                 disabled={images.length >= MAX_IMAGES}
@@ -336,7 +326,6 @@ export default function AddPost() {
                   size={24}
                   color={images.length >= MAX_IMAGES ? "#9CA3AF" : "#6B7280"}
                 />
-                
               </TouchableOpacity>
             </View>
 
@@ -366,15 +355,13 @@ export default function AddPost() {
       <View className="p-4 bg-white border-t border-gray-200">
         <TouchableOpacity
           onPress={handleSubmit}
-          disabled={isLoading || (!postText && images.length === 0)}
+          disabled={createPostMutation.isLoading || (!postText && images.length === 0)}
           className={`rounded-xl p-4 items-center justify-center ${
-            isLoading || (!postText && images.length === 0)
-              ? "bg-gray-300"
-              : "bg-black"
+            createPostMutation.isLoading || (!postText && images.length === 0) ? "bg-gray-300" : "bg-black"
           }`}
           activeOpacity={0.8}
         >
-          {isLoading ? (
+          {createPostMutation.isLoading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <Text className="text-white font-bold text-lg">Publicar</Text>

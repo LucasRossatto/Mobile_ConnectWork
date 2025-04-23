@@ -1,5 +1,5 @@
 import React, { useState, useContext, useCallback, useRef } from "react";
-import {
+import { 
   View,
   TouchableOpacity,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Dimensions
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Post from "@/components/Post";
@@ -150,17 +151,20 @@ const HomeScreen = () => {
   });
 
   const renderPostItem = useCallback(
-    ({ item }) => (
-      <Post
-        author={item.user.nome}
-        author_profileImg={item.user.profile_img}
-        content={item.content}
-        date={item.createdAt}
-        category={item.category}
-        img={item.images}
-        LikeCount={item.numberLikes}
-      />
-    ),
+    ({ item }) => {
+      console.log('Dados das imagens do post:', item.images);
+      return (
+        <Post
+          author={item.user.nome}
+          author_profileImg={item.user.profile_img}
+          content={item.content}
+          date={item.createdAt}
+          category={item.category}
+          img={item.images}
+          LikeCount={item.numberLikes}
+        />
+      );
+    },
     []
   );
 
@@ -426,8 +430,7 @@ const HomeScreen = () => {
               {userData?.profile_img ? (
                 <Image
                   source={{ uri: userData.profile_img }}
-                  className="w-full h-full"
-                  resizeMode="cover"
+                  style={{ width: "100%", height: "100%", resizeMode: "cover" }}
                 />
               ) : (
                 <UserRound
