@@ -8,16 +8,16 @@ export default function ActionButton({
 }) {
   const variantStyles = {
     primary: "bg-black",
-    secondary: "bg-gray-200",
+    secondary: "bg-gray-100",
     disabled: "bg-gray-400",
-    delete:"bg-red-600"
+    delete: "bg-red-100",
   };
 
   const textStyles = {
     primary: "text-white",
     secondary: "text-black",
     disabled: "text-white",
-    delete:"text-white"
+    delete: "text-red-600",
   };
 
   return (
@@ -31,7 +31,7 @@ export default function ActionButton({
       <Text
         className={`${
           disabled ? textStyles.disabled : textStyles[variant]
-        } text-center`}
+        } text-center font-bold uppercase `}
       >
         {text}
       </Text>
