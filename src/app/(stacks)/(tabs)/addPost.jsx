@@ -59,11 +59,8 @@ export default function AddPost() {
       setImages([]);
       setCategory("");
       setCharacterCount(0);
-      
-      Alert.alert(
-        "Sucesso!",
-        "Publicação criada com sucesso",
-      );
+
+      Alert.alert("Sucesso!", "Publicação criada com sucesso");
     },
     onError: (error) => {
       let errorMessage = "Não foi possível publicar. Tente novamente.";
@@ -73,7 +70,7 @@ export default function AddPost() {
         errorMessage = "Sem resposta do servidor. Verifique sua conexão.";
       }
       Alert.alert("Erro", errorMessage);
-    }
+    },
   });
 
   const selectImage = async () => {
@@ -86,7 +83,8 @@ export default function AddPost() {
         return;
       }
 
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Permissão necessária",
@@ -109,15 +107,20 @@ export default function AddPost() {
         if (fileInfo.size > MAX_SIZE_BYTES) {
           Alert.alert(
             "Imagem muito grande",
-            `As imagens devem ter no máximo ${MAX_SIZE_BYTES / (1024 * 1024)}MB.`
+            `As imagens devem ter no máximo ${
+              MAX_SIZE_BYTES / (1024 * 1024)
+            }MB.`
           );
           return;
         }
 
-        setImages([...images, {
-          uri,
-          type: result.assets[0].type || "image/jpeg",
-        }]);
+        setImages([
+          ...images,
+          {
+            uri,
+            type: result.assets[0].type || "image/jpeg",
+          },
+        ]);
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -158,15 +161,20 @@ export default function AddPost() {
         if (fileInfo.size > MAX_SIZE_BYTES) {
           Alert.alert(
             "Foto muito grande",
-            `As imagens devem ter no máximo ${MAX_SIZE_BYTES / (1024 * 1024)}MB.`
+            `As imagens devem ter no máximo ${
+              MAX_SIZE_BYTES / (1024 * 1024)
+            }MB.`
           );
           return;
         }
 
-        setImages([...images, {
-          uri,
-          type: result.assets[0].type || "image/jpeg",
-        }]);
+        setImages([
+          ...images,
+          {
+            uri,
+            type: result.assets[0].type || "image/jpeg",
+          },
+        ]);
       }
     } catch (error) {
       log.error("Error taking photo:", error);
@@ -246,7 +254,9 @@ export default function AddPost() {
       >
         <View className="flex-1 p-4">
           <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-2xl font-bold text-gray-900">Nova Publicação</Text>
+            <Text className="text-2xl font-bold text-gray-900">
+              Nova Publicação
+            </Text>
           </View>
 
           <View className="mb-6">
@@ -262,14 +272,20 @@ export default function AddPost() {
               textAlignVertical="top"
               style={{ minHeight: 120 }}
             />
-            <Text className={`text-xs mt-1 text-right ${characterCount > MAX_CHARACTERS ? "text-red-500" : "text-gray-500"}`}>
+            <Text
+              className={`text-xs mt-1 text-right ${
+                characterCount > MAX_CHARACTERS
+                  ? "text-red-500"
+                  : "text-gray-500"
+              }`}
+            >
               {characterCount}/{MAX_CHARACTERS}
             </Text>
           </View>
 
           <View className="mb-6">
             <Text className="text-gray-700 font-medium mb-2">Categoria</Text>
-            <View className="border border-gray-200 rounded-lg bg-white">
+            <View className="border border-gray-200 rounded-[14px] bg-white">
               <Picker
                 selectedValue={category}
                 onValueChange={(itemValue) => setCategory(itemValue)}
@@ -284,7 +300,10 @@ export default function AddPost() {
                 <Picker.Item label="Entretenimento" value="Entretenimento" />
                 <Picker.Item label="Educação" value="Educação" />
                 <Picker.Item label="Culinária" value="Culinária" />
-                <Picker.Item label="Recursos Humanos" value="Recursos-Humanos" />
+                <Picker.Item
+                  label="Recursos Humanos"
+                  value="Recursos-Humanos"
+                />
                 <Picker.Item label="Administração" value="Administração" />
                 <Picker.Item label="UX" value="ux" />
                 <Picker.Item label="Outros" value="outros" />
@@ -301,7 +320,9 @@ export default function AddPost() {
               <TouchableOpacity
                 onPress={selectImage}
                 className={`border-2 rounded-full p-4 items-center flex flex-row justify-center ${
-                  images.length >= MAX_IMAGES ? "border-gray-200 bg-gray-100" : "border-gray-200 bg-gray-50"
+                  images.length >= MAX_IMAGES
+                    ? "border-gray-200 bg-gray-100"
+                    : "border-gray-200 bg-gray-50"
                 }`}
                 activeOpacity={0.7}
                 disabled={images.length >= MAX_IMAGES}
@@ -316,7 +337,9 @@ export default function AddPost() {
               <TouchableOpacity
                 onPress={takePhoto}
                 className={`border-2 rounded-full p-4 items-center flex flex-row justify-center ${
-                  images.length >= MAX_IMAGES ? "border-gray-200 bg-gray-100" : "border-gray-200 bg-gray-50"
+                  images.length >= MAX_IMAGES
+                    ? "border-gray-200 bg-gray-100"
+                    : "border-gray-200 bg-gray-50"
                 }`}
                 activeOpacity={0.7}
                 disabled={images.length >= MAX_IMAGES}
@@ -355,9 +378,13 @@ export default function AddPost() {
       <View className="p-4 bg-white border-t border-gray-200">
         <TouchableOpacity
           onPress={handleSubmit}
-          disabled={createPostMutation.isLoading || (!postText && images.length === 0)}
+          disabled={
+            createPostMutation.isLoading || (!postText && images.length === 0)
+          }
           className={`rounded-xl p-4 items-center justify-center ${
-            createPostMutation.isLoading || (!postText && images.length === 0) ? "bg-gray-300" : "bg-black"
+            createPostMutation.isLoading || (!postText && images.length === 0)
+              ? "bg-gray-300"
+              : "bg-black"
           }`}
           activeOpacity={0.8}
         >

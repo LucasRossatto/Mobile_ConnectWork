@@ -21,16 +21,21 @@ import { GestureDetector, Gesture } from "react-native-gesture-handler";
 const AnimatedHeart = Animated.createAnimatedComponent(Heart);
 
 export default function MyPost({
+  item,
   onSuccess,
-  author,
-  author_profileImg,
-  content,
-  img,
-  LikeCount,
-  date,
-  category,
-  id,
+  onEdit,
+  onOpenModal
 }) {
+  const {
+    id,
+    user: { nome: author, profile_img: author_profileImg },
+    content,
+    images: img,
+    numberLikes: LikeCount,
+    createdAt: date,
+    category
+  } = item;
+
   const [isLiked, setIsLiked] = useState(false);
   const [isCommented, setIsCommented] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -44,6 +49,10 @@ export default function MyPost({
       opacity: likeOpacity.value,
     };
   });
+
+  const handleEditPress = () => {
+    if (onEdit) onOpenModal(),onEdit(item);
+  };
 
   const tapGesture = Gesture.Tap()
     .onBegin(() => {
@@ -60,20 +69,20 @@ export default function MyPost({
       likeOpacity.value = withSpring(newValue ? 1 : 0.6);
     });
 
-  const handleDeletePost = async (id) => {
+  const handleDeletePost = async (postId) => {
     Alert.alert(
       "Confirmar exclusão",
       "Tem certeza que deseja excluir esta publicação?",
       [
         {
-          text:  "Cancelar",
+          text: "Cancelar",
           style: "cancel",
         },
         {
           text: "Excluir",
           onPress: async () => {
             try {
-              const res = await api.delete(`user/post/${id}`);
+              const res = await api.delete(`user/post/${postId}`);
 
               if (res.status !== 200) {
                 throw new Error(
@@ -110,7 +119,7 @@ export default function MyPost({
   const handleOptionPress = (option) => {
     setShowOptions(false);
     if (option === "edit") {
-      handleEditPost();
+      handleEditPress(id);
     } else if (option === "delete") {
       handleDeletePost(id);
     }

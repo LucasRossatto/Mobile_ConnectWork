@@ -13,26 +13,28 @@ import MyPost from "@/components/profile/MyPost";
 import { Plus, ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
-const MemoizedMyPost = memo(({ item, onSuccess }) => (
+const MemoizedMyPost = memo(({ item, onSuccess, onEdit, onOpenModal }) => (
   <MyPost
-    id={item.id}
-    author={item.user.nome}
-    author_profileImg={item.user.profile_img}
-    content={item.content}
-    date={item.createdAt}
-    category={item.category}
-    img={item.images}
-    LikeCount={item.numberLikes}
+    item={item}
     onSuccess={onSuccess}
+    onEdit={onEdit}
+    onOpenModal={onOpenModal}
   />
 ));
 
-const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
+const ListUserPosts = ({
+  user,
+  onSuccess,
+  refreshFlag,
+  onOpenModal,
+  onEdit,
+  onUpdatePost,
+}) => {
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sortOrder, setSortOrder] = useState('recent');
+  const [sortOrder, setSortOrder] = useState("recent");
 
   const goToAddPost = () => {
     router.replace("/(stacks)/(tabs)/addPost");
@@ -57,17 +59,25 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
   }, [getUserPosts, refreshFlag]);
 
   const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'recent' ? 'oldest' : 'recent');
+    setSortOrder((prev) => (prev === "recent" ? "oldest" : "recent"));
   };
 
   const sortedPosts = [...posts].sort((a, b) => {
     const dateA = new Date(a.createdAt);
     const dateB = new Date(b.createdAt);
-    return sortOrder === 'recent' ? dateB - dateA : dateA - dateB;
+    return sortOrder === "recent" ? dateB - dateA : dateA - dateB;
   });
 
   const renderPostItem = useCallback(
-    ({ item }) => <MemoizedMyPost item={item} onSuccess={onSuccess} />,
+    ({ item }) => (
+      <MemoizedMyPost
+        item={item}
+        onSuccess={onSuccess}
+        onUpdatePost={onUpdatePost}
+        onEdit={onEdit}
+        onOpenModal={onOpenModal}
+      />
+    ),
     [onSuccess]
   );
 
@@ -93,15 +103,15 @@ const ListUserPosts = ({ user, onSuccess, refreshFlag }) => {
     <GestureHandlerRootView>
       <View className="flex-row justify-between items-center px-2 mb-4">
         <Text className="text-2xl font-medium">Minhas publicações</Text>
-        
+
         <View className="flex-row space-x-2">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={toggleSortOrder}
             className="flex-row items-center bg-black px-3 py-1 rounded-lg gap-1"
             activeOpacity={0.7}
           >
             <Clock size={12} color="#fff" className="mr-1" />
-            {sortOrder === 'recent' ? (
+            {sortOrder === "recent" ? (
               <>
                 <ArrowDown size={12} color="#fff" className="mr-1" />
                 <Text className="text-xs text-white">Recentes</Text>

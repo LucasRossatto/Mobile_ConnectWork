@@ -18,7 +18,7 @@ import AddEducationModal from "@/components/profile/ModalAddEducation";
 import EditEducationModal from "@/components/profile/ModalEditEducation";
 import AddExperienceModal from "@/components/profile/ModalAddExperience";
 import EditExperienceModal from "@/components/profile/ModalEditExperience";
-import ModalEditBanner from "../../../components/profile/ModalEditBanner";
+import ModalEditBanner from "@/components/profile/ModalEditBanner";
 import EditProfileModal from "@/components/profile/ModalEditProfile";
 import { useQueryClient } from "@tanstack/react-query";
 import AsideVolunteerWork from "@/components/profile/AsideVolunteerWork";
@@ -26,6 +26,7 @@ import ModalEditVolunteerWork from "@/components/profile/ModalEditVolunteerWork"
 import ModalVolunteerWork from "@/components/profile/ModalVolunteerWork";
 import ListUserPosts from "@/components/profile/ListUserPosts";
 import log from "@/utils/logger";
+import ModalEditPost from "@/components/profile/ModalEditPost";
 
 export default function Profile() {
   const { user, refreshUserData } = useContext(AuthContext);
@@ -40,12 +41,14 @@ export default function Profile() {
     editVolunteerWork: false,
     editProfile: false,
     editBanner: false,
+    editPost: false,
   });
 
   const [currentItem, setCurrentItem] = useState({
     education: null,
     experience: null,
     volunteerWork: null,
+    post: null,
   });
 
   const [refreshFlag, setRefreshFlag] = useState(0);
@@ -92,6 +95,7 @@ export default function Profile() {
       editVolunteerWork: false,
       editProfile: false,
       editBanner: false,
+      editPost: false,
     });
   }, []);
 
@@ -259,6 +263,10 @@ export default function Profile() {
             user={user}
             scrollEnabled={false}
             refreshFlag={refreshFlag}
+            onEdit={(post) => handleEditItem("post", post)}
+            onOpenModal={() =>
+              setModalState((prev) => ({ ...prev, editPost: true }))
+            }
           />
         </View>
       </ScrollView>
@@ -267,6 +275,13 @@ export default function Profile() {
         onClose: () =>
           setModalState((prev) => ({ ...prev, addEducation: false })),
         onSuccess: refreshAndClose,
+      })}
+
+      {renderModal(ModalEditPost, modalState.editPost, {
+        onClose: () => setModalState((prev) => ({ ...prev, editPost: false })),
+        post: currentItem.post,
+        onSuccess: refreshAndClose,
+        onUpdatePost: refreshAndClose,
       })}
 
       {renderModal(EditEducationModal, modalState.editEducation, {
