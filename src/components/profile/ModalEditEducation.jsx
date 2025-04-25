@@ -75,7 +75,10 @@ const ModalEditEducation = ({
               setLoading(true);
               const res = await api.delete(`/user/education/${education.id}`);
 
-              log.debug("Res Tentativa de deletar fromação academica", res.data);
+              log.debug(
+                "Res Tentativa de deletar fromação academica",
+                res.data
+              );
               if ((res.status = 200)) {
                 Alert.alert(
                   "Sucesso",
@@ -275,17 +278,16 @@ const ModalEditEducation = ({
 
         <View className="flex mt-4 gap-4">
           <ActionButton
-            onPress={deleteEducation}
-            disabled={loading}
-            variant="delete"
-            text={"Excluir"}
-          />
-
-          <ActionButton
             onPress={handleSubmit}
             className="bg-black py-4 px-4  w-full rounded-full"
             disabled={loading}
             text={loading ? "Salvando..." : "Salvar"}
+          />
+          <ActionButton
+            onPress={deleteEducation}
+            disabled={loading}
+            variant="delete"
+            text={"Excluir"}
           />
         </View>
       </View>

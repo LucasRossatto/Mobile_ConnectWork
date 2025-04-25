@@ -45,17 +45,18 @@ const ModalVolunteerWork = ({ visible, onClose, onSuccess }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.title) newErrors.title = "Título é obrigatório";
     if (!formData.company) newErrors.company = "Organização é obrigatória";
-    if (!formData.startDate) newErrors.startDate = "Data de início é obrigatória";
-    
+    if (!formData.startDate)
+      newErrors.startDate = "Data de início é obrigatória";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleCloseModal = () => {
-    if (Object.values(formData).some(field => field)) {
+    if (Object.values(formData).some((field) => field)) {
       Alert.alert(
         "Descartar alterações?",
         "Tem certeza que deseja sair? Todas as alterações serão perdidas.",
@@ -89,22 +90,21 @@ const ModalVolunteerWork = ({ visible, onClose, onSuccess }) => {
         description: formData.description.trim() || null,
       };
 
-      const res = await api.post(`/user/volunteering/${user.id}`, formattedData);
-
-      Alert.alert(
-        "Sucesso!",
-        "Trabalho voluntário adicionado com sucesso",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              onSuccess(res.data);
-              resetForm();
-              onClose();
-            },
-          },
-        ]
+      const res = await api.post(
+        `/user/volunteering/${user.id}`,
+        formattedData
       );
+
+      Alert.alert("Sucesso!", "Trabalho voluntário adicionado com sucesso", [
+        {
+          text: "OK",
+          onPress: () => {
+            onSuccess(res.data);
+            resetForm();
+            onClose();
+          },
+        },
+      ]);
     } catch (error) {
       log.error("Falha na submissão do trabalho voluntário:", error);
       Alert.alert("Erro", "Não foi possível salvar o trabalho voluntário");
@@ -224,14 +224,14 @@ const ModalVolunteerWork = ({ visible, onClose, onSuccess }) => {
 
         <View className="p-4 flex justify-between gap-4">
           <ActionButton
-            text="Cancelar"
-            onPress={handleCloseModal}
-            variant="secondary"
-          />
-          <ActionButton
             text={loading ? "Salvando..." : "Salvar"}
             onPress={handleSubmit}
             disabled={loading}
+          />
+          <ActionButton
+            text="Cancelar"
+            onPress={handleCloseModal}
+            variant="secondary"
           />
         </View>
       </View>

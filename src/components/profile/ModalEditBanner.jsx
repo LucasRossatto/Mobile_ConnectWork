@@ -332,15 +332,17 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
             </TouchableOpacity>
           </Modal>
         )}
-
-        <ActionButton
-          onPress={handleSubmit}
-          text={loading ? "Salvando..." : "Salvar alterações"}
-          disabled={loading || error}
-          className={`bg-black py-4 rounded-full ${
-            loading || error ? "opacity-70" : ""
-          }`}
-        />
+        <View className="flex mt-4 gap-4">
+          <ActionButton
+            onPress={handleSubmit}
+            text={loading ? "Salvando..." : "Salvar alterações"}
+            disabled={loading || error}
+            className={`bg-black py-4 rounded-full ${
+              loading || error ? "opacity-70" : ""
+            }`}
+          />
+          <ActionButton text="Cancelar" onPress={onClose} variant="secondary" />
+        </View>
       </View>
     </Modal>
   );

@@ -282,14 +282,14 @@ const ModalEducation = ({ visible, onClose, onSuccess }) => {
 
         <View className="p-4 flex justify-between gap-4">
           <ActionButton
-            text="Cancelar"
-            onPress={handleCloseModal}
-            variant="secondary"
-          />
-          <ActionButton
             text={loading ? "Salvando..." : "Salvar"}
             onPress={handleSubmit}
             disabled={loading}
+          />
+          <ActionButton
+            text="Cancelar"
+            onPress={handleCloseModal}
+            variant="secondary"
           />
         </View>
       </View>

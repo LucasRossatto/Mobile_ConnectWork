@@ -75,7 +75,10 @@ const ModalEditVolunteerWork = ({
               );
 
               if (onUpdateVolunteerWork) {
-                onUpdateVolunteerWork({ action: "delete", id: volunteerWork.id });
+                onUpdateVolunteerWork({
+                  action: "delete",
+                  id: volunteerWork.id,
+                });
               }
 
               onClose();
@@ -106,10 +109,13 @@ const ModalEditVolunteerWork = ({
         description: formData.description.trim() || null,
       };
 
-      const res = await api.put(`/user/volunteering/${volunteerWork.id}`, payload);
+      const res = await api.put(
+        `/user/volunteering/${volunteerWork.id}`,
+        payload
+      );
 
       Alert.alert("Sucesso", "Trabalho voluntário atualizado com sucesso");
-      
+
       if (onUpdateVolunteerWork) {
         onUpdateVolunteerWork({ action: "update", data: res.data });
       }
@@ -254,16 +260,15 @@ const ModalEditVolunteerWork = ({
 
         <View className="flex mt-4 gap-4">
           <ActionButton
+            onPress={handleSubmit}
+            disabled={loading}
+            text={loading ? "Salvando..." : "Salvar"}
+          />
+          <ActionButton
             onPress={deleteVolunteerWork}
             disabled={loading}
             variant="delete"
             text={"Excluir"}
-          />
-
-          <ActionButton
-            onPress={handleSubmit}
-            disabled={loading}
-            text={loading ? "Salvando..." : "Salvar"}
           />
         </View>
       </View>

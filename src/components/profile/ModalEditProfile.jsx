@@ -473,6 +473,7 @@ const ModalEditProfile = ({ visible, onClose, onUpdateUser }) => {
               loading || imgLoading ? "opacity-70" : ""
             }`}
           />
+          <ActionButton text="Cancelar" onPress={onClose} variant="secondary" />
         </View>
       </View>
     </Modal>

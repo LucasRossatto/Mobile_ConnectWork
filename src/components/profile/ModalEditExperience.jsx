@@ -268,17 +268,16 @@ const ModalEditExperience = ({
 
         <View className="flex mt-4 gap-4">
           <ActionButton
-            onPress={deleteExperience}
-            disabled={loading}
-            variant="delete"
-            text={"Excluir"}
-          />
-
-          <ActionButton
             onPress={handleSubmit}
             className="bg-black py-4 px-4  w-full rounded-full"
             disabled={loading}
             text={loading ? "Salvando..." : "Salvar"}
+          />
+          <ActionButton
+            onPress={deleteExperience}
+            disabled={loading}
+            variant="delete"
+            text={"Excluir"}
           />
         </View>
       </View>
