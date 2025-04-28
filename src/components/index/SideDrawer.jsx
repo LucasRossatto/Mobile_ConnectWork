@@ -94,7 +94,7 @@ const SideDrawer = ({ visible, onClose, user }) => {
           left: 0,
           bottom: 0,
           width: 320,
-          backgroundColor: "#1B1D2A",
+          backgroundColor: "#181818",
           transform: [{ translateX }],
           shadowColor: "#000000",
           shadowOffset: { width: 5, height: 0 },
@@ -103,7 +103,7 @@ const SideDrawer = ({ visible, onClose, user }) => {
           zIndex: Z_INDEX + 1,
         }}
       >
-        <View style={{ padding: 16, marginTop: 48 }}>
+        <View style={{ padding: 0, marginTop: 48 }}>
           {/* Perfil */}
           <View
             style={{
