@@ -47,7 +47,7 @@ function AnimatedTabBar(props) {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: "#1B1D2A",
+        backgroundColor: "#181818",
       }}
     >
       <BottomTabBar {...props} />
@@ -67,7 +67,7 @@ export default function _TabsLayout() {
         tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{
           tabBarStyle: {
-            backgroundColor: "#1B1D2A",
+            backgroundColor: "#181818",
             height: TABBAR_HEIGHT,
             paddingTop: 8,
           },
