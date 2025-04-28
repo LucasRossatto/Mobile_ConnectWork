@@ -47,9 +47,7 @@ function AnimatedTabBar(props) {
         left: 0,
         right: 0,
         bottom: 0,
-        height: TABBAR_HEIGHT + (Platform.OS === "ios" ? 0 : 0),
         backgroundColor: "#1B1D2A",
-        paddingTop: 8,
       }}
     >
       <BottomTabBar {...props} />
@@ -73,8 +71,8 @@ export default function _TabsLayout() {
             height: TABBAR_HEIGHT,
             paddingTop: 8,
           },
-          tabBarActiveTintColor: "#676D75",
-          tabBarInactiveTintColor: "#F2F2F2",
+          tabBarActiveTintColor: "#F2F2F2",
+          tabBarInactiveTintColor: "#676D75",
           tabBarShowLabel: false,
           headerShown: false,
         }}
