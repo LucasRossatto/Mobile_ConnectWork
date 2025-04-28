@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
 import { Plus, ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { FlashList } from "@shopify/flash-list";
 
 const MemoizedMyPost = memo(({ item, onSuccess, onEdit, onOpenModal }) => (
   <MyPost
@@ -81,6 +82,22 @@ const ListUserPosts = ({
     [onSuccess]
   );
 
+  const ListEmpty = () => {
+    <View className="items-center py-4">
+      <Text className="text-gray-500 px-2 py-4 text-center">
+        Nenhuma publicação encontrada
+      </Text>
+      <TouchableOpacity
+        onPress={goToAddPost}
+        className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
+        activeOpacity={0.7}
+      >
+        <Plus size={18} color="#fff" className="mr-2" />
+        <Text className="text-white font-medium">Adicionar publicação</Text>
+      </TouchableOpacity>
+    </View>;
+  };
+
   const keyExtractor = useCallback((item) => item.id.toString(), []);
 
   if (loading) {
@@ -126,29 +143,24 @@ const ListUserPosts = ({
         </View>
       </View>
 
+      {/* 
       <FlatList
         data={sortedPosts}
         renderItem={renderPostItem}
         keyExtractor={keyExtractor}
         scrollEnabled={false}
         nestedScrollEnabled={false}
-        ListEmptyComponent={
-          <View className="items-center py-4">
-            <Text className="text-gray-500 px-2 py-4 text-center">
-              Nenhuma publicação encontrada
-            </Text>
-            <TouchableOpacity
-              onPress={goToAddPost}
-              className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
-              activeOpacity={0.7}
-            >
-              <Plus size={18} color="#fff" className="mr-2" />
-              <Text className="text-white font-medium">
-                Adicionar publicação
-              </Text>
-            </TouchableOpacity>
-          </View>
-        }
+        ListEmptyComponent={ListEmpty}
+      />
+      */}
+      <FlashList
+        data={sortedPosts}
+        renderItem={renderPostItem}
+        keyExtractor={keyExtractor}
+        scrollEnabled={false}
+        nestedScrollEnabled={false}
+        estimatedItemSize={200}
+        ListEmptyComponent={ListEmpty}
       />
     </GestureHandlerRootView>
   );
