@@ -1,201 +1,296 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; 
-import Icon from 'react-native-vector-icons/Feather'; 
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Image, RefreshControl, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Feather';
+import api from '@/services/api';
+import { AuthContext } from '@/contexts/AuthContext';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const Notifications = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      notifierName: 'Usuário 1',
-      commentId: null,
-      message: 'Curtiu sua publicação',
-      notificationPost: 123, 
-    },
-    {
-      id: 2,
-      notifierName: 'Usuário 2',
-      commentId: 456,
-      message: 'Comentou sua publicação',
-      notificationPost: 123, 
-    },
-    {
-      id: 3,
-      notifierName: 'Usuário 3',
-      commentId: null,
-      message: 'Curtiu sua publicação',
-      notificationPost: 456, 
-    },
-  ]);
-  const [showPopup, setShowPopup] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showPopupIndex, setShowPopupIndex] = useState(null);
+  const [counts, setCounts] = useState({ total: 0, unread: 0 });
   const navigation = useNavigation();
+  const { user } = useContext(AuthContext);
 
-  // Função simulada para deletar notificação
-  const handleDeleteNotification = (id) => {
-    setNotifications(notifications.filter((notification) => notification.id !== id));
+  const processNotificationData = useCallback((apiData) => {
+    if (!apiData || !apiData.success || !apiData.notifications) return [];
+    
+    return apiData.notifications.map(notif => ({
+      id: notif.id,
+      senderName: notif.notifierName,
+      senderProfileImg: notif.user?.profile_img || null,
+      message: notif.commentId ? 'comentou sua publicação' : 'curtiu sua publicação',
+      postId: notif.notificationPost,
+      read: notif.read || notif.isRead,
+      createdAt: notif.createdAt,
+    }));
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      console.log('Iniciando busca por notificações...');
+      const response = await api.get(`/user/notifications/${user.id}`, {
+        timeout: 5000
+      });
+      
+      if (!response.data || !response.data.success) {
+        throw new Error(response.data?.error || 'Formato de resposta inválido');
+      }
+      
+      const processed = processNotificationData(response.data);
+      setNotifications(processed);
+      setCounts(response.data.counts || { 
+        total: processed.length, 
+        unread: processed.filter(n => !n.read).length 
+      });
+    } catch (error) {
+      console.error('Erro ao buscar notificações:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      if (notifications.length === 0) {
+        Alert.alert('Erro', error.response?.data?.message || 'Falha ao carregar notificações');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.id, processNotificationData]);
+
+  const handleMarkAllAsRead = useCallback(async () => {
+    try {
+      // Atualização otimista
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setCounts(prev => ({ ...prev, unread: 0 }));
+      
+      await api.patch(`/user/notifications/mark-all-read`, {
+        userId: user.id
+      });
+    } catch (error) {
+      console.error('Erro ao marcar todas como lidas:', error);
+      Alert.alert('Erro', 'Falha ao marcar todas como lidas');
+      // Reverte em caso de erro
+      fetchNotifications();
+    }
+  }, [user?.id]);
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+      setCounts(prev => ({
+        ...prev,
+        unread: Math.max(0, prev.unread - 1)
+      }));
+      
+      await api.patch(`/user/notifications/${notificationId}/read`);
+    } catch (error) {
+      console.error('Erro ao marcar como lida:', error);
+      Alert.alert('Erro', 'Falha ao marcar como lida');
+    }
+    setShowPopupIndex(null);
   };
 
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      const deletedNotification = notifications.find(n => n.id === notificationId);
+      const wasUnread = deletedNotification ? !deletedNotification.read : false;
+      
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setCounts(prev => ({
+        total: prev.total - 1,
+        unread: wasUnread ? prev.unread - 1 : prev.unread
+      }));
+      
+      await api.delete('/user/delete-notification', { 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        data: { id: notificationId }
+      });
+    } catch (error) {
+      setNotifications(prev => [...prev]);
+      setCounts(prev => ({
+        total: prev.total + 1,
+        unread: prev.unread + (wasUnread ? 1 : 0)
+      }));
+      
+      console.error('Erro ao deletar:', error.response?.data || error.message);
+      Alert.alert('Erro', 'Não foi possível remover a notificação');
+    }
+    setShowPopupIndex(null);
+  };
+
+  const navigateToPost = useCallback((postId) => {
+    navigation.navigate('PostDetails', { postId });
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        fetchNotifications();
+      }
+    }, [user?.id, fetchNotifications])
+  );
+
+  useEffect(() => {
+    if (!user?.id) {
+      setLoading(false);
+      setNotifications([]);
+      setCounts({ total: 0, unread: 0 });
+    }
+  }, [user?.id]);
+
+  if (!user) {
+    return (
+      <View className="flex-1 justify-center items-center bg-gray-100">
+        <Text className="text-gray-600 text-lg">Faça login para ver notificações</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Ícone de Sino */}
-        <TouchableOpacity onPress={() => console.log('Abrir notificações')}>
-          <Icon name="bell" size={24} color="#fff" />
-        </TouchableOpacity>
-        {/* Título "Notificações" */}
-        <Text style={styles.headerText}>Notificações</Text>
+    <View className="flex-1 bg-gray-100">
+      <View className="bg-black p-4 flex-row justify-between items-center">
+        <Text className="text-white font-bold text-xl">
+          Notificações {counts.unread > 0 && `(${counts.unread})`}
+        </Text>
+        {counts.unread > 0 && (
+          <TouchableOpacity 
+            onPress={handleMarkAllAsRead}
+            disabled={refreshing}
+          >
+            <Text className="text-white font-medium">Marcar todas como lidas</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Lista de Notificações */}
-      <ScrollView style={styles.notificationsList}>
-        {notifications.length > 0 ? (
-          notifications
-            .slice()
-            .reverse()
-            .map((notification, index) => (
-              <View key={notification.id} style={styles.notificationItem}>
-                {/* Conteúdo da Notificação */}
-                <View style={styles.notificationContent}>
-                  {/* Avatar */}
-                  <View style={styles.avatar} />
-                  <View style={styles.textContainer}>
-                    <Text style={styles.notificationText}>
-                      {notification.commentId
-                        ? `${notification.notifierName} comentou sua publicação`
-                        : `${notification.notifierName} curtiu sua publicação`}
-                    </Text>
-                    <Text style={styles.notificationMessage}>
-                      {notification.message ||
-                        'Uma nova interação foi realizada'}
-                    </Text>
-                  </View>
+      {loading && notifications.length === 0 ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#000" />
+          <Text className="mt-2 text-gray-600">Carregando notificações...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                fetchNotifications();
+              }}
+              colors={['#000']}
+              tintColor="#000"
+            />
+          }
+        >
+          {notifications.length > 0 ? (
+            notifications
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .map((notification, index) => (
+                <View key={`${notification.id}_${index}`} className="relative">
+                  <TouchableOpacity
+                    className={`p-4 ${!notification.read ? 'bg-blue-50' : 'bg-white'}`}
+                    onPress={() => notification.postId && navigateToPost(notification.postId)}
+                    activeOpacity={0.7}
+                  >
+                    <View className="flex-row items-center">
+                      {notification.senderProfileImg ? (
+                        <Image 
+                          source={{ uri: notification.senderProfileImg }}
+                          className="w-12 h-12 rounded-full mr-3"
+                        />
+                      ) : (
+                        <View className="w-12 h-12 rounded-full bg-gray-300 mr-3 justify-center items-center">
+                          <Text className="text-white font-bold text-xl">
+                            {notification.senderName?.charAt(0)?.toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View className="flex-1 mr-4">
+                        <View className="flex-row flex-wrap items-center">
+                          <Text className="font-bold text-gray-900 mr-1">
+                            {notification.senderName}
+                          </Text>
+                          <Text className="text-gray-900">
+                            {notification.message}
+                          </Text>
+                        </View>
+                        <Text className="text-gray-500 text-xs mt-1">
+                          {formatDistanceToNow(new Date(notification.createdAt), {
+                            addSuffix: true,
+                            locale: ptBR
+                          })}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setShowPopupIndex(showPopupIndex === index ? null : index);
+                        }}
+                      >
+                        <Icon name="more-vertical" size={20} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+
+                  {showPopupIndex === index && (
+                    <View className="absolute right-4 top-14 bg-white rounded-lg shadow-lg border border-gray-200 w-40 z-50">
+                      {!notification.read && (
+                        <>
+                          <TouchableOpacity
+                            className="py-3 px-4"
+                            onPress={() => handleMarkAsRead(notification.id)}
+                          >
+                            <Text className="text-gray-800">Marcar como lido</Text>
+                          </TouchableOpacity>
+                          <View className="h-px bg-gray-200 mx-2" />
+                        </>
+                      )}
+                      <TouchableOpacity
+                        className="py-3 px-4"
+                        onPress={() => handleDeleteNotification(notification.id)}
+                      >
+                        <Text className="text-red-600">Remover</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {index < notifications.length - 1 && (
+                    <View className="h-px bg-gray-200 ml-16" />
+                  )}
                 </View>
-
-                {/* Botão de Opções (Três Pontinhos) */}
-                <TouchableOpacity
-                  style={styles.optionsButton}
-                  onPress={() => setShowPopup(showPopup === index ? null : index)}
-                >
-                  <Text style={styles.optionsText}>...</Text>
-                </TouchableOpacity>
-
-                {/* Popup de Opções */}
-                {showPopup === index && (
-                  <View style={styles.popup}>
-                    <TouchableOpacity
-                      style={styles.popupItem}
-                      onPress={() => handleDeleteNotification(notification.id)}
-                    >
-                      <Text style={styles.popupText}>Marcar como lido</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Linha de Separação */}
-                {index < notifications.length - 1 && (
-                  <View style={styles.separator} />
-                )}
-              </View>
-            ))
-        ) : (
-          <Text style={styles.noNotificationsText}>
-            Nenhuma notificação encontrada.
-          </Text>
-        )}
-      </ScrollView>
+              ))
+          ) : (
+            <View className="flex-1 justify-center items-center py-10">
+              <Icon name="bell-off" size={40} color="#ccc" />
+              <Text className="text-gray-600 mt-4 text-lg">Nenhuma notificação encontrada</Text>
+              <TouchableOpacity 
+                className="mt-6 bg-black py-2 px-6 rounded-lg"
+                onPress={() => {
+                  setLoading(true);
+                  fetchNotifications();
+                }}
+              >
+                <Text className="text-white">Recarregar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-  },
-  header: {
-    backgroundColor: '#000', 
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center', 
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff', 
-    marginLeft: 16, 
-  },
-  notificationsList: {
-    flex: 1,
-  },
-  notificationItem: {
-    backgroundColor: '#fff',
-    padding: 16,
-    position: 'relative', 
-  },
-  notificationContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ccc',
-    marginRight: 12,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  notificationText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  optionsButton: {
-    position: 'absolute',
-    right: 16,
-    top: 16,
-  },
-  optionsText: {
-    fontSize: 24,
-    color: '#666',
-  },
-  popup: {
-    position: 'absolute',
-    right: 16,
-    top: 48,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    padding: 8,
-  },
-  popupItem: {
-    padding: 8,
-  },
-  popupText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginTop: 16,
-  },
-  noNotificationsText: {
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 16,
-  },
-});
 
 export default Notifications;
