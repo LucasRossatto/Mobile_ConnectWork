@@ -1,11 +1,20 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Image, RefreshControl, ActivityIndicator } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
-import api from '@/services/api';
-import { AuthContext } from '@/contexts/AuthContext';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import React, { useState, useEffect, useContext, useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Image,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import Icon from "react-native-vector-icons/Feather";
+import api from "@/services/api";
+import { AuthContext } from "@/contexts/AuthContext";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -18,12 +27,14 @@ const Notifications = () => {
 
   const processNotificationData = useCallback((apiData) => {
     if (!apiData || !apiData.success || !apiData.notifications) return [];
-    
-    return apiData.notifications.map(notif => ({
+
+    return apiData.notifications.map((notif) => ({
       id: notif.id,
       senderName: notif.notifierName,
       senderProfileImg: notif.user?.profile_img || null,
-      message: notif.commentId ? 'comentou sua publicação' : 'curtiu sua publicação',
+      message: notif.commentId
+        ? "comentou sua publicação"
+        : "curtiu sua publicação",
       postId: notif.notificationPost,
       read: notif.read || notif.isRead,
       createdAt: notif.createdAt,
@@ -32,30 +43,35 @@ const Notifications = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      console.log('Iniciando busca por notificações...');
+      console.log("Iniciando busca por notificações...");
       const response = await api.get(`/user/notifications/${user.id}`, {
-        timeout: 5000
+        timeout: 5000,
       });
-      
+
       if (!response.data || !response.data.success) {
-        throw new Error(response.data?.error || 'Formato de resposta inválido');
+        throw new Error(response.data?.error || "Formato de resposta inválido");
       }
-      
+
       const processed = processNotificationData(response.data);
       setNotifications(processed);
-      setCounts(response.data.counts || { 
-        total: processed.length, 
-        unread: processed.filter(n => !n.read).length 
-      });
+      setCounts(
+        response.data.counts || {
+          total: processed.length,
+          unread: processed.filter((n) => !n.read).length,
+        }
+      );
     } catch (error) {
-      console.error('Erro ao buscar notificações:', {
+      console.error("Erro ao buscar notificações:", {
         status: error.response?.status,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
       });
-      
+
       if (notifications.length === 0) {
-        Alert.alert('Erro', error.response?.data?.message || 'Falha ao carregar notificações');
+        Alert.alert(
+          "Erro",
+          error.response?.data?.message || "Falha ao carregar notificações"
+        );
       }
     } finally {
       setLoading(false);
@@ -66,72 +82,96 @@ const Notifications = () => {
   const handleMarkAllAsRead = useCallback(async () => {
     try {
       // Atualização otimista
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setCounts(prev => ({ ...prev, unread: 0 }));
-      
-      await api.patch(`/user/notifications/mark-all-read`, {
-        userId: user.id
-      });
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setCounts((prev) => ({ ...prev, unread: 0 }));
+
+      const response = await api.patch(
+        "/user/notifications/mark-all-read",
+        {},
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || "Operação falhou");
+      }
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-      Alert.alert('Erro', 'Falha ao marcar todas como lidas');
-      // Reverte em caso de erro
+      console.error("Erro completo:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+
+      // Reverte as alterações
       fetchNotifications();
+      Alert.alert(
+        "Erro",
+        error.response?.data?.error || "Falha ao marcar como lidas"
+      );
     }
-  }, [user?.id]);
+  }, [user?.token, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {
-      setNotifications(prev => prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      ));
-      setCounts(prev => ({
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+      );
+      setCounts((prev) => ({
         ...prev,
-        unread: Math.max(0, prev.unread - 1)
+        unread: Math.max(0, prev.unread - 1),
       }));
-      
+
       await api.patch(`/user/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
-      Alert.alert('Erro', 'Falha ao marcar como lida');
+      console.error("Erro ao marcar como lida:", error);
+      Alert.alert("Erro", "Falha ao marcar como lida");
     }
     setShowPopupIndex(null);
   };
 
   const handleDeleteNotification = async (notificationId) => {
     try {
-      const deletedNotification = notifications.find(n => n.id === notificationId);
+      const deletedNotification = notifications.find(
+        (n) => n.id === notificationId
+      );
       const wasUnread = deletedNotification ? !deletedNotification.read : false;
-      
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      setCounts(prev => ({
+
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      setCounts((prev) => ({
         total: prev.total - 1,
-        unread: wasUnread ? prev.unread - 1 : prev.unread
+        unread: wasUnread ? prev.unread - 1 : prev.unread,
       }));
-      
-      await api.delete('/user/delete-notification', { 
+
+      await api.delete("/user/delete-notification", {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
         },
-        data: { id: notificationId }
+        data: { id: notificationId },
       });
     } catch (error) {
-      setNotifications(prev => [...prev]);
-      setCounts(prev => ({
+      setNotifications((prev) => [...prev]);
+      setCounts((prev) => ({
         total: prev.total + 1,
-        unread: prev.unread + (wasUnread ? 1 : 0)
+        unread: prev.unread + (wasUnread ? 1 : 0),
       }));
-      
-      console.error('Erro ao deletar:', error.response?.data || error.message);
-      Alert.alert('Erro', 'Não foi possível remover a notificação');
+
+      console.error("Erro ao deletar:", error.response?.data || error.message);
+      Alert.alert("Erro", "Não foi possível remover a notificação");
     }
     setShowPopupIndex(null);
   };
 
-  const navigateToPost = useCallback((postId) => {
-    navigation.navigate('PostDetails', { postId });
-  }, [navigation]);
+  const navigateToPost = useCallback(
+    (postId) => {
+      navigation.navigate("PostDetails", { postId });
+    },
+    [navigation]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -152,7 +192,9 @@ const Notifications = () => {
   if (!user) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-100">
-        <Text className="text-gray-600 text-lg">Faça login para ver notificações</Text>
+        <Text className="text-gray-600 text-lg">
+          Faça login para ver notificações
+        </Text>
       </View>
     );
   }
@@ -164,11 +206,10 @@ const Notifications = () => {
           Notificações {counts.unread > 0 && `(${counts.unread})`}
         </Text>
         {counts.unread > 0 && (
-          <TouchableOpacity 
-            onPress={handleMarkAllAsRead}
-            disabled={refreshing}
-          >
-            <Text className="text-white font-medium">Marcar todas como lidas</Text>
+          <TouchableOpacity onPress={handleMarkAllAsRead} disabled={refreshing}>
+            <Text className="text-white font-medium">
+              Marcar todas como lidas
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -188,7 +229,7 @@ const Notifications = () => {
                 setRefreshing(true);
                 fetchNotifications();
               }}
-              colors={['#000']}
+              colors={["#000"]}
               tintColor="#000"
             />
           }
@@ -199,13 +240,17 @@ const Notifications = () => {
               .map((notification, index) => (
                 <View key={`${notification.id}_${index}`} className="relative">
                   <TouchableOpacity
-                    className={`p-4 ${!notification.read ? 'bg-blue-50' : 'bg-white'}`}
-                    onPress={() => notification.postId && navigateToPost(notification.postId)}
+                    className={`p-4 ${
+                      !notification.read ? "bg-blue-50" : "bg-white"
+                    }`}
+                    onPress={() =>
+                      notification.postId && navigateToPost(notification.postId)
+                    }
                     activeOpacity={0.7}
                   >
                     <View className="flex-row items-center">
                       {notification.senderProfileImg ? (
-                        <Image 
+                        <Image
                           source={{ uri: notification.senderProfileImg }}
                           className="w-12 h-12 rounded-full mr-3"
                         />
@@ -227,17 +272,22 @@ const Notifications = () => {
                           </Text>
                         </View>
                         <Text className="text-gray-500 text-xs mt-1">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true,
-                            locale: ptBR
-                          })}
+                          {formatDistanceToNow(
+                            new Date(notification.createdAt),
+                            {
+                              addSuffix: true,
+                              locale: ptBR,
+                            }
+                          )}
                         </Text>
                       </View>
 
                       <TouchableOpacity
                         onPress={(e) => {
                           e.stopPropagation();
-                          setShowPopupIndex(showPopupIndex === index ? null : index);
+                          setShowPopupIndex(
+                            showPopupIndex === index ? null : index
+                          );
                         }}
                       >
                         <Icon name="more-vertical" size={20} color="#666" />
@@ -253,14 +303,18 @@ const Notifications = () => {
                             className="py-3 px-4"
                             onPress={() => handleMarkAsRead(notification.id)}
                           >
-                            <Text className="text-gray-800">Marcar como lido</Text>
+                            <Text className="text-gray-800">
+                              Marcar como lido
+                            </Text>
                           </TouchableOpacity>
                           <View className="h-px bg-gray-200 mx-2" />
                         </>
                       )}
                       <TouchableOpacity
                         className="py-3 px-4"
-                        onPress={() => handleDeleteNotification(notification.id)}
+                        onPress={() =>
+                          handleDeleteNotification(notification.id)
+                        }
                       >
                         <Text className="text-red-600">Remover</Text>
                       </TouchableOpacity>
@@ -275,8 +329,10 @@ const Notifications = () => {
           ) : (
             <View className="flex-1 justify-center items-center py-10">
               <Icon name="bell-off" size={40} color="#ccc" />
-              <Text className="text-gray-600 mt-4 text-lg">Nenhuma notificação encontrada</Text>
-              <TouchableOpacity 
+              <Text className="text-gray-600 mt-4 text-lg">
+                Nenhuma notificação encontrada
+              </Text>
+              <TouchableOpacity
                 className="mt-6 bg-black py-2 px-6 rounded-lg"
                 onPress={() => {
                   setLoading(true);
