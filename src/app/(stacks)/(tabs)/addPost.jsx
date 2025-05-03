@@ -457,7 +457,7 @@ export default function AddPost() {
               {createPostMutation.isLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text className="text-white font-bold text-lg">Enviar publicação</Text>
+                <Text className="text-white font-bold text-lg uppercase">Enviar publicação</Text>
               )}
             </TouchableOpacity>
           </View>
