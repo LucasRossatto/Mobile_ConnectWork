@@ -19,6 +19,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import api from "@/services/api";
 import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
@@ -29,7 +31,7 @@ import { debounce } from "lodash";
 
 const MAX_IMAGE_SIZE_MB = 2;
 const IMAGE_ASPECT_RATIO = [1, 1];
-const IMAGE_QUALITY = 0.5;
+const MAX_SINGLE_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
 
 const ModalEditProfile = ({ visible, onClose, onUpdateUser }) => {
   const { user, setUser } = useContext(AuthContext);
@@ -45,6 +47,63 @@ const ModalEditProfile = ({ visible, onClose, onUpdateUser }) => {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [showImageActions, setShowImageActions] = useState(false);
+
+  const compressImage = useCallback(async (uri) => {
+    let compressedUri = uri;
+    let iterations = 0;
+    const maxIterations = 3;
+
+    while (iterations < maxIterations) {
+      const fileInfo = await FileSystem.getInfoAsync(compressedUri);
+      if (fileInfo.size < 1.5 * 1024 * 1024) break;
+
+      const compressionRatio = 0.7 - iterations * 0.15;
+      const result = await ImageManipulator.manipulateAsync(
+        compressedUri,
+        [{ resize: { width: 800 } }], // Redimensionar para largura máxima
+        { compress: compressionRatio, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      compressedUri = result.uri;
+      iterations++;
+    }
+
+    return compressedUri;
+  }, []);
+
+  const processSelectedImage = useCallback(async (uri) => {
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (fileInfo.size > MAX_SINGLE_IMAGE_SIZE) {
+        throw new Error("Imagem muito grande (max 3MB)");
+      }
+
+      const compressedUri = await compressImage(uri);
+      const compressedInfo = await FileSystem.getInfoAsync(compressedUri);
+
+      const base64 = await FileSystem.readAsStringAsync(compressedUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const base64Length = base64.length;
+      const sizeInBytes = (base64Length * 3) / 4;
+
+      if (sizeInBytes > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+        throw new Error(
+          `Imagem muito grande após compressão (max ${MAX_IMAGE_SIZE_MB}MB)`
+        );
+      }
+
+      return {
+        uri: compressedUri,
+        base64,
+        mimeType: "image/jpeg",
+        size: compressedInfo.size,
+      };
+    } catch (error) {
+      log.error("Erro ao processar imagem:", error);
+      throw error;
+    }
+  }, [compressImage]);
 
   useEffect(() => {
     const requestMediaPermissions = async () => {
@@ -101,31 +160,22 @@ const ModalEditProfile = ({ visible, onClose, onUpdateUser }) => {
         mediaTypes: ImagePicker.Images,
         allowsEditing: true,
         aspect: IMAGE_ASPECT_RATIO,
-        quality: IMAGE_QUALITY,
-        base64: true,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets?.[0]) {
-        const base64Length = result.assets[0].base64.length;
-        const sizeInBytes = base64Length * (3 / 4);
-
-        if (sizeInBytes > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-          Alert.alert(
-            "Imagem muito grande",
-            `Por favor, selecione uma imagem menor que ${MAX_IMAGE_SIZE_MB}MB`
-          );
-          return;
-        }
-
-        setProfileImage(result.assets[0]);
+        setImgLoading(true);
+        const processedImage = await processSelectedImage(result.assets[0].uri);
+        setProfileImage(processedImage);
       }
     } catch (error) {
       log.error("Erro ao selecionar imagem:", error);
-      Alert.alert("Erro", "Não foi possível selecionar a imagem");
+      Alert.alert("Erro", error.message || "Não foi possível selecionar a imagem");
     } finally {
+      setImgLoading(false);
       setShowImageActions(false);
     }
-  }, []);
+  }, [processSelectedImage]);
 
   const confirmDeleteImage = useCallback(() => {
     Alert.alert(
