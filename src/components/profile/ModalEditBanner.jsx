@@ -8,21 +8,89 @@ import {
   Image,
   ActionSheetIOS,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 import api from "@/services/api";
 import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
 import { AuthContext } from "@/contexts/AuthContext";
 
+const MAX_SINGLE_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+const MAX_IMAGE_SIZE_MB = 2; // 2MB máximo após compressão
+
 const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
   const { user, setUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [imgProcessing, setImgProcessing] = useState(false);
   const [image, setImage] = useState(null);
   const [showImageActions, setShowImageActions] = useState(false);
   const [error, setError] = useState(null);
   const [debugInfo, setDebugInfo] = useState("");
+
+  const compressImage = async (uri) => {
+    let compressedUri = uri;
+    let iterations = 0;
+    const maxIterations = 3;
+
+    while (iterations < maxIterations) {
+      const fileInfo = await FileSystem.getInfoAsync(compressedUri);
+      if (fileInfo.size < 1.5 * 1024 * 1024) break;
+
+      const compressionRatio = 0.7 - iterations * 0.15;
+      const result = await ImageManipulator.manipulateAsync(
+        compressedUri,
+        [{ resize: { width: 1200 } }], // Largura maior para banners
+        { compress: compressionRatio, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      compressedUri = result.uri;
+      iterations++;
+    }
+
+    return compressedUri;
+  };
+
+  const processSelectedImage = async (uri) => {
+    try {
+      setImgProcessing(true);
+      
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (fileInfo.size > MAX_SINGLE_IMAGE_SIZE) {
+        throw new Error("Imagem muito grande (max 3MB)");
+      }
+
+      const compressedUri = await compressImage(uri);
+      const compressedInfo = await FileSystem.getInfoAsync(compressedUri);
+
+      const base64 = await FileSystem.readAsStringAsync(compressedUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const base64Length = base64.length;
+      const sizeInBytes = (base64Length * 3) / 4;
+
+      if (sizeInBytes > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+        throw new Error(
+          `Imagem muito grande após compressão (max ${MAX_IMAGE_SIZE_MB}MB)`
+        );
+      }
+
+      return {
+        uri: compressedUri,
+        base64,
+        mimeType: "image/jpeg",
+        size: compressedInfo.size,
+      };
+    } catch (error) {
+      log.error("Erro ao processar imagem:", error);
+      throw error;
+    } finally {
+      setImgProcessing(false);
+    }
+  };
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -92,11 +160,10 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
       setError(null);
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.Images,
         allowsEditing: true,
         aspect: [3, 1],
-        quality: 0.7,
-        base64: true,
+        quality: 0.8,
       });
 
       log.debug("Resultado da galeria:", {
@@ -104,37 +171,18 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
         assets: result.assets?.map((asset) => ({
           width: asset.width,
           height: asset.height,
-          fileSize: asset.fileSize,
         })),
       });
 
       setDebugInfo(`Resultado: ${result.canceled ? "Cancelado" : "Sucesso"}`);
 
       if (!result.canceled && result.assets?.[0]) {
-        if (result.assets[0].base64) {
-          const sizeInBytes = (result.assets[0].base64.length * 3) / 4;
-          const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(2);
-
-          log.debug("Tamanho da imagem:", {
-            bytes: sizeInBytes,
-            mb: sizeInMB,
-          });
-
-          setDebugInfo(`Tamanho: ${sizeInMB} MB`);
-
-          if (sizeInBytes > 2 * 1024 * 1024) {
-            const errorMsg = "Imagem muito grande (máx. 2MB)";
-            log.warn(errorMsg);
-            setError(errorMsg);
-            return;
-          }
-        }
-
-        setImage(result.assets[0]);
+        const processedImage = await processSelectedImage(result.assets[0].uri);
+        setImage(processedImage);
         setError(null);
       }
     } catch (err) {
-      const errorMsg = "Erro ao acessar a galeria";
+      const errorMsg = err.message || "Erro ao processar a imagem";
       log.error(errorMsg, {
         error: err,
         message: err.message,
@@ -188,7 +236,7 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
     try {
       setLoading(true);
       const imagePayload = {
-        banner_img: `data:image/jpeg;base64,${image.base64}`,
+        banner_img: `data:${image.mimeType || "image/jpeg"};base64,${image.base64}`,
       };
 
       const res = await api.put(`/user/banner_img/${user.id}`, imagePayload);
@@ -230,12 +278,14 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
           onPress={onClose}
           accessibilityLabel="Fechar modal"
           accessibilityHint="Fecha o modal de edição de banner"
+          disabled={loading || imgProcessing}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text className="text-2xl font-bold text-white ml-4">
           Editar Banner
         </Text>
+        {(loading || imgProcessing) && <ActivityIndicator color="white" size="small" className="ml-2" />}
       </View>
 
       <View className="flex-1 bg-white p-5">
@@ -244,9 +294,15 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
             className="w-full"
             onPress={showImagePickerOptions}
             accessibilityLabel="Alterar banner"
+            disabled={imgProcessing}
           >
             <View className="h-[100px] w-full rounded-lg bg-gray-200 justify-center items-center overflow-hidden">
-              {image ? (
+              {imgProcessing ? (
+                <View className="flex-1 justify-center items-center">
+                  <ActivityIndicator size="large" color="#000" />
+                  <Text className="mt-2 text-gray-600">Processando imagem...</Text>
+                </View>
+              ) : image ? (
                 <Image
                   source={{ uri: image.uri }}
                   className="h-full w-full"
@@ -268,7 +324,7 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
               )}
             </View>
             <Text className="text-center mt-2 text-blue-500 font-medium">
-              Toque para alterar
+              {imgProcessing ? "Processando..." : "Toque para alterar"}
             </Text>
 
             {error && (
@@ -295,28 +351,34 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
                 <TouchableOpacity
                   className="py-4 border-b border-gray-200 flex-row justify-center"
                   onPress={pickImage}
+                  disabled={imgProcessing}
                 >
                   <Ionicons
                     name="image"
                     size={24}
-                    color="#000"
+                    color={imgProcessing ? "#9CA3AF" : "#000"}
                     style={{ marginRight: 10 }}
                   />
-                  <Text className="text-lg">Escolher da galeria</Text>
+                  <Text className={`text-lg ${imgProcessing ? "text-gray-400" : ""}`}>
+                    Escolher da galeria
+                  </Text>
                 </TouchableOpacity>
 
                 {(user?.banner_img || image) && (
                   <TouchableOpacity
                     className="py-4 flex-row justify-center"
                     onPress={confirmDeleteImage}
+                    disabled={imgProcessing}
                   >
                     <Ionicons
                       name="trash"
                       size={24}
-                      color="#dc2626"
+                      color={imgProcessing ? "#9CA3AF" : "#dc2626"}
                       style={{ marginRight: 10 }}
                     />
-                    <Text className="text-lg text-red-600">Remover banner</Text>
+                    <Text className={`text-lg ${imgProcessing ? "text-gray-400" : "text-red-600"}`}>
+                      Remover banner
+                    </Text>
                   </TouchableOpacity>
                 )}
 
@@ -336,12 +398,18 @@ const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
           <ActionButton
             onPress={handleSubmit}
             text={loading ? "Salvando..." : "Salvar alterações"}
-            disabled={loading || error}
+            disabled={loading || imgProcessing || error}
+            loading={loading || imgProcessing}
             className={`bg-black py-4 rounded-full ${
-              loading || error ? "opacity-70" : ""
+              loading || imgProcessing || error ? "opacity-70" : ""
             }`}
           />
-          <ActionButton text="Cancelar" onPress={onClose} variant="secondary" />
+          <ActionButton 
+            text="Cancelar" 
+            onPress={onClose} 
+            variant="secondary"
+            disabled={loading || imgProcessing}
+          />
         </View>
       </View>
     </Modal>
