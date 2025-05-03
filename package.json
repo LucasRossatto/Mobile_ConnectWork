@@ -27,6 +27,7 @@
     "date-fns": "^4.1.0",
     "expo": "~52.0.41",
     "expo-font": "~13.0.4",
+    "expo-image-manipulator": "~13.0.6",
     "expo-image-picker": "~16.0.6",
     "expo-jwt": "^1.8.2",
     "expo-linking": "~7.0.5",
@@ -38,6 +39,7 @@
     "expo-web-browser": "~14.0.2",
     "lightningcss": "^1.29.1",
     "lucide-react-native": "^0.479.0",
+    "mime": "^4.0.7",
     "mobile_connectwork": "file:",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -50,7 +52,8 @@
     "react-native-screens": "~4.4.0",
     "react-native-toast-message": "^2.2.1",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "expo-file-system": "~18.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
