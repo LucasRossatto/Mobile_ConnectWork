@@ -31,7 +31,7 @@ export default function ActionButton({
       <Text
         className={`${
           disabled ? textStyles.disabled : textStyles[variant]
-        } text-center font-bold uppercase `}
+        } text-center font-bold`}
       >
         {text}
       </Text>
