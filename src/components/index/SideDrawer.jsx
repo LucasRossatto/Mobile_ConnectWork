@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { Link } from 'expo-router';
 import { View, Text, Image, Pressable, Animated, Easing } from "react-native";
 import {
   Search as SearchIcon,
@@ -6,36 +7,21 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   Home as HomeIcon,
-  UserRound,
 } from "lucide-react-native";
 
-/* ------------------------------
- *  DrawerItem
- * ------------------------------ */
 const DrawerItem = ({ icon: Icon, label, onPress }) => (
   <Pressable
     onPress={onPress}
     accessibilityRole="button"
-    style={{ flexDirection: "row", alignItems: "center" }}
+    className="flex-row items-center"
   >
     <Icon size={27} color="#FFFFFF" />
-    <Text
-      style={{
-        color: "#FFFFFF",
-        fontWeight: "bold",
-        fontSize: 16,
-        paddingVertical: 16,
-        paddingLeft: 8,
-      }}
-    >
+    <Text className="text-white font-bold text-base py-4 pl-2">
       {label}
     </Text>
   </Pressable>
 );
 
-/* ------------------------------
- *  SideDrawer
- * ------------------------------ */
 const SideDrawer = ({ visible, onClose, user }) => {
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -71,30 +57,20 @@ const SideDrawer = ({ visible, onClose, user }) => {
       {/* Overlay escurecido */}
       <Animated.View
         pointerEvents={pe}
+        className="absolute inset-0 bg-black"
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "#000000",
           opacity: overlayOpacity,
           zIndex: Z_INDEX,
         }}
       >
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <Pressable className="flex-1" onPress={onClose} />
       </Animated.View>
 
       {/* Drawer */}
       <Animated.View
         pointerEvents={pe}
+        className="absolute inset-y-0 left-0 w-80 bg-[#181818] shadow-lg"
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: 320,
-          backgroundColor: "#181818",
           transform: [{ translateX }],
           shadowColor: "#000000",
           shadowOffset: { width: 5, height: 0 },
@@ -103,52 +79,37 @@ const SideDrawer = ({ visible, onClose, user }) => {
           zIndex: Z_INDEX + 1,
         }}
       >
-        <View style={{ padding: 0, marginTop: 48 }}>
+        <View className="p-0 mt-12">
           {/* Perfil */}
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 32,
-              marginLeft: 20,
-            }}
-          >
-            <View
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                backgroundColor: "#D1D5DB",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-                marginRight: 16,
-              }}
-            >
+          <View className="flex-row items-center mb-8 ml-5">
+            <View className="h-[64px] w-[64px] rounded-full bg-gray-200 flex justify-center items-center mr-4">
               {user?.profile_img ? (
                 <Image
                   source={{ uri: user.profile_img }}
-                  style={{ width: "100%", height: "100%" }}
+                  className="h-full w-full rounded-full"
                   resizeMode="cover"
+                  accessibilityLabel="Foto do perfil"
                 />
               ) : (
-                <UserRound size={52} color="#6B7280" />
+                <View className="flex-1 justify-center items-center">
+                  <Text className="text-4xl font-bold text-black text-center">
+                    {user?.nome?.charAt(0)?.toUpperCase()}
+                  </Text>
+                </View>
               )}
             </View>
             <View>
-              <Text
-                style={{ color: "#FFFFFF", fontWeight: "bold", fontSize: 20 }}
-              >
+              <Text className="text-white font-bold text-xl">
                 {user?.nome || "Visitante"}
               </Text>
-              <Text style={{ color: "#FFFFFF", fontSize: 14 }}>
+              <Text className="text-white text-sm">
                 {user?.course || "Nenhum curso"}
               </Text>
             </View>
           </View>
 
           {/* Itens */}
-          <View style={{ marginLeft: 24 }}>
+          <View className="ml-6">
             <DrawerItem icon={HomeIcon} label="Home" onPress={onClose} />
             <DrawerItem
               icon={SearchIcon}
