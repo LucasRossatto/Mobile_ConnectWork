@@ -44,7 +44,8 @@
           "photosPermission": "Este aplicativo acessa a galeria de fotos para permitir que os usuários selecionem imagens.",
           "cameraPermission": "Este aplicativo usa a câmera para permitir que os usuários tirem fotos."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
