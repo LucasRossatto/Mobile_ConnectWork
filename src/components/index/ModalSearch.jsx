@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, TouchableOpacity, Text, TextInput } from "react-native";
+import { View, TouchableOpacity, Text, TextInput, Modal } from "react-native";
+import log from "@/utils/logger";
 import {
   Search as SearchIcon,
   X as CloseIcon,
@@ -23,7 +24,7 @@ const ModalSearch = ({ visible, onClose }) => {
           .filter((item) => item.toLowerCase() !== searchText.toLowerCase())
           .slice(0, 3),
       ]);
-      console.log("Realizando busca por:", searchText);
+      log.info("Realizando busca por:", searchText);
     }
   };
 
@@ -37,122 +38,85 @@ const ModalSearch = ({ visible, onClose }) => {
     setRecentSearches([]);
   };
 
-  if (!visible) return null;
-
   return (
-    <View
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "white",
-        zIndex: 30,
-        elevation: 30,
-        padding: 16,
-      }}
+    <Modal
+      animationType="slide"
+      visible={visible}
+      transparent={false}
+      onRequestClose={onClose}
     >
-      <View
-        style={{ flexDirection: "row", alignItems: "center", marginBottom: 24 }}
-      >
-        <TouchableOpacity onPress={onClose} style={{ padding: 8 }}>
-          <CloseIcon size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: "bold", marginLeft: 16 }}>
-          Pesquisar
-        </Text>
-      </View>
-
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: "#F3F4F6",
-          borderRadius: 8,
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          marginBottom: 24,
-        }}
-      >
-        <SearchIcon size={20} color="#6B7280" />
-        <TextInput
-          style={{ flex: 1, marginLeft: 12, fontSize: 16 }}
-          placeholder="Pesquisar vagas, empresas, habilidades..."
-          placeholderTextColor="#9CA3AF"
-          value={searchText}
-          onChangeText={setSearchText}
-          onSubmitEditing={handleSearch}
-          autoFocus={true}
-        />
-        {searchText ? (
-          <TouchableOpacity onPress={() => setSearchText("")}>
-            <CloseIcon size={20} color="#6B7280" />
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      {searchText ? (
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: "#6B7280", marginBottom: 16 }}>
-            Resultados para: "{searchText}"
-          </Text>
-          <View
-            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+      <View className="flex-1 p-4 bg-white">
+        {/* Header */}
+        <View className="flex-row items-center mb-6">
+          <TouchableOpacity 
+            onPress={onClose}
+            className="p-2 mr-4"
+            hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
           >
-            <Text style={{ color: "#9CA3AF" }}>
-              Nenhum resultado encontrado
-            </Text>
-          </View>
+            <CloseIcon size={24} color="black" />
+          </TouchableOpacity>
+          <Text className="text-xl font-bold">Pesquisar</Text>
         </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: "bold", fontSize: 18, marginBottom: 16 }}>
-            Últimas pesquisas
-          </Text>
 
-          {recentSearches.map((search, index) => (
-            <TouchableOpacity
-              key={index}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingVertical: 12,
-                borderBottomWidth: 1,
-                borderBottomColor: "#F3F4F6",
-              }}
-              onPress={() => setSearchText(search)}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <ClockIcon size={18} color="#6B7280" />
-                <Text style={{ marginLeft: 12, color: "#374151" }}>
-                  {search}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => removeRecentSearch(index)}>
-                <CloseIcon size={18} color="#6B7280" />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
-
-          {recentSearches.length > 0 && (
-            <TouchableOpacity
-              style={{
-                marginTop: 16,
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-              onPress={clearSearchHistory}
-            >
-              <Text style={{ color: "#3B82F6", fontWeight: "bold" }}>
-                Limpar histórico
-              </Text>
+        {/* Search Bar */}
+        <View className="flex-row items-center bg-gray-100 rounded-lg px-4 py-2 mb-6">
+          <SearchIcon size={20} color="#6B7280" />
+          <TextInput
+            className="flex-1 ml-3 text-base"
+            placeholder="Pesquisar vagas, empresas, habilidades..."
+            placeholderTextColor="#9CA3AF"
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={handleSearch}
+            autoFocus={true}
+          />
+          {searchText && (
+            <TouchableOpacity onPress={() => setSearchText("")}>
+              <CloseIcon size={20} color="#6B7280" />
             </TouchableOpacity>
           )}
         </View>
-      )}
-    </View>
+
+        {/* Content */}
+        {searchText ? (
+          <View className="flex-1">
+            <Text className="text-gray-500 mb-4">Resultados para: {searchText}</Text>
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-gray-400">Nenhum resultado encontrado</Text>
+            </View>
+          </View>
+        ) : (
+          <View className="flex-1">
+            <Text className="font-bold text-lg mb-4">Últimas pesquisas</Text>
+
+            {recentSearches.map((search, index) => (
+              <TouchableOpacity
+                key={index}
+                className="flex-row items-center justify-between py-3 border-b border-gray-100"
+                onPress={() => setSearchText(search)}
+              >
+                <View className="flex-row items-center">
+                  <ClockIcon size={18} color="#6B7280" />
+                  <Text className="ml-3 text-gray-700">{search}</Text>
+                </View>
+                <TouchableOpacity onPress={() => removeRecentSearch(index)}>
+                  <CloseIcon size={18} color="#6B7280" />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+
+            {recentSearches.length > 0 && (
+              <TouchableOpacity
+                className="mt-4 flex-row items-center"
+                onPress={clearSearchHistory}
+              >
+                <Text className="text-blue-500 font-bold">Limpar histórico</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    </Modal>
   );
 };
 
