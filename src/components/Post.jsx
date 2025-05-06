@@ -41,7 +41,6 @@ import { Picker } from "@react-native-picker/picker";
 import log from "@/utils/logger";
 import { FlashList } from "@shopify/flash-list";
 
-
 const { width: screenWidth } = Dimensions.get("window");
 const AnimatedHeart = Animated.createAnimatedComponent(Heart);
 
@@ -55,7 +54,7 @@ const Post = ({
   date,
   category,
   onLikeSuccess,
-  onCommentPress
+  onCommentPress,
 }) => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
@@ -115,13 +114,23 @@ const Post = ({
   // 4. Mutação para like/deslike
   const likeMutation = useMutation({
     mutationFn: () => {
+      log.debug(`Iniciando mutation de ${isLiked ? "deslike" : "like"}`, {
+        postId,
+        userId: user?.id,
+        currentState: { isLiked, likeCount: likesData?.count },
+      });
+
       if (isLiked) {
+        log.debug(`Enviando deslike para o post ${postId}`);
         return api.post(`/user/deslike/${postId}`, { userId: user.id });
       } else {
+        log.debug(`Enviando like para o post ${postId}`);
         return api.post(`/user/postlike/${postId}`, { userId: user.id });
       }
     },
     onMutate: async () => {
+      log.debug("Iniciando onMutate - cancelando queries anteriores");
+
       // Cancelar queries em andamento para evitar conflitos
       await queryClient.cancelQueries(["checkLike", postId, user?.id]);
       await queryClient.cancelQueries(["likes", postId]);
@@ -134,6 +143,8 @@ const Post = ({
       const previousLikeCount =
         queryClient.getQueryData(["likes", postId])?.count || likeCount;
 
+      log.debug("Dados anteriores:", { previousIsLiked, previousLikeCount });
+
       // Atualização otimista
       queryClient.setQueryData(
         ["checkLike", postId, user?.id],
@@ -143,9 +154,24 @@ const Post = ({
         count: previousIsLiked ? previousLikeCount - 1 : previousLikeCount + 1,
       });
 
+      log.debug("Atualização otimista aplicada", {
+        newIsLiked: !previousIsLiked,
+        newLikeCount: previousIsLiked
+          ? previousLikeCount - 1
+          : previousLikeCount + 1,
+      });
+
       return { previousIsLiked, previousLikeCount };
     },
     onError: (error, variables, context) => {
+      log.error("Falha na mutation de like", {
+        error: error.response?.data || error.message,
+        postId,
+        userId: user?.id,
+        context,
+      });
+
+      // Revertendo para o estado anterior
       queryClient.setQueryData(
         ["checkLike", postId, user?.id],
         context.previousIsLiked
@@ -153,10 +179,25 @@ const Post = ({
       queryClient.setQueryData(["likes", postId], {
         count: context.previousLikeCount,
       });
+
+      log.debug("Estado revertido após erro", {
+        isLiked: context.previousIsLiked,
+        likeCount: context.previousLikeCount,
+      });
+
       Alert.alert("Erro", "Não foi possível processar sua curtida");
     },
     onSettled: () => {
-      // Invalidar queries para garantir sincronização com o servidor
+      const queriesToInvalidate = ["checkLike", "likes"];
+      
+      log.debug(`Invalidando queries para post ${postId}`, {
+        operation: 'like/dislike',
+        queries: queriesToInvalidate.join(', '),
+        postId,
+        userId: user?.id,
+        timestamp: new Date().toISOString()
+      });
+    
       queryClient.invalidateQueries(["checkLike", postId, user?.id]);
       queryClient.invalidateQueries(["likes", postId]);
     },
@@ -187,7 +228,6 @@ const Post = ({
       setReportReason("");
       setReportDescription("");
       setShowReportModal(false);
-      // Remove o post denunciado da cache
       queryClient.setQueryData(["posts"], (oldData) => {
         if (!oldData) return oldData;
         return oldData.filter((post) => post.id !== postId);
@@ -203,9 +243,11 @@ const Post = ({
 
   const handleLike = () => {
     if (!user) {
+      log.debug("Usuário não autenticado tentou curtir");
       Alert.alert("Aviso", "Você precisa estar logado para curtir");
       return;
     }
+    log.debug(`Tentando ${isLiked ? "descurtir" : "curtir"} o post ${postId}`);
     likeMutation.mutate();
   };
 
@@ -328,15 +370,14 @@ const Post = ({
           </TouchableOpacity>
 
           {showMenu && (
-            <TouchableOpacity className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50"
-            onPress={() => {
-              setShowReportModal(true);
-              setShowMenu(false);
-            }}>
-              <View
-                className="flex-row items-center px-4 py-2 gap-2 flex"
-               
-              >
+            <TouchableOpacity
+              className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50"
+              onPress={() => {
+                setShowReportModal(true);
+                setShowMenu(false);
+              }}
+            >
+              <View className="flex-row items-center px-4 py-2 gap-2 flex">
                 <Flag size={16} color="#f59e0b" className="mr-2" />
                 <Text className="text-gray-700">Denunciar</Text>
               </View>
@@ -455,16 +496,10 @@ const Post = ({
           activeOpacity={0.7}
           className="flex-row items-center"
         >
-          <MessageCircle
-            size={24}
-            color="#4b5563"
-            strokeWidth={2}
-          />
+          <MessageCircle size={24} color="#4b5563" strokeWidth={2} />
           <Text className="text-sm text-gray-600 ml-2">{comments.length}</Text>
         </TouchableOpacity>
       </View>
-
-      
 
       {/* Modal de Denúncia */}
       <Modal
