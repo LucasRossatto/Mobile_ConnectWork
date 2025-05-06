@@ -14,23 +14,22 @@ import {
   Pressable,
   ActivityIndicator,
   Animated,
+  Platform,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Menu as MenuIcon } from "lucide-react-native";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ModalCommentBox from "@/components/ModalCommentBox";
 
 import api from "@/services/api";
 import Post from "@/components/Post";
 import ModalSearch from "@/components/index/ModalSearch";
 import SideDrawer from "@/components/index/SideDrawer";
 import { AuthContext } from "@/contexts/AuthContext";
-import { hideTabBar, showTabBar } from "./_layout"; // funções globais
+import { hideTabBar, showTabBar } from "./_layout";
 
-/*********************************
- *  Constantes                    *
- *********************************/
 const HEADER_HEIGHT = 76; // altura da barra superior em pixels
 const HIDE_THRESHOLD = 8; // deslocamento para esconder/mostrar
 
@@ -87,7 +86,7 @@ const Header = ({ avatarProps, onSearch, onMenu, translateY }) => (
 
     <Pressable
       onPress={onSearch}
-      className="flex-row flex-1 items-center bg-gray-200 rounded-full py-3 mx-2"
+      className="flex-row flex-1 items-center bg-gray-100 rounded-full py-3 mx-2"
       accessibilityRole="search"
       testID="search-button"
     >
@@ -97,7 +96,7 @@ const Header = ({ avatarProps, onSearch, onMenu, translateY }) => (
         color="#9CA3AF"
         style={{ marginLeft: 16 }}
       />
-      <Text className="ml-2 text-gray-700">Busque por vagas</Text>
+      <Text className="ml-2 text-gray-700 text-base">Busque por vagas</Text>
     </Pressable>
 
     <Pressable onPress={onMenu} hitSlop={8} accessibilityLabel="Abrir menu">
@@ -113,11 +112,51 @@ const HomeScreen = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
-
   const headerAnim = useRef(new Animated.Value(0)).current; // 0 = visível
   const lastScrollY = useRef(0);
-
   const { user, setUser } = useContext(AuthContext);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const renderModal = (Component, visible, props = {}) => {
+    if (Platform.OS === "ios") {
+      return (
+        <Modal
+          visible={visible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={onClose}
+        >
+          <Component {...props} onClose={onClose} />
+        </Modal>
+      );
+    }
+
+    return visible ? (
+      <View
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          zIndex: 1000,
+        }}
+      >
+        <Component {...props} onClose={closeAllModals} />
+      </View>
+    ) : null;
+  };
+
+  // Função para fechar todos os modais
+  const closeAllModals = useCallback(() => {
+    setSearchVisible(false);
+    setCommentModalVisible(false);
+    setDrawerVisible(false);
+  }, []);
+
+  // Função para abrir o modal de comentários
+  const openCommentModal = useCallback((post) => {
+    setSelectedPost(post);
+    setCommentModalVisible(true);
+  }, []);
 
   /***********************
    * Scroll: Header + TabBar
@@ -256,6 +295,7 @@ const HomeScreen = () => {
                 category={item.category}
                 img={item.images}
                 LikeCount={item.numberLikes}
+                onCommentPress={() => openCommentModal(item)}
               />
             )}
             keyExtractor={(item) => String(item.id)}
@@ -290,12 +330,15 @@ const HomeScreen = () => {
       </GestureHandlerRootView>
 
       {/* Modal de busca */}
-      <ModalSearch
-        visible={searchVisible}
-        onClose={() => setSearchVisible(false)}
-      />
+      {renderModal(ModalSearch, searchVisible, {
+      })}
 
-      {/* Drawer lateral */}
+      {renderModal(ModalCommentBox, commentModalVisible, {
+        postId: selectedPost?.id,
+        profile_img: user?.profile_img,
+        comments: selectedPost?.comments || [],
+      })}
+
       <SideDrawer
         visible={drawerVisible}
         onClose={() => setDrawerVisible(false)}
