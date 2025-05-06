@@ -1,4 +1,10 @@
-import React, { useState, useRef, useContext } from "react";
+import React, {
+  useState,
+  useRef,
+  useContext,
+  useCallback,
+  useEffect,
+} from "react";
 import {
   Image,
   Text,
@@ -9,14 +15,13 @@ import {
   Alert,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import {
   Heart,
   MessageCircle,
   Ellipsis,
-  AlertTriangle,
-  Trash2,
-  Edit,
+  Flag,
   X,
   ChevronLeft,
   ChevronRight,
@@ -30,37 +35,34 @@ import Animated, {
 } from "react-native-reanimated";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { AuthContext } from "../contexts/AuthContext";
-import axios from "axios";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/services/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Picker } from "@react-native-picker/picker";
+import log from "@/utils/logger";
+import { FlashList } from "@shopify/flash-list";
+
 
 const { width: screenWidth } = Dimensions.get("window");
 const AnimatedHeart = Animated.createAnimatedComponent(Heart);
 
-export default function Post({
+const Post = ({
   postId,
   author,
   author_profileImg,
   content,
   img,
-  LikeCount,
+  LikeCount: initialLikeCount,
   date,
   category,
-  showDeleteOption = false,
-  showEditOption = false,
-  onDelete,
-  onEdit,
-}) {
+  onLikeSuccess,
+  onCommentPress
+}) => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isCommented, setIsCommented] = useState(false);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [showCommentBox, setShowCommentBox] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editedContent, setEditedContent] = useState(content);
-  const [editedCategory, setEditedCategory] = useState(category);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -76,71 +78,120 @@ export default function Post({
     };
   });
 
-  const axiosConfig = {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${user?.token}`,
+  // 1. Buscar comentários do post
+  const { data: comments = [] } = useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async () => {
+      const response = await api.get(`/user/comments/${postId}`);
+      return response.data.comments || [];
     },
-  };
-
-  // Mutação para deletar post
-  const deletePostMutation = useMutation({
-    mutationFn: () =>
-      axios.delete(
-        `http://localhost:3001/api/user/post/${postId}`,
-        axiosConfig
-      ),
-    onSuccess: () => {
-      Alert.alert("Sucesso", "Post excluído com sucesso!");
-      setShowDeleteModal(false);
-      if (onDelete) onDelete(postId);
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
-    },
-    onError: () => {
-      Alert.alert("Erro", "Erro ao excluir post. Tente novamente.");
-    },
+    enabled: !!postId && !!user?.token,
   });
 
-  // Mutação para editar post
-  const editPostMutation = useMutation({
-    mutationFn: () =>
-      axios.patch(
-        `http://localhost:3001/api/user/post/${postId}`,
-        { content: editedContent, category: editedCategory },
-        axiosConfig
-      ),
-    onSuccess: (response) => {
-      setShowEditModal(false);
-      if (onEdit) {
-        onEdit({
-          id: postId,
-          content: editedContent,
-          category: editedCategory,
-          date,
-          author,
-          img,
-        });
+  const { data: isLiked } = useQuery({
+    queryKey: ["checkLike", postId, user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const response = await api.post(`/user/checklike/${postId}`, {
+        userId: user.id,
+      });
+      return response.data.liked;
+    },
+    enabled: !!postId && !!user?.id,
+  });
+
+  // 3. Buscar contagem de likes
+  const { data: likesData } = useQuery({
+    queryKey: ["likes", postId],
+    queryFn: async () => {
+      const response = await api.get(`/user/listlike/${postId}`);
+      return {
+        count: response.data.numberLikes,
+      };
+    },
+    initialData: { count: initialLikeCount },
+  });
+
+  // 4. Mutação para like/deslike
+  const likeMutation = useMutation({
+    mutationFn: () => {
+      if (isLiked) {
+        return api.post(`/user/deslike/${postId}`, { userId: user.id });
+      } else {
+        return api.post(`/user/postlike/${postId}`, { userId: user.id });
       }
-      Alert.alert("Sucesso", "Post atualizado com sucesso!");
     },
-    onError: () => {
-      Alert.alert("Erro", "Erro ao editar post. Tente novamente.");
+    onMutate: async () => {
+      // Cancelar queries em andamento para evitar conflitos
+      await queryClient.cancelQueries(["checkLike", postId, user?.id]);
+      await queryClient.cancelQueries(["likes", postId]);
+
+      const previousIsLiked = queryClient.getQueryData([
+        "checkLike",
+        postId,
+        user?.id,
+      ]);
+      const previousLikeCount =
+        queryClient.getQueryData(["likes", postId])?.count || likeCount;
+
+      // Atualização otimista
+      queryClient.setQueryData(
+        ["checkLike", postId, user?.id],
+        !previousIsLiked
+      );
+      queryClient.setQueryData(["likes", postId], {
+        count: previousIsLiked ? previousLikeCount - 1 : previousLikeCount + 1,
+      });
+
+      return { previousIsLiked, previousLikeCount };
+    },
+    onError: (error, variables, context) => {
+      queryClient.setQueryData(
+        ["checkLike", postId, user?.id],
+        context.previousIsLiked
+      );
+      queryClient.setQueryData(["likes", postId], {
+        count: context.previousLikeCount,
+      });
+      Alert.alert("Erro", "Não foi possível processar sua curtida");
+    },
+    onSettled: () => {
+      // Invalidar queries para garantir sincronização com o servidor
+      queryClient.invalidateQueries(["checkLike", postId, user?.id]);
+      queryClient.invalidateQueries(["likes", postId]);
     },
   });
 
-  // Mutação para reportar post
+  // 5. Mutação para adicionar comentário
+  const addCommentMutation = useMutation({
+    mutationFn: (commentText) =>
+      api.post(`/user/comment/${postId}`, {
+        userId: user.id,
+        comment: commentText,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["comments", postId]);
+      Alert.alert("Sucesso", "Comentário adicionado!");
+    },
+    onError: () => {
+      Alert.alert("Erro", "Não foi possível adicionar o comentário");
+    },
+  });
+
+  // 6. Mutação para reportar post
   const reportPostMutation = useMutation({
     mutationFn: (reportData) =>
-      axios.post(
-        `http://localhost:3001/api/user/report/post/${postId}`,
-        reportData,
-        axiosConfig
-      ),
+      api.post(`/user/report/post/${postId}`, reportData),
     onSuccess: () => {
       Alert.alert("Sucesso", "Post denunciado com sucesso!");
       setReportReason("");
       setReportDescription("");
       setShowReportModal(false);
+      // Remove o post denunciado da cache
+      queryClient.setQueryData(["posts"], (oldData) => {
+        if (!oldData) return oldData;
+        return oldData.filter((post) => post.id !== postId);
+      });
     },
     onError: (error) => {
       const errorMessage =
@@ -151,16 +202,19 @@ export default function Post({
   });
 
   const handleLike = () => {
-    // Implementar lógica de like/deslike conforme o componente web
-    setIsLiked(!isLiked);
+    if (!user) {
+      Alert.alert("Aviso", "Você precisa estar logado para curtir");
+      return;
+    }
+    likeMutation.mutate();
   };
 
-  const handleDeletePost = () => {
-    deletePostMutation.mutate();
-  };
-
-  const handleEditPost = () => {
-    editPostMutation.mutate();
+  const handleAddComment = (commentText) => {
+    if (!user) {
+      Alert.alert("Aviso", "Você precisa estar logado para comentar");
+      return;
+    }
+    addCommentMutation.mutate(commentText);
   };
 
   const handleReportPost = () => {
@@ -181,21 +235,15 @@ export default function Post({
     });
   };
 
-  const tapGesture = Gesture.Tap()
-    .onBegin(() => {
-      likeScale.value = withSpring(0.8);
-    })
-    .onFinalize(() => {
-      const newValue = !isLiked;
-      likeScale.value = withSpring(1.2, {}, (finished) => {
-        if (finished) {
-          likeScale.value = withSpring(1);
-          runOnJS(setIsLiked)(newValue);
-          runOnJS(handleLike)();
-        }
-      });
-      likeOpacity.value = withSpring(newValue ? 1 : 0.6);
+  const tapGesture = Gesture.Tap().onFinalize(() => {
+    likeScale.value = withSpring(1.2, {}, (finished) => {
+      if (finished) {
+        likeScale.value = withSpring(1);
+        runOnJS(handleLike)(); // Chama a mutation aqui
+      }
     });
+    likeOpacity.value = withSpring(isLiked ? 0.6 : 1); // Usa o valor atualizado
+  });
 
   const handleNext = () => {
     if (currentIndex < img.length - 1) {
@@ -212,37 +260,28 @@ export default function Post({
   };
 
   const renderImageItem = ({ item }) => {
-    // Verifica se o item já contém o prefixo data:image
     if (typeof item === "string" && item.startsWith("data:image")) {
       return (
         <View style={{ width: screenWidth, height: 300 }}>
           <Image
-            source={{ uri: item }} // Usa a string diretamente
+            source={{ uri: item }}
             style={{ width: "100%", height: "100%", resizeMode: "cover" }}
-            onError={(e) =>
-              console.log("Erro ao carregar imagem:", e.nativeEvent.error)
-            }
           />
         </View>
       );
     }
 
-    // Se for base64 puro (sem prefixo)
     if (typeof item === "string") {
       return (
         <View style={{ width: screenWidth, height: 300 }}>
           <Image
             source={{ uri: `data:image/jpeg;base64,${item}` }}
             style={{ width: "100%", height: "100%", resizeMode: "cover" }}
-            onError={(e) =>
-              console.log("Erro ao carregar imagem:", e.nativeEvent.error)
-            }
           />
         </View>
       );
     }
 
-    console.warn("Formato de imagem não reconhecido:", item);
     return null;
   };
 
@@ -289,44 +328,19 @@ export default function Post({
           </TouchableOpacity>
 
           {showMenu && (
-            <View className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50">
-              <TouchableOpacity
-                className="flex-row items-center px-4 py-2"
-                onPress={() => {
-                  setShowReportModal(true);
-                  setShowMenu(false);
-                }}
+            <TouchableOpacity className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50"
+            onPress={() => {
+              setShowReportModal(true);
+              setShowMenu(false);
+            }}>
+              <View
+                className="flex-row items-center px-4 py-2 gap-2 flex"
+               
               >
-                <AlertTriangle size={16} color="#f59e0b" className="mr-2" />
+                <Flag size={16} color="#f59e0b" className="mr-2" />
                 <Text className="text-gray-700">Denunciar</Text>
-              </TouchableOpacity>
-
-              {showDeleteOption && (
-                <TouchableOpacity
-                  className="flex-row items-center px-4 py-2"
-                  onPress={() => {
-                    setShowDeleteModal(true);
-                    setShowMenu(false);
-                  }}
-                >
-                  <Trash2 size={16} color="#ef4444" className="mr-2" />
-                  <Text className="text-gray-700">Excluir</Text>
-                </TouchableOpacity>
-              )}
-
-              {showEditOption && (
-                <TouchableOpacity
-                  className="flex-row items-center px-4 py-2"
-                  onPress={() => {
-                    setShowEditModal(true);
-                    setShowMenu(false);
-                  }}
-                >
-                  <Edit size={16} color="#3b82f6" className="mr-2" />
-                  <Text className="text-gray-700">Editar</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              </View>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -339,7 +353,8 @@ export default function Post({
 
       {img && img.length > 0 && (
         <View style={{ position: "relative" }}>
-          <FlatList
+          <FlashList
+            estimatedItemSize={3}
             ref={flatListRef}
             data={img}
             renderItem={renderImageItem}
@@ -351,7 +366,6 @@ export default function Post({
             viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           />
 
-          {/* Controles do carrossel */}
           {img.length > 1 && (
             <>
               {currentIndex > 0 && (
@@ -415,32 +429,42 @@ export default function Post({
         </View>
       )}
 
-      <View className="flex-row items-center mt-4 px-5 space-x-6">
+      {/* Ações do post (like e comentário) */}
+      <View className="flex-row flex items-center mt-4 px-5 gap-4 space-x-6">
         <GestureDetector gesture={tapGesture}>
           <View className="flex-row items-center">
-            <AnimatedHeart
-              size={24}
-              color={isLiked ? "#dc2626" : "#4b5563"}
-              fill={isLiked ? "#dc2626" : "transparent"}
-              strokeWidth={2}
-              style={animatedHeartStyle}
-            />
-            <Text className="text-sm text-gray-600 ml-2">{LikeCount}</Text>
+            {likeMutation.isLoading ? (
+              <ActivityIndicator size="small" color="#dc2626" />
+            ) : (
+              <AnimatedHeart
+                size={24}
+                color={isLiked ? "#dc2626" : "#4b5563"}
+                fill={isLiked ? "#dc2626" : "transparent"}
+                strokeWidth={2}
+                style={animatedHeartStyle}
+              />
+            )}
+            <Text className="text-sm text-gray-600 ml-2">
+              {likesData?.count ?? likeCount}
+            </Text>
           </View>
         </GestureDetector>
 
         <TouchableOpacity
-          onPress={() => setIsCommented(!isCommented)}
+          onPress={onCommentPress}
           activeOpacity={0.7}
-          className="ml-3"
+          className="flex-row items-center"
         >
           <MessageCircle
             size={24}
-            color={isCommented ? "#3b82f6" : "#4b5563"}
+            color="#4b5563"
             strokeWidth={2}
           />
+          <Text className="text-sm text-gray-600 ml-2">{comments.length}</Text>
         </TouchableOpacity>
       </View>
+
+      
 
       {/* Modal de Denúncia */}
       <Modal
@@ -501,107 +525,8 @@ export default function Post({
           </View>
         </View>
       </Modal>
-
-      {/* Modal de Exclusão */}
-      <Modal
-        visible={showDeleteModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowDeleteModal(false)}
-      >
-        <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white p-6 rounded-lg w-11/12">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold">Excluir Post</Text>
-              <TouchableOpacity onPress={() => setShowDeleteModal(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <Text className="mb-4">
-              Tem certeza que deseja excluir este post?
-            </Text>
-
-            <View className="flex-row justify-end space-x-2">
-              <TouchableOpacity
-                className="px-4 py-2 bg-gray-300 rounded"
-                onPress={() => setShowDeleteModal(false)}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="px-4 py-2 bg-red-600 rounded"
-                onPress={handleDeletePost}
-              >
-                <Text className="text-white">Excluir</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal de Edição */}
-      <Modal
-        visible={showEditModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white p-6 rounded-lg w-11/12">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold">Editar Post</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="border rounded mb-4">
-              <Picker
-                selectedValue={editedCategory}
-                onValueChange={(itemValue) => setEditedCategory(itemValue)}
-              >
-                <Picker.Item label="Tecnologia" value="technology" />
-                <Picker.Item label="Design" value="design" />
-                <Picker.Item label="Hobbies" value="Hobbies" />
-                <Picker.Item label="Automotivo" value="Automotivo" />
-                <Picker.Item label="Entretenimento" value="Entretenimento" />
-                <Picker.Item label="Educação" value="Educação" />
-                <Picker.Item label="Culinária" value="Culinária" />
-                <Picker.Item
-                  label="Recursos-Humanos"
-                  value="Recursos-Humanos"
-                />
-                <Picker.Item label="Administração" value="Administração" />
-                <Picker.Item label="Outros" value="outros" />
-              </Picker>
-            </View>
-
-            <TextInput
-              className="border rounded p-2 mb-4 h-24 text-left align-top"
-              multiline
-              placeholder="Descrição"
-              value={editedContent}
-              onChangeText={setEditedContent}
-            />
-
-            <View className="flex-row justify-end space-x-2">
-              <TouchableOpacity
-                className="px-4 py-2 bg-gray-300 rounded"
-                onPress={() => setShowEditModal(false)}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="px-4 py-2 bg-black rounded"
-                onPress={handleEditPost}
-              >
-                <Text className="text-white">Salvar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
-}
+};
+
+export default Post;
