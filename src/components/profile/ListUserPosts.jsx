@@ -154,12 +154,13 @@ const ListUserPosts = ({
       />
       */}
       <FlashList
+        className="mb-10"
         data={sortedPosts}
         renderItem={renderPostItem}
         keyExtractor={keyExtractor}
         scrollEnabled={false}
         nestedScrollEnabled={false}
-        estimatedItemSize={200}
+        estimatedItemSize={50}
         ListEmptyComponent={ListEmpty}
       />
     </GestureHandlerRootView>
