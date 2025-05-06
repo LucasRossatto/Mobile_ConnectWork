@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { Link } from 'expo-router';
+import { Link } from "expo-router";
 import { View, Text, Image, Pressable, Animated, Easing } from "react-native";
 import {
   Search as SearchIcon,
@@ -16,9 +16,7 @@ const DrawerItem = ({ icon: Icon, label, onPress }) => (
     className="flex-row items-center"
   >
     <Icon size={27} color="#FFFFFF" />
-    <Text className="text-white font-bold text-base py-4 pl-2">
-      {label}
-    </Text>
+    <Text className="text-white font-bold text-base py-4 pl-2">{label}</Text>
   </Pressable>
 );
 
@@ -98,12 +96,18 @@ const SideDrawer = ({ visible, onClose, user }) => {
                 </View>
               )}
             </View>
-            <View>
-              <Text className="text-white font-bold text-xl">
-                {user?.nome || "Visitante"}
+            <View className="flex-1" >
+              <Text
+                className="text-white font-bold text-xl mb-1"
+                style={{ flexWrap: "wrap" }}
+              >
+                {user?.nome}
               </Text>
-              <Text className="text-white text-sm">
-                {user?.course || "Nenhum curso"}
+              <Text
+                className="text-white text-sm"
+                style={{ flexWrap: "wrap" }}
+              >
+                {user?.course}
               </Text>
             </View>
           </View>
