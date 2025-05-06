@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
+  PanResponder,
+  Animated,
+  Dimensions,
 } from "react-native";
 import {
   Send,
@@ -23,6 +26,9 @@ import api from "@/services/api";
 import { AuthContext } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import log from "@/utils/logger";
+
+const { height } = Dimensions.get("window");
+const MODAL_HEIGHT = height * 0.6;
 
 const CommentBoxModal = ({
   postId,
@@ -39,6 +45,47 @@ const CommentBoxModal = ({
   const [descReportReason, setDescReportReason] = useState("");
   const [reportCommentId, setReportCommentId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const panY = useRef(new Animated.Value(0)).current;
+  const translateY = panY.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: [0, 0, 1],
+  });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        // Só permite arrastar para baixo
+        if (gestureState.dy > 0) {
+          panY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 100) {
+          closeModal();
+        } else {
+          resetPosition();
+        }
+      },
+    })
+  ).current;
+
+  const resetPosition = () => {
+    Animated.spring(panY, {
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeModal = () => {
+    Animated.timing(panY, {
+      toValue: MODAL_HEIGHT,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => onClose());
+  };
 
   const queryClient = useQueryClient();
 
@@ -135,18 +182,35 @@ const CommentBoxModal = ({
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={closeModal}
     >
       <View className="flex-1 justify-end bg-black/50">
-        <TouchableWithoutFeedback onPress={onClose}>
+        <TouchableWithoutFeedback onPress={closeModal}>
           <View className="flex-1" />
         </TouchableWithoutFeedback>
 
-        <View className="h-[60%] bg-white rounded-t-2xl p-4">
+        <Animated.View
+          style={{
+            height: MODAL_HEIGHT,
+            transform: [{ translateY: panY }],
+          }}
+          className="bg-white rounded-t-2xl p-4"
+          {...panResponder.panHandlers}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 4,
+              backgroundColor: "#d1d5db",
+              borderRadius: 2,
+              alignSelf: "center",
+              marginBottom: 10,
+            }}
+          />
           {/* Header do modal */}
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-bold">Comentários</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={closeModal}>
               <CloseIcon size={20} color="black" />
             </TouchableOpacity>
           </View>
@@ -233,7 +297,7 @@ const CommentBoxModal = ({
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
-        </View>
+        </Animated.View>
       </View>
 
       {/* Modal de denúncia */}
