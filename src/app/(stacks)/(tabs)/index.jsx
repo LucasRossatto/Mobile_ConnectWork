@@ -288,6 +288,7 @@ const HomeScreen = () => {
             data={allPosts}
             renderItem={({ item }) => (
               <Post
+                postId={item.id}
                 author={item.user.nome}
                 author_profileImg={item.user.profile_img}
                 content={item.content}
