@@ -15,22 +15,20 @@ import api from "@/services/api";
 import { AuthContext } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import log from "@/utils/logger"
-import { useNotifications } from '@/contexts/NotificationContext';
-
+import { useNotifications } from "@/contexts/NotificationContext";
+import log from "@/utils/logger";
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopupIndex, setShowPopupIndex] = useState(null);
-  const { counts, updateCounts, markAsRead } = useNotifications();
+  const { counts } = useNotifications();
   const navigation = useNavigation();
   const { user } = useContext(AuthContext);
 
   const processNotificationData = useCallback((apiData) => {
     if (!apiData || !apiData.success || !apiData.notifications) return [];
-
     return apiData.notifications.map((notif) => ({
       id: notif.id,
       senderName: notif.notifierName,
@@ -48,21 +46,16 @@ const Notifications = () => {
     try {
       const response = await api.get(`/user/notifications/${user.id}`);
       const processed = processNotificationData(response.data);
-      
-      const newCounts = {
-        total: processed.length,
-        unread: processed.filter(n => !n.read).length
-      };
-      
       setNotifications(processed);
-      updateCounts(newCounts);
+      
+      if (updateCounts) {
+        updateCounts({
+          total: processed.length,
+          unread: processed.filter(n => !n.read).length
+        });
+      }
     } catch (error) {
-      log.error("Erro ao buscar notificações:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-
+      log.error("Erro ao buscar notificações:", error);
       if (notifications.length === 0) {
         Alert.alert(
           "Erro",
@@ -73,82 +66,38 @@ const Notifications = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id, processNotificationData]);
+  }, [user?.id, processNotificationData, updateCounts]);
 
-  const handleMarkAllAsRead = useCallback(async () => {
+  const handleDeleteNotification = useCallback(async (notificationId) => {
     try {
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-      markAsRead();
+      const notificationToDelete = notifications.find(n => n.id === notificationId);
+      const wasUnread = notificationToDelete ? !notificationToDelete.read : false;
       
-      await api.patch(`/user/notifications/${notificationId}/read`);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      
+      if (updateCounts) {
+        updateCounts({
+          total: counts.total - 1,
+          unread: wasUnread ? counts.unread - 1 : counts.unread
+        });
+      }
+
+      await api.delete(`/user/delete-notification/${notificationId}`);
+      
     } catch (error) {
-      log.error("Erro completo:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-
-      // Reverte as alterações
-      fetchNotifications();
-      Alert.alert(
-        "Erro",
-        error.response?.data?.error || "Falha ao marcar como lidas"
-      );
-    }
-  }, [user?.token, fetchNotifications]);
-
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
-      );
-      setCounts((prev) => ({
-        ...prev,
-        unread: Math.max(0, prev.unread - 1),
-      }));
-
-      await api.patch(`/user/notifications/${notificationId}/read`);
-    } catch (error) {
-      log.error("Erro ao marcar como lida:", error);
-      Alert.alert("Erro", "Falha ao marcar como lida");
-    }
-    setShowPopupIndex(null);
-  };
-
-  const handleDeleteNotification = async (notificationId) => {
-    try {
-      const deletedNotification = notifications.find(
-        (n) => n.id === notificationId
-      );
-      const wasUnread = deletedNotification ? !deletedNotification.read : false;
-
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-      setCounts((prev) => ({
-        total: prev.total - 1,
-        unread: wasUnread ? prev.unread - 1 : prev.unread,
-      }));
-
-      await api.delete("/user/delete-notification", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user.token}`,
-        },
-        data: { id: notificationId },
-      });
-    } catch (error) {
-      setNotifications((prev) => [...prev]);
-      setCounts((prev) => ({
-        total: prev.total + 1,
-        unread: prev.unread + (wasUnread ? 1 : 0),
-      }));
-
-      log.error("Erro ao deletar:", error.response?.data || error.message);
+      setNotifications(prev => [...prev]);
+      if (updateCounts) {
+        updateCounts({
+          total: counts.total,
+          unread: counts.unread
+        });
+      }
+      log.error("<Handle DeleteNotification >: ", error);
       Alert.alert("Erro", "Não foi possível remover a notificação");
     }
     setShowPopupIndex(null);
-  };
+  }, [notifications, counts, updateCounts]);
+
 
   const navigateToPost = useCallback(
     (postId) => {
@@ -159,9 +108,7 @@ const Notifications = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.id) {
-        fetchNotifications();
-      }
+      if (user?.id) fetchNotifications();
     }, [user?.id, fetchNotifications])
   );
 
@@ -169,28 +116,17 @@ const Notifications = () => {
     if (!user?.id) {
       setLoading(false);
       setNotifications([]);
-      setCounts({ total: 0, unread: 0 });
     }
   }, [user?.id]);
-
-  if (!user) {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-100">
-        <Text className="text-gray-600 text-lg">
-          Faça login para ver notificações
-        </Text>
-      </View>
-    );
-  }
 
   return (
     <View className="flex-1 bg-gray-100">
       <View className="bg-black p-4 flex-row justify-between items-center">
         <Text className="text-white font-bold text-xl">
-          Notificações {counts.unread > 0 && `(${counts.unread})`}
+          Notificações {counts?.unread > 0 && `(${counts.unread})`}
         </Text>
         {counts.unread > 0 && (
-          <TouchableOpacity onPress={handleMarkAllAsRead} disabled={refreshing}>
+          <TouchableOpacity onPress={""} disabled={refreshing}>
             <Text className="text-white font-medium">
               Marcar todas como lidas
             </Text>
@@ -227,9 +163,6 @@ const Notifications = () => {
                     className={`p-4 ${
                       !notification.read ? "bg-blue-50" : "bg-white"
                     }`}
-                    onPress={() =>
-                      notification.postId && navigateToPost(notification.postId)
-                    }
                     activeOpacity={0.7}
                   >
                     <View className="flex-row items-center">
@@ -281,19 +214,6 @@ const Notifications = () => {
 
                   {showPopupIndex === index && (
                     <View className="absolute right-4 top-14 bg-white rounded-lg shadow-lg border border-gray-200 w-40 z-50">
-                      {!notification.read && (
-                        <>
-                          <TouchableOpacity
-                            className="py-3 px-4"
-                            onPress={() => handleMarkAsRead(notification.id)}
-                          >
-                            <Text className="text-gray-800">
-                              Marcar como lido
-                            </Text>
-                          </TouchableOpacity>
-                          <View className="h-px bg-gray-200 mx-2" />
-                        </>
-                      )}
                       <TouchableOpacity
                         className="py-3 px-4"
                         onPress={() =>
