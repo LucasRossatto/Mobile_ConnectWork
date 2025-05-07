@@ -8,6 +8,7 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { AuthContext } from "@/contexts/AuthContext";
 import {
@@ -18,18 +19,18 @@ import {
   Clock,
   Pin,
   HandHelping,
-  UserRound,
 } from "lucide-react-native";
 import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import api from "@/services/api";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const VacanciesScreen = () => {
   const { user } = useContext(AuthContext);
   const [selectedWork, setSelectedWork] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [recentSearches, setRecentSearches] = useState([]);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [isCandidated, setIsCandidated] = useState(false);
-  const [showFullBiography, setShowFullBiography] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -42,181 +43,138 @@ const VacanciesScreen = () => {
     )}`;
   };
 
-  // Query para buscar todas as vagas
-  const {
+  // Rotas no estilo mobile
+  const fetchAllVacancies = async () => {
+    const response = await api.get("/company/vacancy", {
+      headers: { Authorization: `Bearer ${user?.token}` }
+    });
+    return response.data;
+  };
+
+  const searchVacancies = async ({ pageParam = 0 }) => {
+    const response = await api.post(
+      "/user/searchvacancy",
+      { keyword: searchTerm, offset: pageParam, limit: 10 },
+      { headers: { Authorization: `Bearer ${user?.token}` } }
+    );
+    return {
+      vacancies: response.data.vacancies,
+      nextOffset: pageParam + 10,
+      total: response.data.total
+    };
+  };
+
+  // Queries
+  const { 
     data: allVacanciesData,
     isLoading: isLoadingAllVacancies,
-    error: allVacanciesError,
-    refetch: refetchAllVacancies,
+    refetch: refetchAllVacancies
   } = useQuery({
     queryKey: ["allVacancies"],
-    queryFn: async () => {
-      const response = await api.get("/company/vacancy", {
-        headers: {
-          Authorization: `Bearer ${user?.token}`,
-        },
-      });
-      return response.data;
-    },
-    enabled: !!user?.token,
+    queryFn: fetchAllVacancies,
+    enabled: !!user?.token
   });
 
-  // Infinite query para busca paginada
   const {
     data: searchResults,
-    fetchNextPage: fetchMoreSearchResults,
-    hasNextPage: hasMoreSearchResults,
+    fetchNextPage,
+    hasNextPage,
     isLoading: isSearching,
-    error: searchError,
-    refetch: refetchSearch,
+    refetch: refetchSearch
   } = useInfiniteQuery({
     queryKey: ["vacancySearch", searchTerm],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await api.post(
-        "/user/searchvacancy",
-        { keyword: searchTerm, offset: pageParam, limit: 10 },
-        {
-          headers: {
-            Authorization: `Bearer ${user?.token}`,
-          },
-        }
-      );
-      return {
-        vacancies: response.data.vacancies,
-        nextOffset: pageParam + 10,
-        total: response.data.total,
-      };
-    },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.vacancies.length < 10) return undefined;
-      return lastPage.nextOffset;
-    },
+    queryFn: searchVacancies,
+    getNextPageParam: (lastPage) => 
+      lastPage.vacancies.length < 10 ? undefined : lastPage.nextOffset,
     enabled: searchTerm.trim() !== "" && !!user?.token,
-    initialPageParam: 0,
+    initialPageParam: 0
   });
 
-  // Mutation para salvar pesquisas recentes
-  const { mutate: saveRecentSearch } = useMutation({
-    mutationFn: (searchTerm) => {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(searchTerm);
-        }, 300);
-      });
-    },
-    onSuccess: (searchTerm) => {
-      setRecentSearches((prev) => [
-        { id: Date.now(), term: searchTerm },
-        ...prev.slice(0, 4),
-      ]);
-    },
-  });
-
-  // Mutation para candidatura
-  const { mutate: applyCandidate } = useMutation({
-    mutationFn: async () => {
-      const response = await api.post(
-        `/user/applycandidate/${user.id}`,
-        {
-          vacancyId: selectedWork.id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      setIsCandidated(true);
-    },
-    onError: (error) => {
-      console.error("Erro ao candidatar-se", error);
-    },
-  });
-
-  // Mutation para remover candidatura
-  const { mutate: removeApply } = useMutation({
-    mutationFn: async () => {
-      const response = await api.post(
-        `/user/removeapply/${user.id}`,
-        {
-          vacancyId: selectedWork.id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      setIsCandidated(false);
-    },
-    onError: (error) => {
-      console.error("Erro ao remover candidatura", error);
-    },
-  });
-
-  // Query para verificar candidatura
-  const { refetch: checkCandidate } = useQuery({
-    queryKey: ["checkCandidate", selectedWork?.id],
-    queryFn: async () => {
+  // Mutations
+  const checkCandidateStatus = async (vacancyId) => {
+    try {
       const response = await api.post(
         `/user/checkcandidate/${user.id}`,
-        {
-          vacancyId: selectedWork.id,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
+        { vacancyId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
       );
-      return response.data;
-    },
-    enabled: false,
-    onSuccess: (data) => {
-      setIsCandidated(data.candidated);
-    },
-    onError: (error) => {
-      console.error("Erro ao verificar candidatura", error);
-    },
-  });
-
-  // Efeitos
-  React.useEffect(() => {
-    if (searchTerm.trim() !== "") {
-      saveRecentSearch(searchTerm);
+      setIsCandidated(response.data.candidated);
+    } catch (error) {
+      console.error("Erro ao verificar candidatura:", error);
     }
-  }, [searchTerm]);
+  };
 
-  React.useEffect(() => {
-    if (selectedWork) {
-      checkCandidate();
+  const applyForVacancy = async (vacancyId) => {
+    try {
+      setIsApplying(true);
+      await api.post(
+        `/user/applycandidate/${user.id}`,
+        { vacancyId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setIsCandidated(true);
+      setSelectedWork(null);
+      setSuccessModalVisible(true);
+    } catch (error) {
+      Alert.alert(
+        "Erro",
+        error.response?.data?.error || "Falha ao se candidatar"
+      );
+    } finally {
+      setIsApplying(false);
     }
-  }, [selectedWork]);
+  };
 
-  // Dados para exibição
-  const displayedVacancies =
-    searchTerm.trim() !== ""
-      ? searchResults?.pages.flatMap((page) => page.vacancies) || []
-      : allVacanciesData || [];
+  const removeApplication = async (vacancyId) => {
+    try {
+      setIsApplying(true);
+      await api.post(
+        `/user/removeapply/${user.id}`,
+        { vacancyId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setIsCandidated(false);
+    } catch (error) {
+      Alert.alert(
+        "Erro",
+        error.response?.data?.error || "Falha ao remover candidatura"
+      );
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
+  const handleSelectWork = (work) => {
+    setSelectedWork(work);
+    checkCandidateStatus(work.id);
+  };
+
+  const handleApply = () => {
+    if (!selectedWork) return;
+    if (isCandidated) {
+      removeApplication(selectedWork.id);
+    } else {
+      applyForVacancy(selectedWork.id);
+    }
+  };
+
+  const displayedVacancies = searchTerm.trim() !== "" 
+    ? searchResults?.pages.flatMap(page => page.vacancies) || []
+    : allVacanciesData || [];
+
+  // Render Items
   const renderWorkItem = ({ item }) => (
     <TouchableOpacity
       className="flex-row items-center p-4 border-b border-gray-200 bg-white"
-      onPress={() => setSelectedWork(item)}
+      onPress={() => handleSelectWork(item)}
     >
       {item.company?.profile_img ? (
         <Image
-          source={{ uri: item.company?.profile_img }}
+          source={{ uri: item.company.profile_img }}
           className="w-16 h-16 rounded-full mr-4"
         />
       ) : (
-        <View className="w-16 h-16 rounded-full bg-gray-300 mr-4 flex items-center justify-center">
+        <View className="w-16 h-16 rounded-full bg-gray-300 mr-4 justify-center items-center">
           <Building2 size={24} color="#6b7280" />
         </View>
       )}
@@ -247,23 +205,13 @@ const VacanciesScreen = () => {
     );
   };
 
-  const handleLoadMore = () => {
-    if (hasMoreSearchResults && !isSearching) {
-      fetchMoreSearchResults();
-    }
-  };
-
-  const toggleBiography = () => {
-    setShowFullBiography(!showFullBiography);
-  };
-
   return (
     <View className="flex-1 bg-gray-100">
       {/* Header */}
-      <View className="bg-black p-4">
+      <View className="bg-black p-4 flex-row justify-between items-center">
         <View className="flex-row items-center">
           <Briefcase size={24} color="#f2f2f2" />
-          <Text className="text-lg font-bold text-white ml-4">VAGAS</Text>
+          <Text className="text-white font-bold text-lg ml-4">VAGAS</Text>
         </View>
       </View>
 
@@ -295,11 +243,13 @@ const VacanciesScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={renderEmptyList}
         contentContainerStyle={{ flexGrow: 1 }}
-        onEndReached={searchTerm.trim() !== "" ? handleLoadMore : null}
+        onEndReached={() => {
+          if (hasNextPage && !isSearching) fetchNextPage();
+        }}
         onEndReachedThreshold={0.5}
       />
 
-      {/* Work Details Modal - Adaptado do web */}
+      {/* Work Details Modal */}
       {selectedWork && (
         <Modal
           visible={!!selectedWork}
@@ -307,26 +257,8 @@ const VacanciesScreen = () => {
           transparent={true}
           onRequestClose={() => setSelectedWork(null)}
         >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.5)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-          >
-            {/* Container principal */}
-            <View
-              style={{
-                backgroundColor: "white",
-                width: "90%",
-                maxHeight: "90%",
-                borderRadius: 20,
-                padding: 20,
-                paddingTop: 40,
-              }}
-            >
-              {/* Botão de fechar */}
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
+            <View style={{ backgroundColor: "white", width: "90%", maxHeight: "90%", borderRadius: 20, padding: 20, paddingTop: 40 }}>
               <TouchableOpacity
                 style={{ position: "absolute", top: 15, right: 15, zIndex: 10 }}
                 onPress={() => setSelectedWork(null)}
@@ -334,26 +266,8 @@ const VacanciesScreen = () => {
                 <X size={24} color="#6b7280" />
               </TouchableOpacity>
 
-              {/* Cabeçalho com logo */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 20,
-                }}
-              >
-                <View
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 40,
-                    backgroundColor: "#f3f4f6",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    overflow: "hidden",
-                    marginRight: 15,
-                  }}
-                >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
+                <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center", overflow: "hidden", marginRight: 15 }}>
                   {selectedWork.company?.profile_img ? (
                     <Image
                       source={{ uri: selectedWork.company.profile_img }}
@@ -364,102 +278,37 @@ const VacanciesScreen = () => {
                     <Building2 size={40} color="#6b7280" />
                   )}
                 </View>
-                <Text style={{ fontSize: 20, color: "#374151" }}>
-                  {selectedWork.company?.nome || "Empresa"}
-                </Text>
+                <Text style={{ fontSize: 20, color: "#374151" }}>{selectedWork.company?.nome || "Empresa"}</Text>
               </View>
 
-              {/* Título e data */}
-              <Text
-                style={{ fontSize: 22, fontWeight: "bold", marginBottom: 5 }}
-              >
-                {selectedWork.name}
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 20,
-                }}
-              >
+              <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 5 }}>{selectedWork.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
                 <Clock size={14} color="#6b7280" />
-                <Text style={{ fontSize: 12, color: "#6b7280", marginLeft: 5 }}>
-                  {formatDate(selectedWork.createdAt)}
-                </Text>
+                <Text style={{ fontSize: 12, color: "#6b7280", marginLeft: 5 }}>{formatDate(selectedWork.createdAt)}</Text>
               </View>
 
-              {/* Localização */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 20,
-                }}
-              >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
                 <Pin size={18} color="#6b7280" />
-                <Text style={{ fontSize: 16, color: "#374151", marginLeft: 5 }}>
-                  {selectedWork.location}
-                </Text>
+                <Text style={{ fontSize: 16, color: "#374151", marginLeft: 5 }}>{selectedWork.location}</Text>
               </View>
 
-              {/* Benefícios */}
               <View style={{ marginBottom: 30 }}>
                 <View style={{ flexDirection: "row", marginBottom: 10 }}>
-                  <HandHelping
-                    size={20}
-                    color="#6b7280"
-                    style={{ marginRight: 10 }}
-                  />
-                  <View
-                    style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}
-                  >
+                  <HandHelping size={20} color="#6b7280" style={{ marginRight: 10 }} />
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
                     {selectedWork.benefits?.split(",").map((benefit, index) => (
-                      <View
-                        key={index}
-                        style={{
-                          backgroundColor: "black",
-                          paddingHorizontal: 12,
-                          paddingVertical: 6,
-                          borderRadius: 6,
-                          marginRight: 8,
-                          marginBottom: 8,
-                        }}
-                      >
-                        <Text style={{ color: "white", fontSize: 12 }}>
-                          {benefit.trim()}
-                        </Text>
+                      <View key={index} style={{ backgroundColor: "black", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, marginRight: 8, marginBottom: 8 }}>
+                        <Text style={{ color: "white", fontSize: 12 }}>{benefit.trim()}</Text>
                       </View>
                     ))}
                   </View>
                 </View>
               </View>
 
-              {/* Sobre a empresa */}
-              <Text
-                style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}
-              >
-                Mais Sobre a Empresa
-              </Text>
+              <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}>Mais Sobre a Empresa</Text>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 15,
-                }}
-              >
-                <View
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 25,
-                    backgroundColor: "#f3f4f6",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    overflow: "hidden",
-                    marginRight: 10,
-                  }}
-                >
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+                <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center", overflow: "hidden", marginRight: 10 }}>
                   {selectedWork.company?.profile_img ? (
                     <Image
                       source={{ uri: selectedWork.company.profile_img }}
@@ -471,39 +320,11 @@ const VacanciesScreen = () => {
                   )}
                 </View>
                 <View>
-                  <Text style={{ fontWeight: "600", fontSize: 16 }}>
-                    {selectedWork.company?.nome || "Empresa"}
-                  </Text>
-                  <Text style={{ color: "#6b7280" }}>
-                    {selectedWork.company?.areaOfActivity ||
-                      "Área de atuação não informada"}
-                  </Text>
+                  <Text style={{ fontWeight: "600", fontSize: 16 }}>{selectedWork.company?.nome || "Empresa"}</Text>
+                  <Text style={{ color: "#6b7280" }}>{selectedWork.company?.areaOfActivity || "Área de atuação não informada"}</Text>
                 </View>
               </View>
 
-              {selectedWork.company?.biography && (
-                <View style={{ marginBottom: 20 }}>
-                  <Text
-                    numberOfLines={showFullBiography ? undefined : 4}
-                    style={{ color: "#374151", lineHeight: 22 }}
-                  >
-                    {selectedWork.company.biography}
-                  </Text>
-                  <TouchableOpacity onPress={toggleBiography}>
-                    <Text
-                      style={{
-                        color: "black",
-                        fontWeight: "500",
-                        marginTop: 5,
-                      }}
-                    >
-                      {showFullBiography ? "Ver menos..." : "Ver mais..."}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Botão de ação */}
               <TouchableOpacity
                 style={{
                   backgroundColor: isCandidated ? "#ef4444" : "#000",
@@ -512,16 +333,42 @@ const VacanciesScreen = () => {
                   alignItems: "center",
                   marginTop: 10,
                 }}
-                onPress={isCandidated ? removeApply : applyCandidate}
+                onPress={handleApply}
+                disabled={isApplying}
               >
-                <Text style={{ color: "white", fontWeight: "bold" }}>
-                  {isCandidated ? "Remover Candidatura" : "Candidatar-se"}
-                </Text>
+                {isApplying ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={{ color: "white", fontWeight: "bold" }}>
+                    {isCandidated ? "Remover Candidatura" : "Candidatar-se"}
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
       )}
+
+      {/* Success Modal */}
+      <Modal transparent={true} visible={successModalVisible} animationType="fade">
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <View className="bg-white p-4 rounded-lg shadow-lg w-4/5">
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="checkmark-circle" size={24} color="green" />
+              <Text className="ml-2 text-lg font-bold text-green-700">Inscrição realizada!</Text>
+            </View>
+            <Text className="text-gray-700">
+              Os recrutadores desta vaga receberam seu perfil. Fique atento ao seu e-mail!
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setSuccessModalVisible(false)} 
+              className="mt-4 bg-black rounded-lg p-2"
+            >
+              <Text className="text-white text-center">OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
