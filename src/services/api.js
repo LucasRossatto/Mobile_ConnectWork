@@ -1,10 +1,11 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import log from "@/utils/logger"
 
 const API_TIMEOUT = 15000;
 
 const api = axios.create({
-  baseURL: process.env.API_BASE_URL || "http://10.92.198.16:3001/api",
+  baseURL: process.env.API_BASE_URL || "http://10.92.198.12:3001/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -20,7 +21,7 @@ api.interceptors.request.use(
       }
       return config;
     } catch (error) {
-      console.error("Token error:", error);
+      log.error("< API Interceptor > Token error:", error);
       return config;
     }
   },
@@ -41,7 +42,7 @@ export const get = async (url, params = {}, config = {}) => {
     const response = await api.get(url, { ...config, params });
     return response.data;
   } catch (error) {
-    handleApiError(error, "GET", url);
+    log.error("< SERVICE API ERROR > Erro na requisição GET:", error);
     throw error;
   }
 };
@@ -51,7 +52,7 @@ export const post = async (url, data) => {
     const response = await api.post(url, data);
     return response.data;
   } catch (error) {
-    console.error("Erro na requisição POST:", error);
+    log.error("< SERVICE API ERROR > Erro na requisição POST:", error);
     throw error;
   }
 };
@@ -61,7 +62,7 @@ export const put = async (url, data) => {
     const response = await api.put(url, data);
     return response.data;
   } catch (error) {
-    console.error("Erro na requisição PUT:", error);
+    log.error("< SERVICE API ERROR > Erro na requisição PUT:", error);
     throw error;
   }
 };
@@ -71,7 +72,7 @@ export const remove = async (url) => {
     const response = await api.delete(url);
     return response.data;
   } catch (error) {
-    console.error("Erro na requisição DELETE:", error);
+    log.error("< SERVICE API ERROR > Erro na requisição DELETE:", error);
     throw error;
   }
 };
