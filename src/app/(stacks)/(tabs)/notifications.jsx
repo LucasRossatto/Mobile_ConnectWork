@@ -15,13 +15,16 @@ import api from "@/services/api";
 import { AuthContext } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import log from "@/utils/logger"
+import { useNotifications } from '@/contexts/NotificationContext';
+
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopupIndex, setShowPopupIndex] = useState(null);
-  const [counts, setCounts] = useState({ total: 0, unread: 0 });
+  const { counts, updateCounts, markAsRead } = useNotifications();
   const navigation = useNavigation();
   const { user } = useContext(AuthContext);
 
@@ -43,25 +46,18 @@ const Notifications = () => {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      console.log("Iniciando busca por notificações...");
-      const response = await api.get(`/user/notifications/${user.id}`, {
-        timeout: 5000,
-      });
-
-      if (!response.data || !response.data.success) {
-        throw new Error(response.data?.error || "Formato de resposta inválido");
-      }
-
+      const response = await api.get(`/user/notifications/${user.id}`);
       const processed = processNotificationData(response.data);
+      
+      const newCounts = {
+        total: processed.length,
+        unread: processed.filter(n => !n.read).length
+      };
+      
       setNotifications(processed);
-      setCounts(
-        response.data.counts || {
-          total: processed.length,
-          unread: processed.filter((n) => !n.read).length,
-        }
-      );
+      updateCounts(newCounts);
     } catch (error) {
-      console.error("Erro ao buscar notificações:", {
+      log.error("Erro ao buscar notificações:", {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message,
@@ -81,26 +77,14 @@ const Notifications = () => {
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
-      // Atualização otimista
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setCounts((prev) => ({ ...prev, unread: 0 }));
-
-      const response = await api.patch(
-        "/user/notifications/mark-all-read",
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || "Operação falhou");
-      }
+      markAsRead();
+      
+      await api.patch(`/user/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error("Erro completo:", {
+      log.error("Erro completo:", {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message,
@@ -127,7 +111,7 @@ const Notifications = () => {
 
       await api.patch(`/user/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error("Erro ao marcar como lida:", error);
+      log.error("Erro ao marcar como lida:", error);
       Alert.alert("Erro", "Falha ao marcar como lida");
     }
     setShowPopupIndex(null);
@@ -160,7 +144,7 @@ const Notifications = () => {
         unread: prev.unread + (wasUnread ? 1 : 0),
       }));
 
-      console.error("Erro ao deletar:", error.response?.data || error.message);
+      log.error("Erro ao deletar:", error.response?.data || error.message);
       Alert.alert("Erro", "Não foi possível remover a notificação");
     }
     setShowPopupIndex(null);

@@ -4,6 +4,7 @@ import { Tabs } from "expo-router";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { House, UserRound } from "lucide-react-native";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 /* ---------------------------------
  *  Configurações visuais constantes
@@ -59,6 +60,7 @@ function AnimatedTabBar(props) {
  *  Layout principal das abas
  * --------------------------------- */
 export default function _TabsLayout() {
+  const { counts } = useNotifications();
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
@@ -119,6 +121,7 @@ export default function _TabsLayout() {
                 color={color}
               />
             ),
+            tabBarBadge: counts.unread > 0 ? counts.unread : undefined,
           }}
         />
         <Tabs.Screen

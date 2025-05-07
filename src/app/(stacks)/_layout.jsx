@@ -4,6 +4,7 @@ import "@/styles/global.css";
 import AuthContext from "@/contexts/AuthContext";
 import { StatusBar } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NotificationProvider  } from "@/contexts/NotificationContext"
 
 // Crie uma instância do QueryClient
 const queryClient = new QueryClient();
@@ -12,6 +13,7 @@ export default function _layout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthContext>
+        <NotificationProvider>
         <StatusBar style="light" backgroundColor="#ffffff" />
         <Stack>
           <Stack.Screen
@@ -34,6 +36,7 @@ export default function _layout() {
             options={{ title: "tabs", headerShown: false }}
           />
         </Stack>
+        </NotificationProvider> 
       </AuthContext>
     </QueryClientProvider>
   );
