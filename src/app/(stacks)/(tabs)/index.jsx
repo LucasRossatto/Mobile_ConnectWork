@@ -22,13 +22,14 @@ import { Menu as MenuIcon } from "lucide-react-native";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import ModalCommentBox from "@/components/ModalCommentBox";
-
+import { useNotifications } from "@/contexts/NotificationContext";
 import api from "@/services/api";
 import Post from "@/components/Post";
 import ModalSearch from "@/components/index/ModalSearch";
 import SideDrawer from "@/components/index/SideDrawer";
 import { AuthContext } from "@/contexts/AuthContext";
 import { hideTabBar, showTabBar } from "./_layout";
+import { useFocusEffect } from "expo-router";
 
 const HEADER_HEIGHT = 76; // altura da barra superior em pixels
 const HIDE_THRESHOLD = 8; // deslocamento para esconder/mostrar
@@ -117,6 +118,7 @@ const HomeScreen = () => {
   const { user, setUser } = useContext(AuthContext);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const { fetchNotifications } = useNotifications();
   const renderModal = (Component, visible, props = {}) => {
     if (Platform.OS === "ios") {
       return (
@@ -259,6 +261,24 @@ const HomeScreen = () => {
     [userData, user, loadingUser, errorUser]
   );
 
+  // Adicione este useEffect para buscar notificações quando a tela ganhar foco
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications])
+  );
+
+  // Adicione este useEffect para buscar notificações periodicamente
+  useEffect(() => {
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000); // 5 minutos
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Busca inicial quando o componente monta
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
   /***********************
    * Render
    ***********************/
@@ -331,8 +351,7 @@ const HomeScreen = () => {
       </GestureHandlerRootView>
 
       {/* Modal de busca */}
-      {renderModal(ModalSearch, searchVisible, {
-      })}
+      {renderModal(ModalSearch, searchVisible, {})}
 
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
