@@ -79,42 +79,6 @@ const Notifications = () => {
     }
   }, [user?.id, processNotificationData]);
 
-  const handleMarkAllAsRead = useCallback(async () => {
-    try {
-      // Atualização otimista
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setCounts((prev) => ({ ...prev, unread: 0 }));
-
-      const response = await api.patch(
-        "/user/notifications/mark-all-read",
-        {},
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || "Operação falhou");
-      }
-    } catch (error) {
-      console.error("Erro completo:", {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-      });
-
-      // Reverte as alterações
-      fetchNotifications();
-      Alert.alert(
-        "Erro",
-        error.response?.data?.error || "Falha ao marcar como lidas"
-      );
-    }
-  }, [user?.token, fetchNotifications]);
-
   const handleMarkAsRead = async (notificationId) => {
     try {
       setNotifications((prev) =>
@@ -201,17 +165,10 @@ const Notifications = () => {
 
   return (
     <View className="flex-1 bg-gray-100">
-      <View className="bg-black p-4 flex-row justify-between items-center">
+      <View className="bg-black p-4">
         <Text className="text-white font-bold text-xl">
           Notificações {counts.unread > 0 && `(${counts.unread})`}
         </Text>
-        {counts.unread > 0 && (
-          <TouchableOpacity onPress={handleMarkAllAsRead} disabled={refreshing}>
-            <Text className="text-white font-medium">
-              Marcar todas como lidas
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {loading && notifications.length === 0 ? (
