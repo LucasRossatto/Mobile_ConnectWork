@@ -444,6 +444,13 @@ const VacanciesScreen = () => {
           </View>
         </View>
 
+        <View className="mb-5">
+          <Text className="text-lg font-bold mb-2">Descrição da Vaga</Text>
+          <Text className="text-gray-700 text-sm">
+            {selectedWork.description || "Descrição não disponível"}
+          </Text>
+        </View>
+
         {/* Sobre a Empresa */}
         <Text className="text-lg font-bold mb-4">Mais Sobre a Empresa</Text>
         <View className="flex-row items-center mb-5">
@@ -555,6 +562,13 @@ const VacanciesScreen = () => {
               </View>
             ))}
           </View>
+        </View>
+
+        <View className="mb-5">
+          <Text className="text-lg font-bold mb-2">Descrição da Vaga</Text>
+          <Text className="text-gray-700 text-sm">
+            {selectedWork.description || "Descrição não disponível"}
+          </Text>
         </View>
 
         {/* Sobre a Empresa */}
