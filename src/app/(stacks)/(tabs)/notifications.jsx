@@ -146,7 +146,7 @@ const Notifications = () => {
 
   return (
     <View className="flex-1 bg-gray-100">
-      <View className="bg-black p-4 flex-row justify-between items-center">
+      <View className="bg-black p-4">
         <Text className="text-white font-bold text-xl">
           Notificações {counts?.unread > 0 && `(${counts.unread})`}
         </Text>
