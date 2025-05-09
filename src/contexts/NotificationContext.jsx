@@ -8,6 +8,9 @@ export const NotificationProvider = ({ children }) => {
   const [counts, setCounts] = useState({ total: 0, unread: 0 });
   const [notifications, setNotifications] = useState([]);
   const { user } = useContext(AuthContext);
+  const updateCounts = (newCounts) => {
+    setCounts(newCounts);
+  };
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -26,20 +29,17 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [user?.id]);
 
-  const markAsRead = async (notificationId) => {
+  const deleteAllNotifications = async () => {
     try {
-      await api.patch(`/user/notifications/${notificationId}/read`);
-      setCounts(prev => ({
-        ...prev,
-        unread: Math.max(0, prev.unread - 1)
-      }));
-      setNotifications(prev => 
-        prev.map(n => 
-          n.id === notificationId ? { ...n, read: true } : n
-        )
-      );
+      const response = await api.delete(`/user/delete-all-notifications`);
+      if (response.data.success) {
+        setUnreadCount(0);
+        // Se você armazena a lista completa no contexto:
+        setNotifications([]);
+      }
+      return response.data;
     } catch (error) {
-      console.error("Error marking as read:", error);
+      throw error;
     }
   };
 
@@ -48,7 +48,8 @@ export const NotificationProvider = ({ children }) => {
       counts, 
       notifications,
       fetchNotifications,
-      markAsRead
+      deleteAllNotifications,
+      updateCounts 
     }}>
       {children}
     </NotificationContext.Provider>

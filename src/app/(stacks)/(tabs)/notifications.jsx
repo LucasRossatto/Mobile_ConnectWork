@@ -23,7 +23,7 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopupIndex, setShowPopupIndex] = useState(null);
-  const { counts } = useNotifications();
+  const { counts, updateCounts } = useNotifications();
   const navigation = useNavigation();
   const { user } = useContext(AuthContext);
 
@@ -47,11 +47,11 @@ const Notifications = () => {
       const response = await api.get(`/user/notifications/${user.id}`);
       const processed = processNotificationData(response.data);
       setNotifications(processed);
-      
+
       if (updateCounts) {
         updateCounts({
           total: processed.length,
-          unread: processed.filter(n => !n.read).length
+          unread: processed.filter((n) => !n.read).length,
         });
       }
     } catch (error) {
@@ -68,44 +68,69 @@ const Notifications = () => {
     }
   }, [user?.id, processNotificationData, updateCounts]);
 
-  const handleDeleteNotification = useCallback(async (notificationId) => {
-    try {
-      const notificationToDelete = notifications.find(n => n.id === notificationId);
-      const wasUnread = notificationToDelete ? !notificationToDelete.read : false;
-      
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
-      
-      if (updateCounts) {
-        updateCounts({
-          total: counts.total - 1,
-          unread: wasUnread ? counts.unread - 1 : counts.unread
-        });
+  const handleDeleteNotification = useCallback(
+    async (notificationId) => {
+      try {
+        const notificationToDelete = notifications.find(
+          (n) => n.id === notificationId
+        );
+        const wasUnread = notificationToDelete
+          ? !notificationToDelete.read
+          : false;
+
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+
+        if (updateCounts) {
+          updateCounts({
+            total: counts.total - 1,
+            unread: wasUnread ? counts.unread - 1 : counts.unread,
+          });
+        }
+
+        await api.delete(`/user/delete-notification/${notificationId}`);
+      } catch (error) {
+        setNotifications((prev) => [...prev]);
+        if (updateCounts) {
+          updateCounts({
+            total: counts.total,
+            unread: counts.unread,
+          });
+        }
+        log.error("<Handle DeleteNotification >: ", error);
+        Alert.alert("Erro", "Não foi possível remover a notificação");
       }
-
-      await api.delete(`/user/delete-notification/${notificationId}`);
-      
-    } catch (error) {
-      setNotifications(prev => [...prev]);
-      if (updateCounts) {
-        updateCounts({
-          total: counts.total,
-          unread: counts.unread
-        });
-      }
-      log.error("<Handle DeleteNotification >: ", error);
-      Alert.alert("Erro", "Não foi possível remover a notificação");
-    }
-    setShowPopupIndex(null);
-  }, [notifications, counts, updateCounts]);
-
-
-  const navigateToPost = useCallback(
-    (postId) => {
-      navigation.navigate("PostDetails", { postId });
+      setShowPopupIndex(null);
     },
-    [navigation]
+    [notifications, counts, updateCounts]
   );
 
+  const handleDeleteAllNotification = useCallback(async () => {
+    try {
+      const response = await api.delete(`/user/delete-all-notifications`);
+
+      if (response.data.success) {
+        // Atualiza estados
+        setNotifications([]);
+
+        if (updateCounts) {
+          updateCounts({
+            total: 0,
+            unread: 0,
+          });
+        }
+
+        // Feedback visual
+        Alert.alert("Sucesso", response.data.message);
+      }
+    } catch (error) {
+      log.error("Erro ao deletar todas as notificações:", error);
+      Alert.alert(
+        "Erro",
+        error.response?.data?.message || "Falha ao remover notificações"
+      );
+    }
+  }, [updateCounts]);
+ 
   useFocusEffect(
     useCallback(() => {
       if (user?.id) fetchNotifications();
@@ -126,7 +151,10 @@ const Notifications = () => {
           Notificações {counts?.unread > 0 && `(${counts.unread})`}
         </Text>
         {counts.unread > 0 && (
-          <TouchableOpacity onPress={""} disabled={refreshing}>
+          <TouchableOpacity
+            onPress={handleDeleteAllNotification}
+            disabled={refreshing}
+          >
             <Text className="text-white font-medium">
               Marcar todas como lidas
             </Text>
@@ -215,12 +243,13 @@ const Notifications = () => {
                   {showPopupIndex === index && (
                     <View className="absolute right-4 top-14 bg-white rounded-lg shadow-lg border border-gray-200 w-40 z-50">
                       <TouchableOpacity
-                        className="py-3 px-4"
-                        onPress={() =>
+                        className="py-3 px-4 bg-[#181818] rounded-md"
+                        onPress={() => {
                           handleDeleteNotification(notification.id)
-                        }
+                          setShowPopupIndex(null);
+                        }}
                       >
-                        <Text className="text-red-600">Remover</Text>
+                        <Text className="text-white">Marcar como lido</Text>
                       </TouchableOpacity>
                     </View>
                   )}
