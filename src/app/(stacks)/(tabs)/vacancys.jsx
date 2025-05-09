@@ -19,8 +19,9 @@ import {
   Clock,
   Pin,
   HandHelping,
+  UserCheck,
 } from "lucide-react-native";
-import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import api from "@/services/api";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -31,8 +32,10 @@ const VacanciesScreen = () => {
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [isCandidated, setIsCandidated] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [activeTab, setActiveTab] = useState("todas");
 
   const formatDate = (dateString) => {
+    if (!dateString) return "Data não disponível";
     const date = new Date(dateString);
     return `${date.toLocaleDateString("pt-BR")} às ${date.toLocaleTimeString(
       "pt-BR",
@@ -43,12 +46,23 @@ const VacanciesScreen = () => {
     )}`;
   };
 
-  // Rotas no estilo mobile
   const fetchAllVacancies = async () => {
     const response = await api.get("/company/vacancy", {
-      headers: { Authorization: `Bearer ${user?.token}` }
+      headers: { Authorization: `Bearer ${user?.token}` },
     });
-    return response.data;
+    return response.data || [];
+  };
+
+  const fetchAppliedVacancies = async () => {
+    try {
+      const response = await api.get(`/user/appliedvacancies/${user.id}`, {
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
+      return response.data?.vacancies || [];
+    } catch (error) {
+      console.error("Error fetching applied vacancies:", error);
+      return [];
+    }
   };
 
   const searchVacancies = async ({ pageParam = 0 }) => {
@@ -58,21 +72,30 @@ const VacanciesScreen = () => {
       { headers: { Authorization: `Bearer ${user?.token}` } }
     );
     return {
-      vacancies: response.data.vacancies,
+      vacancies: response.data?.vacancies || [],
       nextOffset: pageParam + 10,
-      total: response.data.total
+      total: response.data?.total || 0,
     };
   };
 
-  // Queries
-  const { 
+  const {
     data: allVacanciesData,
     isLoading: isLoadingAllVacancies,
-    refetch: refetchAllVacancies
+    refetch: refetchAllVacancies,
   } = useQuery({
     queryKey: ["allVacancies"],
     queryFn: fetchAllVacancies,
-    enabled: !!user?.token
+    enabled: !!user?.token && activeTab === "todas",
+  });
+
+  const {
+    data: appliedVacanciesData,
+    isLoading: isLoadingAppliedVacancies,
+    refetch: refetchAppliedVacancies,
+  } = useQuery({
+    queryKey: ["appliedVacancies"],
+    queryFn: fetchAppliedVacancies,
+    enabled: !!user?.token && activeTab === "candidatadas",
   });
 
   const {
@@ -80,17 +103,16 @@ const VacanciesScreen = () => {
     fetchNextPage,
     hasNextPage,
     isLoading: isSearching,
-    refetch: refetchSearch
+    refetch: refetchSearch,
   } = useInfiniteQuery({
     queryKey: ["vacancySearch", searchTerm],
     queryFn: searchVacancies,
-    getNextPageParam: (lastPage) => 
+    getNextPageParam: (lastPage) =>
       lastPage.vacancies.length < 10 ? undefined : lastPage.nextOffset,
-    enabled: searchTerm.trim() !== "" && !!user?.token,
-    initialPageParam: 0
+    enabled: searchTerm.trim() !== "" && !!user?.token && activeTab === "todas",
+    initialPageParam: 0,
   });
 
-  // Mutations
   const checkCandidateStatus = async (vacancyId) => {
     try {
       const response = await api.post(
@@ -98,9 +120,10 @@ const VacanciesScreen = () => {
         { vacancyId },
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
-      setIsCandidated(response.data.candidated);
+      setIsCandidated(response.data?.candidated || false);
     } catch (error) {
       console.error("Erro ao verificar candidatura:", error);
+      setIsCandidated(false);
     }
   };
 
@@ -115,6 +138,7 @@ const VacanciesScreen = () => {
       setIsCandidated(true);
       setSelectedWork(null);
       setSuccessModalVisible(true);
+      refetchAppliedVacancies();
     } catch (error) {
       Alert.alert(
         "Erro",
@@ -134,6 +158,7 @@ const VacanciesScreen = () => {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       setIsCandidated(false);
+      refetchAppliedVacancies();
     } catch (error) {
       Alert.alert(
         "Erro",
@@ -145,8 +170,11 @@ const VacanciesScreen = () => {
   };
 
   const handleSelectWork = (work) => {
+    if (!work) return;
     setSelectedWork(work);
-    checkCandidateStatus(work.id);
+    if (activeTab === "todas") {
+      checkCandidateStatus(work.id);
+    }
   };
 
   const handleApply = () => {
@@ -158,36 +186,103 @@ const VacanciesScreen = () => {
     }
   };
 
-  const displayedVacancies = searchTerm.trim() !== "" 
-    ? searchResults?.pages.flatMap(page => page.vacancies) || []
-    : allVacanciesData || [];
+  const displayedVacancies = () => {
+    if (activeTab === "candidatadas") {
+      return (appliedVacanciesData || []).map(item => ({
+        ...item.vacancy,
+        status: item.status,
+        applicationDate: item.createdAt,
+        // Garante que todos os dados da empresa sejam passados
+        company: {
+          ...item.vacancy.company,
+          nome: item.vacancy.company?.nome,
+          profile_img: item.vacancy.company?.profile_img,
+          areaOfActivity: item.vacancy.company?.areaOfActivity
+        }
+      }));
+    }
+  
+    if (searchTerm.trim() !== "") {
+      return (
+        searchResults?.pages.flatMap((page) => page.vacancies || []) || []
+      ).filter(Boolean);
+    }
+  
+    return (allVacanciesData || []).filter(Boolean);
+  };
 
-  // Render Items
-  const renderWorkItem = ({ item }) => (
-    <TouchableOpacity
-      className="flex-row items-center p-4 border-b border-gray-200 bg-white"
-      onPress={() => handleSelectWork(item)}
-    >
-      {item.company?.profile_img ? (
-        <Image
-          source={{ uri: item.company.profile_img }}
-          className="w-16 h-16 rounded-full mr-4"
-        />
-      ) : (
-        <View className="w-16 h-16 rounded-full bg-gray-300 mr-4 justify-center items-center">
-          <Building2 size={24} color="#6b7280" />
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800";
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const translateStatus = (status) => {
+    switch (status) {
+      case "approved":
+        return "Aprovado";
+      case "pending":
+        return "Pendente";
+      default:
+        return status || "Indefinido";
+    }
+  };
+
+  const renderWorkItem = ({ item, index }) => {
+    if (!item) return null;
+
+    const status = activeTab === "candidatadas" ? item.status : null;
+
+    return (
+      <TouchableOpacity
+        className="flex-row items-center p-4 border-b border-gray-200 bg-white"
+        onPress={() => handleSelectWork(item)}
+      >
+        {item.company?.profile_img ? (
+          <Image
+            source={{ uri: item.company.profile_img }}
+            className="w-12 h-12 rounded-full mr-4"
+          />
+        ) : (
+          <View className="w-12 h-12 rounded-full bg-gray-200 mr-4 justify-center items-center">
+            <Building2 size={24} color="#6b7280" />
+          </View>
+        )}
+        <View className="flex-1">
+          <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
+          <Text className="text-sm text-gray-600">
+            {item.company?.nome || "Empresa não informada"}
+          </Text>
+          <Text className="text-sm text-gray-500">
+            {item.location || "Local não informado"}
+          </Text>
+          {status && (
+            <View
+              className={`px-2 py-1 rounded-full self-start mt-1 ${getStatusStyle(
+                status
+              )}`}
+            >
+              <Text className="text-xs font-medium">
+                {translateStatus(status)}
+              </Text>
+            </View>
+          )}
         </View>
-      )}
-      <View className="flex-1">
-        <Text className="text-lg font-bold text-gray-800">{item.name}</Text>
-        <Text className="text-sm text-gray-600">{item.company?.nome}</Text>
-        <Text className="text-sm text-gray-600">{item.location}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmptyList = () => {
-    if (isLoadingAllVacancies || isSearching) {
+    if (
+      (isLoadingAllVacancies && activeTab === "todas") ||
+      (isLoadingAppliedVacancies && activeTab === "candidatadas") ||
+      isSearching
+    ) {
       return (
         <View className="flex-1 justify-center items-center py-8">
           <ActivityIndicator size="large" color="#0000ff" />
@@ -197,9 +292,11 @@ const VacanciesScreen = () => {
     return (
       <View className="flex-1 justify-center items-center py-8">
         <Text className="text-lg text-gray-500">
-          {searchTerm.trim() !== ""
+          {searchTerm.trim() !== "" && activeTab === "todas"
             ? "Nenhuma vaga encontrada para sua pesquisa"
-            : "Nenhuma vaga disponível no momento"}
+            : activeTab === "todas"
+            ? "Nenhuma vaga disponível no momento"
+            : "Nenhuma vaga candidatada"}
         </Text>
       </View>
     );
@@ -211,7 +308,7 @@ const VacanciesScreen = () => {
       <View className="bg-black p-4 flex-row justify-between items-center">
         <View className="flex-row items-center">
           <Briefcase size={24} color="#f2f2f2" />
-          <Text className="text-white font-bold text-lg ml-4">VAGAS</Text>
+          <Text className="text-white font-bold text-lg ml-2">VAGAS</Text>
         </View>
       </View>
 
@@ -225,144 +322,294 @@ const VacanciesScreen = () => {
             placeholderTextColor="#9CA3AF"
             value={searchTerm}
             onChangeText={setSearchTerm}
+            editable={activeTab === "todas"}
           />
         </View>
       </View>
 
-      {/* Boa sorte message */}
-      <View className="bg-gray-100 p-4 border-b border-gray-300">
-        <Text className="text-lg font-bold text-gray-600 text-center">
-          Boa sorte nas suas candidaturas!
-        </Text>
+      {/* Tabs */}
+      <View className="bg-white p-2 border-b border-gray-200 flex-row">
+        <TouchableOpacity
+          className={`flex-1 flex-row items-center justify-center p-3 rounded-lg mx-1 ${
+            activeTab === "todas" ? "bg-black" : "bg-gray-100"
+          }`}
+          onPress={() => setActiveTab("todas")}
+        >
+          <Briefcase
+            size={20}
+            color={activeTab === "todas" ? "white" : "black"}
+          />
+          <Text
+            className={`ml-2 font-medium ${
+              activeTab === "todas" ? "text-white" : "text-black"
+            }`}
+          >
+            Todas as Vagas
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className={`flex-1 flex-row items-center justify-center p-3 rounded-lg mx-1 ${
+            activeTab === "candidatadas" ? "bg-black" : "bg-gray-100"
+          }`}
+          onPress={() => setActiveTab("candidatadas")}
+        >
+          <UserCheck
+            size={20}
+            color={activeTab === "candidatadas" ? "white" : "black"}
+          />
+          <Text
+            className={`ml-2 font-medium ${
+              activeTab === "candidatadas" ? "text-white" : "text-black"
+            }`}
+          >
+            Minhas Candidaturas
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Vagas List */}
       <FlatList
-        data={displayedVacancies}
+        data={displayedVacancies()}
         renderItem={renderWorkItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
         ListEmptyComponent={renderEmptyList}
         contentContainerStyle={{ flexGrow: 1 }}
         onEndReached={() => {
-          if (hasNextPage && !isSearching) fetchNextPage();
+          if (hasNextPage && !isSearching && activeTab === "todas")
+            fetchNextPage();
         }}
         onEndReachedThreshold={0.5}
       />
 
-      {/* Work Details Modal */}
-      {selectedWork && (
-        <Modal
-          visible={!!selectedWork}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setSelectedWork(null)}
+   {/* Modal para Todas as Vagas */}
+{selectedWork && activeTab === "todas" && (
+  <Modal
+    visible={!!selectedWork}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={() => setSelectedWork(null)}
+  >
+    <View className="flex-1 justify-center items-center bg-black/50">
+      <View className="bg-white w-[90%] max-h-[90%] rounded-xl p-5 pt-10">
+        {/* Cabeçalho */}
+        <TouchableOpacity
+          className="absolute top-4 right-4 z-10"
+          onPress={() => setSelectedWork(null)}
         >
-          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-            <View style={{ backgroundColor: "white", width: "90%", maxHeight: "90%", borderRadius: 20, padding: 20, paddingTop: 40 }}>
-              <TouchableOpacity
-                style={{ position: "absolute", top: 15, right: 15, zIndex: 10 }}
-                onPress={() => setSelectedWork(null)}
-              >
-                <X size={24} color="#6b7280" />
-              </TouchableOpacity>
+          <X size={24} color="#6b7280" />
+        </TouchableOpacity>
 
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-                <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center", overflow: "hidden", marginRight: 15 }}>
-                  {selectedWork.company?.profile_img ? (
-                    <Image
-                      source={{ uri: selectedWork.company.profile_img }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Building2 size={40} color="#6b7280" />
-                  )}
-                </View>
-                <Text style={{ fontSize: 20, color: "#374151" }}>{selectedWork.company?.nome || "Empresa"}</Text>
-              </View>
-
-              <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 5 }}>{selectedWork.name}</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-                <Clock size={14} color="#6b7280" />
-                <Text style={{ fontSize: 12, color: "#6b7280", marginLeft: 5 }}>{formatDate(selectedWork.createdAt)}</Text>
-              </View>
-
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
-                <Pin size={18} color="#6b7280" />
-                <Text style={{ fontSize: 16, color: "#374151", marginLeft: 5 }}>{selectedWork.location}</Text>
-              </View>
-
-              <View style={{ marginBottom: 30 }}>
-                <View style={{ flexDirection: "row", marginBottom: 10 }}>
-                  <HandHelping size={20} color="#6b7280" style={{ marginRight: 10 }} />
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", flex: 1 }}>
-                    {selectedWork.benefits?.split(",").map((benefit, index) => (
-                      <View key={index} style={{ backgroundColor: "black", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, marginRight: 8, marginBottom: 8 }}>
-                        <Text style={{ color: "white", fontSize: 12 }}>{benefit.trim()}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
-
-              <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 15 }}>Mais Sobre a Empresa</Text>
-
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
-                <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: "#f3f4f6", justifyContent: "center", alignItems: "center", overflow: "hidden", marginRight: 10 }}>
-                  {selectedWork.company?.profile_img ? (
-                    <Image
-                      source={{ uri: selectedWork.company.profile_img }}
-                      style={{ width: "100%", height: "100%" }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Building2 size={24} color="#6b7280" />
-                  )}
-                </View>
-                <View>
-                  <Text style={{ fontWeight: "600", fontSize: 16 }}>{selectedWork.company?.nome || "Empresa"}</Text>
-                  <Text style={{ color: "#6b7280" }}>{selectedWork.company?.areaOfActivity || "Área de atuação não informada"}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={{
-                  backgroundColor: isCandidated ? "#ef4444" : "#000",
-                  paddingVertical: 12,
-                  borderRadius: 8,
-                  alignItems: "center",
-                  marginTop: 10,
-                }}
-                onPress={handleApply}
-                disabled={isApplying}
-              >
-                {isApplying ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={{ color: "white", fontWeight: "bold" }}>
-                    {isCandidated ? "Remover Candidatura" : "Candidatar-se"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+        {/* Informações da Vaga */}
+        <View className="flex-row items-center mb-5">
+          <View className="w-16 h-16 rounded-full bg-gray-100 justify-center items-center overflow-hidden mr-4">
+            {selectedWork.company?.profile_img ? (
+              <Image source={{ uri: selectedWork.company.profile_img }} className="w-full h-full" />
+            ) : (
+              <Building2 size={40} color="#6b7280" />
+            )}
           </View>
-        </Modal>
-      )}
+          <Text className="text-lg text-gray-800 flex-1">
+            {selectedWork.company?.nome || "Empresa"}
+          </Text>
+        </View>
 
+        <Text className="text-xl font-bold mb-1">{selectedWork.name}</Text>
+        
+        <View className="flex-row items-center mb-5">
+          <Clock size={14} color="#6b7280" />
+          <Text className="text-xs text-gray-500 ml-1">
+            {formatDate(selectedWork.createdAt)}
+          </Text>
+        </View>
+
+        <View className="flex-row items-center mb-5">
+          <Pin size={18} color="#6b7280" />
+          <Text className="text-base text-gray-800 ml-1">
+            {selectedWork.location || "Local não informado"}
+          </Text>
+        </View>
+
+        {/* Benefícios */}
+        <View className="mb-7">
+          <View className="flex-row mb-2">
+            <HandHelping size={20} color="#6b7280" className="mr-2" />
+            <Text className="text-base font-bold">Benefícios</Text>
+          </View>
+          <View className="flex-row flex-wrap">
+            {selectedWork.benefits?.split(",").map((benefit, index) => (
+              <View key={index} className="bg-black px-3 py-1 rounded-md mr-2 mb-2">
+                <Text className="text-white text-xs">{benefit.trim()}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Sobre a Empresa */}
+        <Text className="text-lg font-bold mb-4">Mais Sobre a Empresa</Text>
+        <View className="flex-row items-center mb-5">
+          <View className="w-10 h-10 rounded-full bg-gray-100 justify-center items-center overflow-hidden mr-3">
+            {selectedWork.company?.profile_img ? (
+              <Image source={{ uri: selectedWork.company.profile_img }} className="w-full h-full" />
+            ) : (
+              <Building2 size={24} color="#6b7280" />
+            )}
+          </View>
+          <View>
+            <Text className="font-semibold">
+              {selectedWork.company?.nome || "Empresa"}
+            </Text>
+            <Text className="text-gray-500">
+              {selectedWork.company?.areaOfActivity || "Área de atuação não informada"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Botão de Ação */}
+        <TouchableOpacity
+          className={`py-3 rounded-lg items-center mt-2 ${
+            isCandidated ? "bg-red-500" : "bg-black"
+          }`}
+          onPress={handleApply}
+          disabled={isApplying}
+        >
+          {isApplying ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white font-bold">
+              {isCandidated ? "Remover Candidatura" : "Candidatar-se"}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+)}
+
+{/* Modal para Minhas Candidaturas */}
+{selectedWork && activeTab === "candidatadas" && (
+  <Modal
+    visible={!!selectedWork}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={() => setSelectedWork(null)}
+  >
+    <View className="flex-1 justify-center items-center bg-black/50">
+      <View className="bg-white w-[90%] max-h-[90%] rounded-xl p-5 pt-10">
+        {/* Cabeçalho */}
+        <TouchableOpacity
+          className="absolute top-4 right-4 z-10"
+          onPress={() => setSelectedWork(null)}
+        >
+          <X size={24} color="#6b7280" />
+        </TouchableOpacity>
+
+        {/* Informações da Vaga */}
+        <View className="flex-row items-center mb-5">
+          <View className="w-16 h-16 rounded-full bg-gray-100 justify-center items-center overflow-hidden mr-4">
+            {selectedWork.company?.profile_img ? (
+              <Image source={{ uri: selectedWork.company.profile_img }} className="w-full h-full" />
+            ) : (
+              <Building2 size={40} color="#6b7280" />
+            )}
+          </View>
+          <Text className="text-lg text-gray-800 flex-1">
+            {selectedWork.company?.nome || "Empresa"}
+          </Text>
+        </View>
+
+        <Text className="text-xl font-bold mb-1">{selectedWork.name}</Text>
+        
+        <View className="flex-row items-center mb-5">
+          <Clock size={14} color="#6b7280" />
+          <Text className="text-xs text-gray-500 ml-1">
+            {formatDate(selectedWork.applicationDate || selectedWork.createdAt)}
+          </Text>
+        </View>
+
+        <View className="flex-row items-center mb-5">
+          <Pin size={18} color="#6b7280" />
+          <Text className="text-base text-gray-800 ml-1">
+            {selectedWork.location || "Local não informado"}
+          </Text>
+        </View>
+
+        {/* Status da Candidatura */}
+        {selectedWork.status && (
+          <View className={`px-3 py-1 rounded-full mb-5 ${getStatusStyle(selectedWork.status)}`}>
+            <Text className="text-sm font-medium">
+              Status: {translateStatus(selectedWork.status)}
+            </Text>
+          </View>
+        )}
+
+        {/* Benefícios */}
+        <View className="mb-7">
+          <View className="flex-row mb-2">
+            <HandHelping size={20} color="#6b7280" className="mr-2" />
+            <Text className="text-base font-bold">Benefícios</Text>
+          </View>
+          <View className="flex-row flex-wrap">
+            {selectedWork.benefits?.split(",").map((benefit, index) => (
+              <View key={index} className="bg-black px-3 py-1 rounded-md mr-2 mb-2">
+                <Text className="text-white text-xs">{benefit.trim()}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Sobre a Empresa */}
+        <Text className="text-lg font-bold mb-4">Mais Sobre a Empresa</Text>
+        <View className="flex-row items-center mb-5">
+          <View className="w-10 h-10 rounded-full bg-gray-100 justify-center items-center overflow-hidden mr-3">
+            {selectedWork.company?.profile_img ? (
+              <Image 
+                source={{ uri: selectedWork.company.profile_img }} 
+                className="w-full h-full" 
+              />
+            ) : (
+              <Building2 size={24} color="#6b7280" />
+            )}
+          </View>
+          <View>
+            <Text className="font-semibold">
+              {selectedWork.company?.nome || "Empresa"}
+            </Text>
+            {selectedWork.company?.areaOfActivity ? (
+              <Text className="text-gray-500">
+                {selectedWork.company.areaOfActivity}
+              </Text>
+            ) : (
+              <Text className="text-gray-500 italic">
+                Área de atuação não informada
+              </Text>
+            )}
+          </View>
+        </View>
+      </View>
+    </View>
+  </Modal>
+)}
       {/* Success Modal */}
-      <Modal transparent={true} visible={successModalVisible} animationType="fade">
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View className="bg-white p-4 rounded-lg shadow-lg w-4/5">
+      <Modal
+        transparent={true}
+        visible={successModalVisible}
+        animationType="fade"
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white p-4 rounded-lg w-4/5">
             <View className="flex-row items-center mb-2">
               <Ionicons name="checkmark-circle" size={24} color="green" />
-              <Text className="ml-2 text-lg font-bold text-green-700">Inscrição realizada!</Text>
+              <Text className="ml-2 text-lg font-bold text-green-700">
+                Inscrição realizada!
+              </Text>
             </View>
-            <Text className="text-gray-700">
-              Os recrutadores desta vaga receberam seu perfil. Fique atento ao seu e-mail!
+            <Text className="text-gray-700 mb-4">
+              Os recrutadores desta vaga receberam seu perfil. Fique atento ao
+              seu e-mail!
             </Text>
-            <TouchableOpacity 
-              onPress={() => setSuccessModalVisible(false)} 
-              className="mt-4 bg-black rounded-lg p-2"
+            <TouchableOpacity
+              onPress={() => setSuccessModalVisible(false)}
+              className="bg-black rounded-lg p-2"
             >
               <Text className="text-white text-center">OK</Text>
             </TouchableOpacity>

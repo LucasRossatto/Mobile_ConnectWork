@@ -5,7 +5,7 @@ import log from "@/utils/logger"
 const API_TIMEOUT = 15000;
 
 const api = axios.create({
-  baseURL: process.env.API_BASE_URL || "http://10.92.198.12:3001/api",
+  baseURL: process.env.API_BASE_URL || "http://10.92.198.17:3001/api",
   headers: {
     "Content-Type": "application/json",
   },
