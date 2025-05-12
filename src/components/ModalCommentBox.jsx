@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from "react";
+import React, { useState, useContext, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   PanResponder,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import {
   Send,
@@ -20,23 +21,20 @@ import {
   AlertTriangle,
   User,
   X as CloseIcon,
+  Trash2,
+  Flag,
 } from "lucide-react-native";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/services/api";
 import { AuthContext } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import log from "@/utils/logger";
+import { Picker } from "@react-native-picker/picker";
 
 const { height } = Dimensions.get("window");
 const MODAL_HEIGHT = height * 0.6;
 
-const CommentBoxModal = ({
-  postId,
-  profile_img,
-  comments = [],
-  visible,
-  onClose,
-}) => {
+const CommentBoxModal = ({ postId, visible, onClose }) => {
   const { user } = useContext(AuthContext);
   const [comment, setComment] = useState("");
   const [activeCommentMenu, setActiveCommentMenu] = useState(null);
@@ -45,6 +43,18 @@ const CommentBoxModal = ({
   const [descReportReason, setDescReportReason] = useState("");
   const [reportCommentId, setReportCommentId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async () => {
+      const response = await api.get(`/user/comments/${postId}`);
+      log.debug("comentarios da publicação: ", response.data);
+      return response.data.comments || [];
+    },
+    enabled: !!postId && !!user?.token && visible,
+  });
 
   const panY = useRef(new Animated.Value(0)).current;
   const translateY = panY.interpolate({
@@ -57,7 +67,6 @@ const CommentBoxModal = ({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gestureState) => {
-        // Só permite arrastar para baixo
         if (gestureState.dy > 0) {
           panY.setValue(gestureState.dy);
         }
@@ -89,8 +98,30 @@ const CommentBoxModal = ({
 
   const queryClient = useQueryClient();
 
+  const autoReportToxicComment = async (commentId, reason) => {
+    try {
+      await api.post(`/user/report/comment/${commentId}`, {
+        reason: `Moderação automática: ${reason}`,
+        description:
+          "Este comentário foi identificado como inadequado pelo nosso sistema",
+        userReporting: user.id,
+      });
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    } catch (error) {
+      log.error("Falha no auto-relatório:", error);
+    }
+  };
+
   const commentMutation = useMutation({
     mutationFn: async (commentData) => {
+      if (!commentData.content.trim()) {
+        throw new Error("O comentário não pode estar em branco.");
+      }
+      const words = commentData.content.split(" ");
+      if (words.some((word) => word.length > 50)) {
+        throw new Error("Nenhuma palavra pode ter mais de 50 caracteres.");
+      }
+
       const response = await api.post(`/user/postcomment/${postId}`, {
         content: commentData.content,
         userId: commentData.user,
@@ -100,9 +131,15 @@ const CommentBoxModal = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
       setComment("");
+      setErrorMessage("");
     },
     onError: (error) => {
-      log.error("Erro ao comentar:", error.message);
+      setErrorMessage(error.message);
+      Toast.show({
+        type: "error",
+        text1: "Atenção",
+        text2: "Seu comentário pode não estar de acordo com nossas políticas.",
+      });
     },
   });
 
@@ -113,13 +150,8 @@ const CommentBoxModal = ({
     }
 
     const words = comment.split(" ");
-    const maxWordLength = 50;
-    const hasLongWord = words.some((word) => word.length > maxWordLength);
-
-    if (hasLongWord) {
-      setErrorMessage(
-        `Nenhuma palavra pode ter mais de ${maxWordLength} caracteres.`
-      );
+    if (words.some((word) => word.length > 50)) {
+      setErrorMessage("Nenhuma palavra pode ter mais de 50 caracteres.");
       return;
     }
 
@@ -177,6 +209,33 @@ const CommentBoxModal = ({
     }
   };
 
+  const deleteComment = async () => {
+    try {
+      await api.delete(`/user/deleteComment/${commentToDelete}`, {
+        data: {
+          userId: user.id,
+        },
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Sucesso",
+        text2: "Comentário excluído com sucesso!",
+      });
+
+      setShowDeleteConfirm(false);
+      setCommentToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Erro",
+        text2: "Erro ao excluir o comentário",
+      });
+      log.error(error);
+    }
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -226,14 +285,16 @@ const CommentBoxModal = ({
                       className="w-full h-full"
                     />
                   ) : (
-                    <User size={24} color="#6a7282" />
+                    <Text className="text-sm font-bold text-black text-center">
+                      {item.user?.nome?.charAt(0)?.toUpperCase()}
+                    </Text>
                   )}
                 </View>
 
                 <View className="flex-1 relative">
-                  <View className="bg-gray-100 p-2 rounded-xl rounded-tl-none">
+                  <View className="bg-gray-100 py-2 pl-4 rounded-xl rounded-tl-none">
                     <Text className="font-bold text-sm mb-0.5">
-                      {item.user?.nome || "Usuário Desconhecido"}
+                      {item.user?.nome}
                     </Text>
                     <Text className="text-sm text-gray-700">
                       {item.content}
@@ -253,21 +314,54 @@ const CommentBoxModal = ({
 
                   {activeCommentMenu === item.id && (
                     <View className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-md py-2 z-10">
-                      <TouchableOpacity
-                        className="flex-row items-center px-3 py-2"
-                        onPress={() => {
-                          setShowReportPopupComment(true);
-                          setActiveCommentMenu(null);
-                          setReportCommentId(item.id);
-                        }}
-                      >
-                        <AlertTriangle
-                          size={16}
-                          color="#f59e0b"
-                          className="mr-2"
-                        />
-                        <Text className="text-sm">Denunciar</Text>
-                      </TouchableOpacity>
+                      {item.user?.id === user.id ? (
+                        <View>
+                          <TouchableOpacity
+                            className="flex-row items-center px-3 py-2 gap-2"
+                            onPress={() => {
+                              setShowReportPopupComment(true);
+                              setActiveCommentMenu(null);
+                              setReportCommentId(item.id);
+                            }}
+                          >
+                            <Flag size={16} color="#f59e0b" className="mr-2" />
+                            <Text className="text-sm">Denunciar</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            className="flex-row items-center px-3 py-2 gap-2"
+                            onPress={() => {
+                              setShowDeleteConfirm(true);
+                              setCommentToDelete(item.id);
+                              setActiveCommentMenu(null);
+                            }}
+                          >
+                            <Trash2
+                              size={16}
+                              color="#ef4444"
+                              className="mr-2"
+                            />
+                            <Text className="text-sm text-red-500">
+                              Excluir
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          className="flex-row items-center px-3 py-2"
+                          onPress={() => {
+                            setShowReportPopupComment(true);
+                            setActiveCommentMenu(null);
+                            setReportCommentId(item.id);
+                          }}
+                        >
+                          <AlertTriangle
+                            size={16}
+                            color="#f59e0b"
+                            className="mr-2"
+                          />
+                          <Text className="text-sm">Denunciar</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -292,8 +386,16 @@ const CommentBoxModal = ({
                 onSubmitEditing={handleSend}
                 className="flex-1 py-4 text-base"
               />
-              <TouchableOpacity onPress={handleSend} className="p-2">
-                <Send size={20} color="#3b82f6" />
+              <TouchableOpacity
+                onPress={handleSend}
+                className="p-2"
+                disabled={commentMutation.isPending}
+              >
+                {commentMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                ) : (
+                  <Send size={20} color="#3b82f6" />
+                )}
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -314,20 +416,26 @@ const CommentBoxModal = ({
               <TouchableOpacity
                 onPress={() => setShowReportPopupComment(false)}
               >
-                <Text className="text-base font-bold text-gray-500">X</Text>
+                <CloseIcon size={20} color="#6b7280" />
               </TouchableOpacity>
             </View>
 
             <Text className="text-sm text-gray-500 mb-2">
               Escolha um motivo:
             </Text>
-            <View className="border border-gray-300 rounded-lg mb-3">
-              <TextInput
-                className="p-2.5 text-sm"
-                value={reportCommentReason}
-                onChangeText={setReportCommentReason}
-                placeholder="Selecione um motivo"
-              />
+            <View className="border border-gray-300 rounded-lg mb-3 overflow-hidden">
+              <Picker
+                selectedValue={reportCommentReason}
+                onValueChange={(itemValue) => setReportCommentReason(itemValue)}
+              >
+                <Picker.Item label="Selecione um motivo" value="" />
+                <Picker.Item label="Spam" value="Spam" />
+                <Picker.Item
+                  label="Conteúdo impróprio"
+                  value="Conteúdo impróprio"
+                />
+                <Picker.Item label="Assédio" value="Assédio" />
+              </Picker>
             </View>
 
             <TextInput
@@ -351,6 +459,39 @@ const CommentBoxModal = ({
                 onPress={reportComment}
               >
                 <Text className="text-sm font-medium text-white">Enviar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de confirmação de exclusão */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDeleteConfirm}
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="w-4/5 bg-white rounded-xl p-4">
+            <Text className="text-lg font-bold mb-2">Confirmar Exclusão</Text>
+            <Text className="text-gray-600 mb-4">
+              Tem certeza que deseja excluir este comentário? Esta ação não pode
+              ser desfeita.
+            </Text>
+
+            <View className="flex-row justify-end">
+              <TouchableOpacity
+                className="px-4 py-2 bg-gray-200 rounded-lg mr-2"
+                onPress={() => setShowDeleteConfirm(false)}
+              >
+                <Text className="text-sm font-medium">Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="px-4 py-2 bg-red-500 rounded-lg"
+                onPress={deleteComment}
+              >
+                <Text className="text-sm font-medium text-white">Excluir</Text>
               </TouchableOpacity>
             </View>
           </View>

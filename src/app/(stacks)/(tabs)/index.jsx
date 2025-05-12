@@ -356,7 +356,6 @@ const HomeScreen = () => {
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
         profile_img: user?.profile_img,
-        comments: selectedPost?.comments || [],
       })}
 
       <SideDrawer
