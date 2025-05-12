@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -62,7 +62,8 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
     outputRange: [0, 0, 1],
   });
 
-  const panResponder = useRef(
+  // PanResponder for the drag handle
+  const handlePanResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
@@ -78,6 +79,14 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
           resetPosition();
         }
       },
+    })
+  ).current;
+
+  // Inactive PanResponder for the modal content
+  const modalPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: () => false,
     })
   ).current;
 
@@ -251,12 +260,14 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
         <Animated.View
           style={{
             height: MODAL_HEIGHT,
-            transform: [{ translateY: panY }],
+            transform: [{ translateY }],
           }}
           className="bg-white rounded-t-2xl p-4"
-          {...panResponder.panHandlers}
+          {...modalPanResponder.panHandlers}
         >
+          {/* Drag handle with active PanResponder */}
           <View
+            {...handlePanResponder.panHandlers}
             style={{
               width: 50,
               height: 4,
@@ -266,7 +277,8 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
               marginBottom: 10,
             }}
           />
-          {/* Header do modal */}
+          
+          {/* Modal header */}
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-lg font-bold">Comentários</Text>
             <TouchableOpacity onPress={closeModal}>
@@ -274,8 +286,12 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Área de comentários */}
-          <ScrollView className="flex-1 mb-2">
+          {/* Comments area */}
+          <ScrollView 
+            className="flex-1 mb-2"
+            contentContainerStyle={{ paddingBottom: 20 }}
+            keyboardShouldPersistTaps="handled"
+          >
             {comments.map((item) => (
               <View key={item.id} className="flex-row mb-3">
                 <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center mr-2 overflow-hidden">
@@ -369,7 +385,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
             ))}
           </ScrollView>
 
-          {/* Input de comentário */}
+          {/* Comment input */}
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="pt-2 border-t border-gray-200"
@@ -402,7 +418,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
         </Animated.View>
       </View>
 
-      {/* Modal de denúncia */}
+      {/* Report modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -465,7 +481,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
         </View>
       </Modal>
 
-      {/* Modal de confirmação de exclusão */}
+      {/* Delete confirmation modal */}
       <Modal
         animationType="fade"
         transparent={true}
