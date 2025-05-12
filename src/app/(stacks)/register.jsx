@@ -36,6 +36,7 @@ const MultiStepForm = () => {
   const [isCodeSent, setIsCodeSent] = useState(false);
   const [userId, setUserId] = useState(null);
   const [success, setSuccess] = useState("");
+  const [verifyEmail,setVerifyEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const inputsRef = useRef([]);
