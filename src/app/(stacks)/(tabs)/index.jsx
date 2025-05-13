@@ -30,6 +30,7 @@ import SideDrawer from "@/components/index/SideDrawer";
 import { AuthContext } from "@/contexts/AuthContext";
 import { hideTabBar, showTabBar } from "./_layout";
 import { useFocusEffect } from "expo-router";
+import log from "@/utils/logger"
 
 const HEADER_HEIGHT = 76; // altura da barra superior em pixels
 const HIDE_THRESHOLD = 8; // deslocamento para esconder/mostrar
@@ -309,6 +310,7 @@ const HomeScreen = () => {
             renderItem={({ item }) => (
               <Post
                 postId={item.id}
+                authorId={item.userId}
                 author={item.user.nome}
                 author_profileImg={item.user.profile_img}
                 content={item.content}

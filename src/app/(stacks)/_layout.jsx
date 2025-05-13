@@ -4,7 +4,7 @@ import "@/styles/global.css";
 import AuthContext from "@/contexts/AuthContext";
 import { StatusBar } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NotificationProvider  } from "@/contexts/NotificationContext"
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 // Crie uma instância do QueryClient
 const queryClient = new QueryClient();
@@ -14,29 +14,30 @@ export default function _layout() {
     <QueryClientProvider client={queryClient}>
       <AuthContext>
         <NotificationProvider>
-        <StatusBar style="light" backgroundColor="#ffffff" />
-        <Stack>
-          <Stack.Screen
-            name="index"
-            options={{ title: "Home", headerShown: false }}
-          />
-          <Stack.Screen name="login" options={{ title: "Entrar" }} />
-          <Stack.Screen name="register" options={{ title: "Cadastro" }} />
-          <Stack.Screen
-            name="forgotPassword"
-            options={{ title: "Esqueceu a senha" }}
-          />
+          <StatusBar style="light" backgroundColor="#ffffff" />
+          <Stack>
+            <Stack.Screen
+              name="index"
+              options={{ title: "Home", headerShown: false }}
+            />
+            <Stack.Screen name="login" options={{ title: "Entrar" }} />
+            <Stack.Screen name="register" options={{ title: "Cadastro" }} />
+            <Stack.Screen
+              name="forgotPassword"
+              options={{ title: "Esqueceu a senha" }}
+            />
 
-          <Stack.Screen
-            name="pendingAccount"
-            options={{ title: "Conta Solicitada", headerShown: false }}
-          />
-          <Stack.Screen
-            name="(tabs)"
-            options={{ title: "tabs", headerShown: false }}
-          />
-        </Stack>
-        </NotificationProvider> 
+            <Stack.Screen
+              name="pendingAccount"
+              options={{ title: "Conta Solicitada", headerShown: false }}
+            />
+            <Stack.Screen
+              name="(tabs)"
+              options={{ title: "tabs", headerShown: false }}
+            />
+            <Stack.Screen name="neighbor/[userId]" options={{ title: "Voltar a home" }} />
+          </Stack>
+        </NotificationProvider>
       </AuthContext>
     </QueryClientProvider>
   );

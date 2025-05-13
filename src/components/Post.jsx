@@ -40,6 +40,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Picker } from "@react-native-picker/picker";
 import log from "@/utils/logger";
 import { FlashList } from "@shopify/flash-list";
+import { Link } from "expo-router";
 
 const { width: screenWidth } = Dimensions.get("window");
 const AnimatedHeart = Animated.createAnimatedComponent(Heart);
@@ -55,6 +56,7 @@ const Post = ({
   category,
   onLikeSuccess,
   onCommentPress,
+  authorId,
 }) => {
   const { user } = useContext(AuthContext);
   const queryClient = useQueryClient();
@@ -189,15 +191,15 @@ const Post = ({
     },
     onSettled: () => {
       const queriesToInvalidate = ["checkLike", "likes"];
-      
+
       log.debug(`Invalidando queries para post ${postId}`, {
-        operation: 'like/dislike',
-        queries: queriesToInvalidate.join(', '),
+        operation: "like/dislike",
+        queries: queriesToInvalidate.join(", "),
         postId,
         userId: user?.id,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-    
+
       queryClient.invalidateQueries(["checkLike", postId, user?.id]);
       queryClient.invalidateQueries(["likes", postId]);
     },
@@ -317,8 +319,13 @@ const Post = ({
       return (
         <View style={{ width: screenWidth, height: 300 }}>
           <Image
-            source={{ uri: `data:image/jpeg;base64,${item}` }}
-            style={{ width: "100%", height: "100%", resizeMode: "cover" }}
+            source={{
+              uri: item.startsWith("data:image")
+                ? item
+                : `data:image/jpeg;base64,${item}`,
+            }}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
           />
         </View>
       );
@@ -336,30 +343,35 @@ const Post = ({
   return (
     <View className="border-b border-gray-100 py-5 bg-white">
       <View className="flex-row justify-between items-start mb-3 px-4">
-        <View className="flex-row items-center">
-          {author_profileImg ? (
-            <Image
-              source={{ uri: author_profileImg }}
-              className="w-12 h-12 rounded-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-12 h-12 rounded-full bg-gray-300 items-center justify-center">
-              <Text className="text-xl font-bold text-black">
-                {author?.charAt(0)?.toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <View className="ml-3">
-            <Text className="font-bold text-lg text-gray-900">{author}</Text>
-            <View className="space-x-2">
-              <Text className="text-xs text-gray-500">
-                {formatPostDate(date)}
-              </Text>
-              <Text className="text-xs text-gray-500">{category}</Text>
+        <Link
+          href={authorId ? `/neighbor/${authorId}` : "#"}
+          onPress={(e) => !authorId && e.preventDefault()}
+        >
+          <View className="flex-row items-center">
+            {author_profileImg ? (
+              <Image
+                source={{ uri: author_profileImg }}
+                className="w-12 h-12 rounded-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-12 h-12 rounded-full bg-gray-300 items-center justify-center">
+                <Text className="text-xl font-bold text-black">
+                  {author?.charAt(0)?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View className="ml-3">
+              <Text className="font-bold text-lg text-gray-900">{author}</Text>
+              <View className="space-x-2">
+                <Text className="text-xs text-gray-500">
+                  {formatPostDate(date)}
+                </Text>
+                <Text className="text-xs text-gray-500">{category}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Link>
 
         <View className="relative">
           <TouchableOpacity
