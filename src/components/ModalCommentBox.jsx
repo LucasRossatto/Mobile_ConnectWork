@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -263,31 +263,37 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
             transform: [{ translateY }],
           }}
           className="bg-white rounded-t-2xl p-4"
-          {...modalPanResponder.panHandlers}
         >
-          {/* Drag handle with active PanResponder */}
+          {/* Drag handle aitvo com PanResponder */}
           <View
             {...handlePanResponder.panHandlers}
             style={{
-              width: 50,
-              height: 4,
-              backgroundColor: "#d1d5db",
-              borderRadius: 2,
-              alignSelf: "center",
+              paddingTop: 10,
               marginBottom: 10,
             }}
-          />
-          
-          {/* Modal header */}
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold">Comentários</Text>
-            <TouchableOpacity onPress={closeModal}>
-              <CloseIcon size={20} color="black" />
-            </TouchableOpacity>
+          >
+            {/* Header do modal */}
+            <View
+              style={{
+                width: 50,
+                height: 4,
+                backgroundColor: "#d1d5db",
+                borderRadius: 2,
+                alignSelf: "center",
+                marginBottom: 10,
+              }}
+            />
+
+            <View className="flex-row justify-between items-center">
+              <Text className="text-lg font-bold">Comentários</Text>
+              <TouchableOpacity onPress={closeModal}>
+                <CloseIcon size={20} color="black" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Comments area */}
-          <ScrollView 
+          {/* Area de comentarios */}
+          <ScrollView
             className="flex-1 mb-2"
             contentContainerStyle={{ paddingBottom: 20 }}
             keyboardShouldPersistTaps="handled"
