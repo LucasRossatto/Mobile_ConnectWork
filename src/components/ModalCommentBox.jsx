@@ -280,11 +280,11 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
                 backgroundColor: "#d1d5db",
                 borderRadius: 2,
                 alignSelf: "center",
-                marginBottom: 10,
+                marginBottom: 12,
               }}
             />
 
-            <View className="flex-row justify-between items-center">
+            <View className="flex-row justify-between items-center mb-2">
               <Text className="text-lg font-bold">Comentários</Text>
               <TouchableOpacity onPress={closeModal}>
                 <CloseIcon size={20} color="black" />
@@ -292,11 +292,11 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
             </View>
           </View>
 
-          {/* Area de comentarios */}
+          {/* Area de comentarios area */}
           <ScrollView
             className="flex-1 mb-2"
-            contentContainerStyle={{ paddingBottom: 20 }}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             {comments.map((item) => (
               <View key={item.id} className="flex-row mb-3">
