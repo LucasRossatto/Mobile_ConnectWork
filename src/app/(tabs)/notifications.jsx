@@ -12,7 +12,7 @@ import {
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Feather";
 import api from "@/services/api";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -25,7 +25,7 @@ const Notifications = () => {
   const [showPopupIndex, setShowPopupIndex] = useState(null);
   const { counts, updateCounts } = useNotifications();
   const navigation = useNavigation();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   const processNotificationData = useCallback((apiData) => {
     if (!apiData || !apiData.success || !apiData.notifications) return [];

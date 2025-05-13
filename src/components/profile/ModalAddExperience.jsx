@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import { useState } from "react";
 import {
   View,
   Modal,
@@ -8,7 +8,7 @@ import {
   Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import FormField from "@/components/profile/FormField";
 import ActionButton from "@/components/profile/ActionButton";
@@ -18,7 +18,7 @@ import log from "@/utils/logger";
 import { formatDateForDisplay, formatDateForAPI } from "@/utils/dateFormatters";
 
 const ModalExperience = ({ visible, onClose, onSuccess }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [visibleDatePicker, setVisibleDatePicker] = useState(null);

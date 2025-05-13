@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import api from '@/services/api';
-import { AuthContext } from '@/contexts/AuthContext';
+import React, { createContext, useContext, useState, useCallback } from "react";
+import api from "@/services/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NotificationContext = createContext();
 
 export const NotificationProvider = ({ children }) => {
   const [counts, setCounts] = useState({ total: 0, unread: 0 });
   const [notifications, setNotifications] = useState([]);
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const updateCounts = (newCounts) => {
     setCounts(newCounts);
   };
@@ -15,14 +15,14 @@ export const NotificationProvider = ({ children }) => {
   const fetchNotifications = useCallback(async () => {
     try {
       if (!user?.id) return;
-      
+
       const response = await api.get(`/user/notifications/${user.id}`);
       const data = response.data;
-      
+
       setNotifications(data.notifications || []);
       setCounts({
         total: data.notifications?.length || 0,
-        unread: data.notifications?.filter(n => !n.read).length || 0
+        unread: data.notifications?.filter((n) => !n.read).length || 0,
       });
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -44,13 +44,15 @@ export const NotificationProvider = ({ children }) => {
   };
 
   return (
-    <NotificationContext.Provider value={{ 
-      counts, 
-      notifications,
-      fetchNotifications,
-      deleteAllNotifications,
-      updateCounts 
-    }}>
+    <NotificationContext.Provider
+      value={{
+        counts,
+        notifications,
+        fetchNotifications,
+        deleteAllNotifications,
+        updateCounts,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );
@@ -59,7 +61,9 @@ export const NotificationProvider = ({ children }) => {
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider"
+    );
   }
   return context;
 };

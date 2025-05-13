@@ -1,7 +1,6 @@
-import React, { useCallback, useState, useEffect, memo } from "react";
+import { useCallback, useState, useEffect, memo } from "react";
 import {
   Text,
-  FlatList,
   View,
   ActivityIndicator,
   TouchableOpacity,

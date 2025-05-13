@@ -1,9 +1,6 @@
 import React, {
   useState,
   useRef,
-  useContext,
-  useCallback,
-  useEffect,
 } from "react";
 import {
   Image,
@@ -13,7 +10,6 @@ import {
   Modal,
   TextInput,
   Alert,
-  FlatList,
   Dimensions,
   ActivityIndicator,
 } from "react-native";
@@ -34,7 +30,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import { AuthContext } from "../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Picker } from "@react-native-picker/picker";
@@ -58,7 +54,7 @@ const Post = ({
   onCommentPress,
   authorId,
 }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [showCommentBox, setShowCommentBox] = useState(false);

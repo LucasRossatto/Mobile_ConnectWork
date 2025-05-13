@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,13 @@ import {
   RefreshControl,
 } from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
 const AsideExperience = ({ onOpenModal, onEdit, refreshFlag }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

@@ -1,11 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useState, useEffect, useCallback, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import api from "@/services/api";
 
-export const AuthContext = createContext();
+const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -76,7 +76,7 @@ const AuthProvider = ({ children }) => {
 
       await AsyncStorage.multiSet(storageData);
       setUser(userData);
-      router.replace("/(stacks)/(tabs)");
+      router.replace("/(tabs)/");
     } catch (error) {
       console.error("Login failed", error);
       throw error;
@@ -87,7 +87,7 @@ const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.multiRemove(["user", "token", "role"]);
       setUser(null);
-      router.replace("/(stacks)/login");
+      router.replace("/(auth)/login");
     } catch (error) {
       console.error("Logout failed", error);
     }
@@ -131,4 +131,10 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-export default AuthProvider;
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

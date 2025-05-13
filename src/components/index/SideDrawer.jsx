@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Link } from "expo-router";
 import { View, Text, Image, Pressable, Animated, Easing } from "react-native";
 import {

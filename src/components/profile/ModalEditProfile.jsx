@@ -1,7 +1,6 @@
 import React, {
   useState,
   useEffect,
-  useContext,
   useCallback,
   useMemo,
 } from "react";
@@ -25,16 +24,15 @@ import api from "@/services/api";
 import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
 import FormField from "@/components/profile/FormField";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import CoursePicker from "@/components/register/CoursePicker";
-import { debounce } from "lodash";
 
 const MAX_IMAGE_SIZE_MB = 2;
 const IMAGE_ASPECT_RATIO = [1, 1];
 const MAX_SINGLE_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
 
 const ModalEditProfile = ({ visible, onClose, onUpdateUser }) => {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imgLoading, setImgLoading] = useState(false);
   const [errors, setErrors] = useState({});

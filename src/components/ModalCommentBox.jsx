@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -26,7 +26,7 @@ import {
 } from "lucide-react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/services/api";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import log from "@/utils/logger";
 import { Picker } from "@react-native-picker/picker";
@@ -35,7 +35,7 @@ const { height } = Dimensions.get("window");
 const MODAL_HEIGHT = height * 0.6;
 
 const CommentBoxModal = ({ postId, visible, onClose }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [comment, setComment] = useState("");
   const [activeCommentMenu, setActiveCommentMenu] = useState(null);
   const [showReportPopupComment, setShowReportPopupComment] = useState(false);

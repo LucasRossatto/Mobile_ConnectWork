@@ -10,7 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { Pencil } from "lucide-react-native";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import ProgressBar from "@/components/ProgressBar";
 import AsideEducation from "@/components/profile/AsideEducation";
 import AsideExperience from "@/components/profile/AsideExperience";
@@ -29,7 +29,7 @@ import log from "@/utils/logger";
 import ModalEditPost from "@/components/profile/ModalEditPost";
 
 export default function Profile() {
-  const { user, refreshUserData } = useContext(AuthContext);
+  const { user, refreshUserData } = useAuth();
   const queryClient = useQueryClient();
 
   const [modalState, setModalState] = useState({

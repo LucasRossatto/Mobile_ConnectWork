@@ -6,14 +6,14 @@ export default function Home() {
     <View className="flex-1 justify-between bg-backgroundDark">
       <View className="flex-1 justify-center items-center">
         <Image
-          source={require("../../../assets/images/logo.png")}
+          source={require("@/assets/images/logo.png")}
           className="w-screen h-20"
           resizeMode="contain"
         />
       </View>
 
       <View className="bg-white flex gap-4 pt-14 pr-6 pl-6 w-full pb-6 rounded-t-[56]">
-        <Link href={"/(stacks)/login"} asChild>
+        <Link href={"/(auth)/login"} asChild>
           <TouchableOpacity
             className="border bg-black text-white p-5 rounded-full flex items-center"
           >
@@ -21,7 +21,7 @@ export default function Home() {
           </TouchableOpacity>
         </Link>
 
-        <Link href={"/(stacks)/register"} asChild>
+        <Link href={"/(auth)/register"} asChild>
           <TouchableOpacity
             className="border border-gray-300 shadow-md p-5 rounded-full flex items-center"
           >

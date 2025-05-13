@@ -1,4 +1,4 @@
-import React, {
+import {
   useState,
   useContext,
   useCallback,
@@ -27,7 +27,7 @@ import api from "@/services/api";
 import Post from "@/components/Post";
 import ModalSearch from "@/components/index/ModalSearch";
 import SideDrawer from "@/components/index/SideDrawer";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { hideTabBar, showTabBar } from "./_layout";
 import { useFocusEffect } from "expo-router";
 import log from "@/utils/logger"
@@ -116,7 +116,7 @@ const HomeScreen = () => {
   const [headerHidden, setHeaderHidden] = useState(false);
   const headerAnim = useRef(new Animated.Value(0)).current; // 0 = visível
   const lastScrollY = useRef(0);
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser } = useAuth();
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const { fetchNotifications } = useNotifications();

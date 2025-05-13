@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,13 +17,13 @@ import * as ImageManipulator from "expo-image-manipulator";
 import api from "@/services/api";
 import log from "@/utils/logger";
 import ActionButton from "@/components/profile/ActionButton";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MAX_SINGLE_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
 const MAX_IMAGE_SIZE_MB = 2; // 2MB máximo após compressão
 
 const ModalEditBanner = ({ visible, onClose, onUpdateUser }) => {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imgProcessing, setImgProcessing] = useState(false);
   const [image, setImage] = useState(null);

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import { useState } from "react";
 import {
   Text,
   View,
@@ -8,9 +8,9 @@ import {
 } from "react-native";
 import log from "@/utils/logger";
 import Icon from "react-native-vector-icons/Octicons";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import api from "@/services/api";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,8 +24,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useContext(AuthContext);
-  const router = useRouter();
+  const { login } = useAuth();
 
   const validateLoginInputs = (email, password) => {
     if (!email || !password) {
@@ -149,7 +148,7 @@ export default function Login() {
 
       <View className="items-end mb-8">
         <Link
-          href="/(stacks)/forgotPassword"
+          href="/(auth)/forgotPassword"
           className="text-gray-400 text-base font-medium underline"
           accessibilityRole="link"
         >
@@ -184,7 +183,7 @@ export default function Login() {
         <View className="flex-row justify-center items-center">
           <Text className="text-gray-600">Não tem uma conta? </Text>
           <Link
-            href="/(stacks)/register"
+            href="/(auth)/register"
             className="text-blue-500 text-base font-medium underline"
             accessibilityRole="link"
           >

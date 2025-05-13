@@ -42,7 +42,7 @@ export default function PendingAccount() {
       <View className="items-center mb-6">
         <Animated.View style={{ transform: [{ rotate: spin }] }}>
           <Image
-            source={require("../../../assets/images/ampulheta.png")}
+            source={require("@/assets/images/ampulheta.png")}
             className="w-[54] h-[54]"
           />
         </Animated.View>

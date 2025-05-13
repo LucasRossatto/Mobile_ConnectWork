@@ -1,4 +1,3 @@
-import React from "react";
 import { StatusBar, Animated, Platform } from "react-native";
 import { Tabs } from "expo-router";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";

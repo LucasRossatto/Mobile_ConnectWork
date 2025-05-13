@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Briefcase,
   Search,
@@ -26,7 +26,7 @@ import api from "@/services/api";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const VacanciesScreen = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [selectedWork, setSelectedWork] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [successModalVisible, setSuccessModalVisible] = useState(false);

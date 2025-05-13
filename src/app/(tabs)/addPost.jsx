@@ -20,7 +20,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import mime from "mime";
 import api from "@/services/api";
 import log from "@/utils/logger";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MAX_CHARACTERS = 500;
 const MAX_IMAGES = 3;
@@ -42,7 +42,7 @@ const MediaButton = ({ icon, onPress, disabled, testID }) => (
 );
 
 export default function AddPost() {
-  const { user, refreshUserData } = useContext(AuthContext);
+  const { user, refreshUserData } = useAuth();
   const queryClient = useQueryClient();
   const textInputRef = useRef();
 

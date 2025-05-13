@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,19 +8,19 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Pencil, Plus } from "lucide-react-native";
-import { AuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
 const AsideVolunteerWork = ({ onOpenModal, onEdit, refreshFlag }) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [volunteerWorks, setVolunteerWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAllWorks, setShowAllWorks] = useState(false);
 
-  const handleError = (error, context, options = {}) => {
+  const handleError = (error, options = {}) => {
     const defaultMessage = "Ocorreu um erro inesperado";
     const errorMessage =
       error.response?.data?.message || options.customMessage || defaultMessage;

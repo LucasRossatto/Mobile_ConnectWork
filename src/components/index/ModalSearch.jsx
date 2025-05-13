@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, TouchableOpacity, Text, TextInput, Modal } from "react-native";
 import log from "@/utils/logger";
 import {
