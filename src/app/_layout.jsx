@@ -20,6 +20,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="(stacks)" options={{ headerShown: false }} />
               <Stack.Screen name="neighbor/[userId]" />
+              <Stack.Screen name="settings/settings" options={{ title: "Voltar" }} />
             </Stack>
           </GestureHandlerRootView>
         </NotificationProvider>

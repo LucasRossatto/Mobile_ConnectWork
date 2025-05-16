@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router"; // Adicione useRouter
 import { View, Text, Image, Pressable, Animated, Easing } from "react-native";
 import {
   Search as SearchIcon,
@@ -21,9 +21,9 @@ const DrawerItem = ({ icon: Icon, label, onPress }) => (
 );
 
 const SideDrawer = ({ visible, onClose, user }) => {
+  const router = useRouter(); // Hook de navegação
   const anim = useRef(new Animated.Value(0)).current;
 
-  /* anima abre/fecha */
   useEffect(() => {
     Animated.timing(anim, {
       toValue: visible ? 1 : 0,
@@ -33,7 +33,6 @@ const SideDrawer = ({ visible, onClose, user }) => {
     }).start();
   }, [visible, anim]);
 
-  /* interpolações */
   const translateX = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [-320, 0],
@@ -44,15 +43,17 @@ const SideDrawer = ({ visible, onClose, user }) => {
     outputRange: [0, 0.5],
   });
 
-  /* pointerEvents evita bloquear toques quando invisible */
   const pe = visible ? "auto" : "none";
-
-  /* zIndex alto para ficar acima do ModalSearch */
   const Z_INDEX = 100;
+
+  // Função para navegar para Configurações
+  const navigateToSettings = () => {
+    onClose(); // Fecha o drawer
+    router.push('/settings/settings'); // Atualizado o caminho da rota
+  };
 
   return (
     <>
-      {/* Overlay escurecido */}
       <Animated.View
         pointerEvents={pe}
         className="absolute inset-0 bg-black"
@@ -64,7 +65,6 @@ const SideDrawer = ({ visible, onClose, user }) => {
         <Pressable className="flex-1" onPress={onClose} />
       </Animated.View>
 
-      {/* Drawer */}
       <Animated.View
         pointerEvents={pe}
         className="absolute inset-y-0 left-0 w-80 bg-[#181818] shadow-lg"
@@ -96,17 +96,11 @@ const SideDrawer = ({ visible, onClose, user }) => {
                 </View>
               )}
             </View>
-            <View className="flex-1" >
-              <Text
-                className="text-white font-bold text-xl mb-1"
-                style={{ flexWrap: "wrap" }}
-              >
+            <View className="flex-1">
+              <Text className="text-white font-bold text-xl mb-1" style={{ flexWrap: "wrap" }}>
                 {user?.nome}
               </Text>
-              <Text
-                className="text-white text-sm"
-                style={{ flexWrap: "wrap" }}
-              >
+              <Text className="text-white text-sm" style={{ flexWrap: "wrap" }}>
                 {user?.course}
               </Text>
             </View>
@@ -133,7 +127,7 @@ const SideDrawer = ({ visible, onClose, user }) => {
             <DrawerItem
               icon={SettingsIcon}
               label="Configurações"
-              onPress={() => {}}
+              onPress={navigateToSettings} // Usa a função de navegação
             />
           </View>
         </View>
