@@ -1,7 +1,4 @@
-import React, {
-  useState,
-  useRef,
-} from "react";
+import React, { useState, useRef } from "react";
 import {
   Image,
   Text,
@@ -74,6 +71,8 @@ const Post = ({
       opacity: likeOpacity.value,
     };
   });
+
+  navigationToProfile = () => {};
 
   // 1. Buscar comentários do post
   const { data: comments = [] } = useQuery({
@@ -340,7 +339,13 @@ const Post = ({
     <View className="border-b border-gray-100 py-5 bg-white">
       <View className="flex-row justify-between items-start mb-3 px-4">
         <Link
-          href={authorId ? `/neighbor/${authorId}` : "#"}
+          href={
+            authorId
+              ? authorId === user.id
+                ? "/profile"
+                : `/neighbor/${authorId}`
+              : "#"
+          }
           onPress={(e) => !authorId && e.preventDefault()}
         >
           <View className="flex-row items-center">
