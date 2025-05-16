@@ -148,7 +148,7 @@ export default function Login() {
 
       <View className="items-end mb-8">
         <Link
-          href="/(auth)/forgotPassword"
+          href="/forgotPassword"
           className="text-gray-400 text-base font-medium underline"
           accessibilityRole="link"
         >
@@ -183,7 +183,7 @@ export default function Login() {
         <View className="flex-row justify-center items-center">
           <Text className="text-gray-600">Não tem uma conta? </Text>
           <Link
-            href="/(auth)/register"
+            href="/register"
             className="text-blue-500 text-base font-medium underline"
             accessibilityRole="link"
           >

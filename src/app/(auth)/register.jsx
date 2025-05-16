@@ -404,7 +404,7 @@ const MultiStepForm = () => {
           {
             text: "OK",
             onPress: () => {
-              router.push("/(stacks)/pendingAccount");
+              router.push("/pendingAccount");
             },
           },
         ]);

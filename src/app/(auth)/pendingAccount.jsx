@@ -14,7 +14,7 @@ export default function PendingAccount() {
   const spinValue = useRef(new Animated.Value(0)).current;
 
   const goToLogin = () => {
-    router.push("/(stacks)/login");
+    router.push("/login");
   };
 
   useEffect(() => {

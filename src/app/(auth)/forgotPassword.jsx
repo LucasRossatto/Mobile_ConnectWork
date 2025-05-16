@@ -211,7 +211,7 @@ const ForgotPasswordScreen = () => {
           type: "success",
           text1: "Senha alterada com sucesso!",
         });
-        router.push("/(stacks)/login");
+        router.push("/login");
       } else {
         const errorMsg = res.data?.message || "Erro ao redefinir senha";
         log.warn("[Nova Senha] API retornou erro:", errorMsg);
