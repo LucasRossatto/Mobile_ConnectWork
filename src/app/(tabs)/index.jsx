@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
+  Modal,
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -30,18 +31,11 @@ import SideDrawer from "@/components/index/SideDrawer";
 import { useAuth } from "@/contexts/AuthContext";
 import { hideTabBar, showTabBar } from "./_layout";
 import { useFocusEffect } from "expo-router";
-import log from "@/utils/logger"
+import log from "@/utils/logger";
 
-const HEADER_HEIGHT = 76; // altura da barra superior em pixels
-const HIDE_THRESHOLD = 8; // deslocamento para esconder/mostrar
+const HEADER_HEIGHT = 76;
+const HIDE_THRESHOLD = 8;
 
-/*********************************
- *  Componentes Auxiliares        *
- *********************************/
-
-/**
- * Avatar do usuário com estados de loading / erro
- */
 const UserAvatar = ({ uri, nameInitial, pending, error }) => {
   if (pending) {
     return (
@@ -68,9 +62,6 @@ const UserAvatar = ({ uri, nameInitial, pending, error }) => {
   );
 };
 
-/**
- * Header animado que some/volta conforme o scroll
- */
 const Header = ({ avatarProps, onSearch, onMenu, translateY }) => (
   <Animated.View
     style={{
@@ -107,63 +98,136 @@ const Header = ({ avatarProps, onSearch, onMenu, translateY }) => (
   </Animated.View>
 );
 
-/*********************************
- *  Tela Principal                *
- *********************************/
+const renderModal = (Component, visible, props = {}) => {
+  if (Platform.OS === "ios") {
+    return (
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={props.onClose}
+      >
+        <Component {...props} />
+      </Modal>
+    );
+  }
+
+  return visible ? (
+    <View
+      style={{
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        zIndex: 1000,
+      }}
+    >
+      <Component {...props} />
+    </View>
+  ) : null;
+};
+
 const HomeScreen = () => {
+  // hooks de estado 
   const [searchVisible, setSearchVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
-  const headerAnim = useRef(new Animated.Value(0)).current; // 0 = visível
-  const lastScrollY = useRef(0);
-  const { user, setUser } = useAuth();
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+
+  // refs
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
+
+  // hooks de context
+  const { user, setUser } = useAuth();
   const { fetchNotifications } = useNotifications();
-  const renderModal = (Component, visible, props = {}) => {
-    if (Platform.OS === "ios") {
-      return (
-        <Modal
-          visible={visible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={onClose}
-        >
-          <Component {...props} onClose={onClose} />
-        </Modal>
-      );
-    }
 
-    return visible ? (
-      <View
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          zIndex: 1000,
-        }}
-      >
-        <Component {...props} onClose={closeAllModals} />
-      </View>
-    ) : null;
-  };
-
-  // Função para fechar todos os modais
+  // callbacks
   const closeAllModals = useCallback(() => {
     setSearchVisible(false);
     setCommentModalVisible(false);
     setDrawerVisible(false);
   }, []);
 
-  // Função para abrir o modal de comentários
   const openCommentModal = useCallback((post) => {
     setSelectedPost(post);
     setCommentModalVisible(true);
   }, []);
 
-  /***********************
-   * Scroll: Header + TabBar
-   ***********************/
+  // API queries
+  const fetchUser = useCallback(async () => {
+    if (!user?.id) throw new Error("ID do usuário não disponível");
+    const { data } = await api.get(`/user/users/${user.id}`);
+    setUser((prev) => ({ ...prev, ...data }));
+    return data;
+  }, [user?.id, setUser]);
+
+  const {
+    data: userData,
+    isLoading: loadingUser,
+    isError: errorUser,
+  } = useQuery({
+    queryKey: ["userData", user?.id],
+    queryFn: fetchUser,
+    enabled: !!user?.token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const {
+    data: postsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching: fetchingPosts,
+    isError: errorPosts,
+    error: postsError,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: ["posts"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const { data } = await api.get("/user/posts", {
+        params: { limit: 10, offset: pageParam },
+      });
+      return { posts: data.posts, nextOffset: pageParam + 10 };
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.posts.length < 10 ? undefined : lastPage.nextOffset,
+    initialPageParam: 0,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const allPosts = useMemo(
+    () => postsData?.pages.flatMap((p) => p.posts) || [],
+    [postsData]
+  );
+
+  const avatarProps = useMemo(
+    () => ({
+      uri: userData?.profile_img || user?.profile_img,
+      nameInitial: (userData?.nome || user?.nome || "U")
+        .charAt(0)
+        .toUpperCase(),
+      pending: loadingUser,
+      error: errorUser,
+    }),
+    [userData, user, loadingUser, errorUser]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications();
+    }, [fetchNotifications])
+  );
+
+  useEffect(() => {
+    const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
   const handleScroll = useCallback(
     (event) => {
       const currentY = event.nativeEvent.contentOffset.y;
@@ -192,97 +256,20 @@ const HomeScreen = () => {
     [headerHidden, headerAnim]
   );
 
-  /***********************
-   * Query: Usuário
-   ***********************/
-  const fetchUser = useCallback(async () => {
-    if (!user?.id) throw new Error("ID do usuário não disponível");
-    const { data } = await api.get(`/user/users/${user.id}`);
-    setUser((prev) => ({ ...prev, ...data }));
-    return data;
-  }, [user?.id, setUser]);
-
-  const {
-    data: userData,
-    isLoading: loadingUser,
-    isError: errorUser,
-  } = useQuery({
-    queryKey: ["userData", user?.id],
-    queryFn: fetchUser,
-    enabled: !!user?.token,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  /***********************
-   * Query: Posts
-   ***********************/
-  const {
-    data: postsData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isFetching: fetchingPosts,
-    isError: errorPosts,
-    error: postsError,
-  } = useInfiniteQuery({
-    queryKey: ["posts"],
-    queryFn: async ({ pageParam = 0 }) => {
-      const { data } = await api.get("/user/posts", {
-        params: { limit: 10, offset: pageParam },
-      });
-      return { posts: data.posts, nextOffset: pageParam + 10 };
-    },
-    getNextPageParam: (lastPage) =>
-      lastPage.posts.length < 10 ? undefined : lastPage.nextOffset,
-    initialPageParam: 0,
-    staleTime: 1000 * 60 * 10,
-  });
-
-  const allPosts = useMemo(
-    () => postsData?.pages.flatMap((p) => p.posts) || [],
-    [postsData]
-  );
-
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  /***********************
-   * Avatar Props
-   ***********************/
-  const avatarProps = useMemo(
-    () => ({
-      uri: userData?.profile_img || user?.profile_img,
-      nameInitial: (userData?.nome || user?.nome || "U")
-        .charAt(0)
-        .toUpperCase(),
-      pending: loadingUser,
-      error: errorUser,
-    }),
-    [userData, user, loadingUser, errorUser]
-  );
+  if (fetchingPosts && !postsData) {
+    return (
+      <SafeAreaView className="flex-1 bg-white">
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-  // Adicione este useEffect para buscar notificações quando a tela ganhar foco
-  useFocusEffect(
-    useCallback(() => {
-      fetchNotifications();
-    }, [fetchNotifications])
-  );
-
-  // Adicione este useEffect para buscar notificações periodicamente
-  useEffect(() => {
-    const interval = setInterval(fetchNotifications, 5 * 60 * 1000); // 5 minutos
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
-
-  // Busca inicial quando o componente monta
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  /***********************
-   * Render
-   ***********************/
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header animado */}
@@ -290,7 +277,7 @@ const HomeScreen = () => {
         avatarProps={avatarProps}
         onSearch={() => setSearchVisible(true)}
         onMenu={() => {
-          setSearchVisible(false); // fecha o modal de busca se estiver aberto
+          setSearchVisible(false);
           setDrawerVisible(true);
         }}
         translateY={headerAnim}
@@ -352,12 +339,12 @@ const HomeScreen = () => {
         )}
       </GestureHandlerRootView>
 
-      {/* Modal de busca */}
-      {renderModal(ModalSearch, searchVisible, {})}
+      {renderModal(ModalSearch, searchVisible, { onClose: closeAllModals })}
 
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
         profile_img: user?.profile_img,
+        onClose: closeAllModals,
       })}
 
       <SideDrawer

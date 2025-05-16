@@ -1,4 +1,4 @@
-import React, { useContext, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Text,
   View,
@@ -27,6 +27,7 @@ import ModalVolunteerWork from "@/components/profile/ModalVolunteerWork";
 import ListUserPosts from "@/components/profile/ListUserPosts";
 import log from "@/utils/logger";
 import ModalEditPost from "@/components/profile/ModalEditPost";
+import ModalCommentBox from "@/components/ModalCommentBox";
 
 export default function Profile() {
   const { user, refreshUserData } = useAuth();
@@ -42,6 +43,7 @@ export default function Profile() {
     editProfile: false,
     editBanner: false,
     editPost: false,
+    commentPost: false,
   });
 
   const [currentItem, setCurrentItem] = useState({
@@ -49,7 +51,13 @@ export default function Profile() {
     experience: null,
     volunteerWork: null,
     post: null,
+    commentPost: null,
   });
+
+  const openCommentModal = useCallback((post) => {
+    setCurrentItem((prev) => ({ ...prev, commentPost: post.id }));
+    setModalState((prev) => ({ ...prev, commentPost: true }));
+  }, []);
 
   const [refreshFlag, setRefreshFlag] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -267,6 +275,7 @@ export default function Profile() {
             onOpenModal={() =>
               setModalState((prev) => ({ ...prev, editPost: true }))
             }
+            onCommentPress={openCommentModal}
           />
         </View>
       </ScrollView>
@@ -327,6 +336,12 @@ export default function Profile() {
         onClose: () =>
           setModalState((prev) => ({ ...prev, editBanner: false })),
         onUpdateUser: handleProfileUpdate,
+      })}
+      {renderModal(ModalCommentBox, modalState.commentPost, {
+        onClose: () =>
+          setModalState((prev) => ({ ...prev, commentPost: false })),
+        postId: currentItem.commentPost,
+        onSuccess: refreshAndClose,
       })}
     </View>
   );

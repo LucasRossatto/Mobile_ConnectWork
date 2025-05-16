@@ -1,26 +1,32 @@
-import { useCallback, useState, useEffect, memo } from "react";
-import {
-  Text,
-  View,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
+import { useCallback, useState, memo, useMemo } from "react";
+import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import api from "@/services/api";
-import log from "@/utils/logger";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
 import { Plus, ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "@tanstack/react-query";
 
-const MemoizedMyPost = memo(({ item, onSuccess, onEdit, onOpenModal }) => (
-  <MyPost
-    item={item}
-    onSuccess={onSuccess}
-    onEdit={onEdit}
-    onOpenModal={onOpenModal}
-  />
-));
+const MemoizedMyPost = memo(
+  ({ item, onSuccess, onEdit, onOpenModal, onUpdatePost, onCommentPress }) => (
+    <MyPost
+      postId={item.id}
+      authorId={item.userId}
+      author={item.user.nome}
+      author_profileImg={item.user.profile_img}
+      content={item.content}
+      date={item.createdAt}
+      category={item.category}
+      img={item.images}
+      LikeCount={item.numberLikes}
+      onSuccess={onSuccess}
+      onEdit={onEdit}
+      onOpenModal={onOpenModal}
+      onCommentPress={onCommentPress}
+    />
+  )
+);
 
 const ListUserPosts = ({
   user,
@@ -29,77 +35,90 @@ const ListUserPosts = ({
   onOpenModal,
   onEdit,
   onUpdatePost,
+  onCommentPress,
 }) => {
   const router = useRouter();
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [sortOrder, setSortOrder] = useState("recent");
 
+  const {
+    data: posts = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['userPosts', user?.id, refreshFlag],
+    queryFn: async () => {
+      try {
+        const res = await api.get(`/user/posts/${user?.id}`);
+        return res.data || [];
+      } catch (err) {
+        console.error("Error fetching posts:", err);
+        throw err; 
+      }
+    },
+    enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const goToAddPost = () => {
-    router.replace("/(stacks)/(tabs)/addPost");
+    router.replace("/addPost");
   };
 
-  const getUserPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/user/posts/${user.id}`);
-      setPosts(res.data);
-      log.debug(res.data);
-    } catch (err) {
-      setError(err);
-      log.error("Error fetching posts:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id]);
-
-  useEffect(() => {
-    getUserPosts();
-  }, [getUserPosts, refreshFlag]);
+  const openCommentModal = useCallback(
+    (post) => {
+      onCommentPress?.(post);
+    },
+    [onCommentPress]
+  );
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "recent" ? "oldest" : "recent"));
   };
 
-  const sortedPosts = [...posts].sort((a, b) => {
-    const dateA = new Date(a.createdAt);
-    const dateB = new Date(b.createdAt);
-    return sortOrder === "recent" ? dateB - dateA : dateA - dateB;
-  });
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === "recent" ? dateB - dateA : dateA - dateB;
+    });
+  }, [posts, sortOrder]);
 
   const renderPostItem = useCallback(
     ({ item }) => (
       <MemoizedMyPost
         item={item}
-        onSuccess={onSuccess}
+        onSuccess={() => refetch()}
         onUpdatePost={onUpdatePost}
         onEdit={onEdit}
         onOpenModal={onOpenModal}
+        onCommentPress={() => openCommentModal(item)}
       />
     ),
-    [onSuccess]
+    [onSuccess, onEdit, onOpenModal, onUpdatePost, openCommentModal, refetch]
   );
 
   const ListEmpty = () => {
-    <View className="items-center py-4">
-      <Text className="text-gray-500 px-2 py-4 text-center">
-        Nenhuma publicação encontrada
-      </Text>
-      <TouchableOpacity
-        onPress={goToAddPost}
-        className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
-        activeOpacity={0.7}
-      >
-        <Plus size={18} color="#fff" className="mr-2" />
-        <Text className="text-white font-medium">Adicionar publicação</Text>
-      </TouchableOpacity>
-    </View>;
+    return (
+      <View className="items-center py-4">
+        <Text className="text-gray-500 px-2 py-4 text-center">
+          Nenhuma publicação encontrada
+        </Text>
+        <TouchableOpacity
+          onPress={goToAddPost}
+          className="bg-backgroundDark px-4 py-2 rounded-lg flex-row items-center"
+          activeOpacity={0.7}
+        >
+          <Plus size={18} color="#fff" className="mr-2" />
+          <Text className="text-white font-medium">Adicionar publicação</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
-  const keyExtractor = useCallback((item) => item.id.toString(), []);
+  const keyExtractor = useCallback((item) => item?.id?.toString() || Math.random().toString(), []);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="py-4">
         <ActivityIndicator size="large" />
@@ -107,10 +126,18 @@ const ListUserPosts = ({
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <View className="py-4">
-        <Text className="text-red-500">Erro ao carregar publicações</Text>
+        <Text className="text-red-500">
+          Erro ao carregar publicações: {error?.message || "Erro desconhecido"}
+        </Text>
+        <TouchableOpacity 
+          onPress={() => refetch()}
+          className="mt-2 bg-blue-500 px-4 py-2 rounded-lg"
+        >
+          <Text className="text-white">Tentar novamente</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -142,16 +169,6 @@ const ListUserPosts = ({
         </View>
       </View>
 
-      {/* 
-      <FlatList
-        data={sortedPosts}
-        renderItem={renderPostItem}
-        keyExtractor={keyExtractor}
-        scrollEnabled={false}
-        nestedScrollEnabled={false}
-        ListEmptyComponent={ListEmpty}
-      />
-      */}
       <FlashList
         className="mb-10"
         data={sortedPosts}
@@ -159,7 +176,7 @@ const ListUserPosts = ({
         keyExtractor={keyExtractor}
         scrollEnabled={false}
         nestedScrollEnabled={false}
-        estimatedItemSize={50}
+        estimatedItemSize={100}
         ListEmptyComponent={ListEmpty}
       />
     </GestureHandlerRootView>
