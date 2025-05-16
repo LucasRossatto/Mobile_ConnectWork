@@ -12,12 +12,12 @@ import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
-const ViewVolunteerWorkSection = ({ 
-  userId, 
-  isOwnProfile = false, 
+const ViewVolunteerWorkSection = ({
+  userId,
+  isOwnProfile = false,
   refreshFlag,
   onOpenModal,
-  onEdit 
+  onEdit,
 }) => {
   const [volunteerWorks, setVolunteerWorks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,14 +31,16 @@ const ViewVolunteerWorkSection = ({
 
       if (!userId) return;
 
-      const res = await api.get(`/user/volunteering/${userId}`);
+      const res = await api.get(`/user/neighborVolunteering/${userId}`);
       log.debug("Resposta do GetAll VolunteerWorks", res.data);
 
       if (!res.data?.success && !Array.isArray(res.data)) {
         throw new Error("Formato inválido de resposta da API");
       }
 
-      const worksArray = Array.isArray(res.data) ? res.data : res.data.data || [];
+      const worksArray = Array.isArray(res.data)
+        ? res.data
+        : res.data.data || [];
       log.debug("Lista de trabalhos voluntários:", worksArray);
       setVolunteerWorks(worksArray);
     } catch (error) {
@@ -152,10 +154,7 @@ const ViewVolunteerWorkSection = ({
       {/* Footer */}
       {volunteerWorks.length > 2 && (
         <View>
-          <TouchableOpacity
-            onPress={toggleShowAllWorks}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity onPress={toggleShowAllWorks} activeOpacity={0.7}>
             <Text className="font-medium text-sm text-blue-500 text-center">
               {showAllWorks
                 ? "Mostrar menos"

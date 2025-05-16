@@ -14,7 +14,7 @@ import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
-const EducationSection = ({ isOwnProfile = false, onOpenModal, onEdit, refreshFlag }) => {
+const EducationSection = ({ userId, isOwnProfile = false, onOpenModal, onEdit, refreshFlag }) => {
   const { user } = useAuth();
   const [educations, setEducations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ const EducationSection = ({ isOwnProfile = false, onOpenModal, onEdit, refreshFl
         throw new Error("ID do usuário não disponível");
       }
 
-      const res = await api.get(`/user/education/`);
+      const res = await api.get(`/user/neighborEducation/${userId}`);
       log.debug("Resposta do GetAll Educations", res.data);
 
       if (!res.data?.success && !Array.isArray(res.data)) {

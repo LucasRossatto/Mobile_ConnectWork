@@ -14,7 +14,13 @@ import api from "@/services/api";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import log from "@/utils/logger";
 
-const ViewExperienceSection = ({ userId, isOwnProfile = false, refreshFlag, onOpenModal, onEdit }) => {
+const ViewExperienceSection = ({
+  userId,
+  isOwnProfile = false,
+  refreshFlag,
+  onOpenModal,
+  onEdit,
+}) => {
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -23,18 +29,17 @@ const ViewExperienceSection = ({ userId, isOwnProfile = false, refreshFlag, onOp
 
   const handleError = (error, context, options = {}) => {
     const defaultMessage = "Ocorreu um erro inesperado";
-    const errorMessage = error.response?.data?.message || 
-                        options.customMessage || 
-                        defaultMessage;
-    
+    const errorMessage =
+      error.response?.data?.message || options.customMessage || defaultMessage;
+
     if (options.showToUser !== false) {
       Alert.alert("Erro", errorMessage);
     }
-    
+
     return {
       message: errorMessage,
       errorType: error.name,
-      originalError: error
+      originalError: error,
     };
   };
 
@@ -42,14 +47,12 @@ const ViewExperienceSection = ({ userId, isOwnProfile = false, refreshFlag, onOp
     try {
       setLoading(true);
       setError(null);
-  
+
       if (!userId) return;
-  
-      // Make sure the endpoint is correct for fetching other users' experiences
-      const res = await api.get(`/user/experience/user/${userId}`); // Changed endpoint
+
+      const res = await api.get(`/user/nieghborExperience/${userId}`); 
       log.debug("Resposta do GetAll Experiences", res.data);
-  
-      // Handle different response formats
+
       let experiencesArray = [];
       if (Array.isArray(res.data)) {
         experiencesArray = res.data;
@@ -58,17 +61,16 @@ const ViewExperienceSection = ({ userId, isOwnProfile = false, refreshFlag, onOp
       } else if (res.data?.experiences) {
         experiencesArray = res.data.experiences;
       }
-  
+
       log.debug("Lista de experiencias convertida:", experiencesArray);
       setExperiences(experiencesArray);
-      
     } catch (error) {
       const handledError = handleError(error, "buscar_experiencias", {
         metadata: { userId },
         customMessage: "Falha ao carregar experiências profissionais",
-        showToUser: false
+        showToUser: false,
       });
-  
+
       setError(handledError.message);
       setExperiences([]);
       log.error("Erro no getExperience", error);
@@ -142,7 +144,7 @@ const ViewExperienceSection = ({ userId, isOwnProfile = false, refreshFlag, onOp
           )}
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
