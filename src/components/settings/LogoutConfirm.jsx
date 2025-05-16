@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable, Modal, ScrollView, Image } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
-import { UserRound } from 'lucide-react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { router } from 'expo-router';
+import { useState } from "react";
+import { View, Text, Pressable, Modal, ScrollView, Image } from "react-native";
+import Icon from "react-native-vector-icons/Feather";
+import { UserRound } from "lucide-react-native";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LogoutConfirm = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -12,11 +11,10 @@ const LogoutConfirm = () => {
   const handleLogout = () => {
     setShowPopup(false);
     logout();
-    router.replace('/(auth)/login');
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       className="flex-1 bg-gray-50 px-4"
       keyboardShouldPersistTaps="handled"
     >
@@ -61,7 +59,7 @@ const LogoutConfirm = () => {
         <Pressable
           className="bg-red-600 py-4 rounded-lg items-center justify-center"
           onPress={() => setShowPopup(true)}
-          android_ripple={{ color: '#DC2626' }}
+          android_ripple={{ color: "#DC2626" }}
         >
           <Text className="text-white font-semibold text-base">
             Confirmar saída
@@ -76,7 +74,7 @@ const LogoutConfirm = () => {
         animationType="fade"
         onRequestClose={() => setShowPopup(false)}
       >
-        <Pressable 
+        <Pressable
           className="flex-1 justify-center items-center bg-black/50 p-4"
           onPress={() => setShowPopup(false)}
         >
@@ -97,14 +95,14 @@ const LogoutConfirm = () => {
               <Pressable
                 className="flex-1 border border-gray-300 py-3 rounded-lg items-center justify-center"
                 onPress={() => setShowPopup(false)}
-                android_ripple={{ color: '#E5E7EB' }}
+                android_ripple={{ color: "#E5E7EB" }}
               >
                 <Text className="text-gray-800 font-medium">Cancelar</Text>
               </Pressable>
               <Pressable
                 className="flex-1 bg-red-600 py-3 rounded-lg items-center justify-center"
                 onPress={handleLogout}
-                android_ripple={{ color: '#DC2626' }}
+                android_ripple={{ color: "#DC2626" }}
               >
                 <Text className="text-white font-medium">Sair</Text>
               </Pressable>

@@ -119,10 +119,10 @@ const Post = ({
 
       if (isLiked) {
         log.debug(`Enviando deslike para o post ${postId}`);
-        return api.post(`/user/deslike/${postId}`, { userId: user.id });
+        return api.post(`/user/deslike/${postId}`, { userId: user?.id });
       } else {
         log.debug(`Enviando like para o post ${postId}`);
-        return api.post(`/user/postlike/${postId}`, { userId: user.id });
+        return api.post(`/user/postlike/${postId}`, { userId: user?.id });
       }
     },
     onMutate: async () => {
@@ -341,7 +341,7 @@ const Post = ({
         <Link
           href={
             authorId
-              ? authorId === user.id
+              ? authorId === user?.id
                 ? "/profile"
                 : `/neighbor/${authorId}`
               : "#"
