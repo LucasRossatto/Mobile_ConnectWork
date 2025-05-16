@@ -7,9 +7,9 @@ import {
   SafeAreaView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
-import SettingsSenha from "../SettingsSenha";
-import DeleteAccount from "../DeleteAccount";
-import LogoutConfirm from "../LogoutModal";
+import SettingsSenha from "../settings/SettingsSenha";
+import DeleteAccount from "../settings/DeleteAccount";
+import LogoutConfirm from "../settings/LogoutModal";
 
 const Settings = () => {
   const [currentComponent, setCurrentComponent] = useState(null);
