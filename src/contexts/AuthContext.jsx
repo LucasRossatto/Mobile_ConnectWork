@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useCallback, useContext } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import api from "@/services/api";
@@ -24,7 +30,7 @@ export const AuthProvider = ({ children }) => {
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        console.error("Failed to load user", error);
+        log.error("Erro ao carrecar usuário", error);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -52,7 +58,7 @@ export const AuthProvider = ({ children }) => {
           await AsyncStorage.multiRemove(["user", "token", "role"]);
         }
       } catch (error) {
-        console.error("Storage update failed", error);
+        log.error("Erro ao atualizar storage", error);
       }
     };
 
@@ -78,7 +84,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       router.replace("/(tabs)/");
     } catch (error) {
-      console.error("Login failed", error);
+      log.error("Erro no Login", error);
       throw error;
     }
   };
@@ -86,28 +92,30 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await AsyncStorage.multiRemove(["user", "token", "role"]);
+      router.replace("/");
       setUser(null);
-      router.replace("/(auth)/login");
+
     } catch (error) {
-      console.error("Logout failed", error);
+      Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
+      log.error("Logout failed", error);
     }
   };
 
   const refreshUserData = useCallback(async () => {
     try {
       if (!user?.id) return;
-      
+
       const response = await api.get(`/user/users/${user.id}`);
       const userData = response.data;
-      
+
       setUser((prev) => ({
         ...prev,
-        ...userData
+        ...userData,
       }));
-      
+
       return userData;
     } catch (error) {
-      console.error("Failed to refresh user data:", error);
+      log.error("Erro ao recarregar as informações do usuário:", error);
       throw error;
     }
   }, [user?.id]);
@@ -134,7 +142,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

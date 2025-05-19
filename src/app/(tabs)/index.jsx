@@ -30,7 +30,7 @@ import ModalSearch from "@/components/index/ModalSearch";
 import SideDrawer from "@/components/index/SideDrawer";
 import { useAuth } from "@/contexts/AuthContext";
 import { hideTabBar, showTabBar } from "./_layout";
-import { useFocusEffect } from "expo-router";
+import { Redirect, useFocusEffect } from "expo-router";
 import log from "@/utils/logger";
 
 const HEADER_HEIGHT = 76;
@@ -127,7 +127,7 @@ const renderModal = (Component, visible, props = {}) => {
 };
 
 const HomeScreen = () => {
-  // hooks de estado 
+  // hooks de estado
   const [searchVisible, setSearchVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
@@ -268,6 +268,10 @@ const HomeScreen = () => {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (!user) {
+    return <Redirect href="/login" />;
   }
 
   return (
