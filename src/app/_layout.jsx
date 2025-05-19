@@ -38,7 +38,7 @@ export default function RootLayout() {
               <Stack.Screen name="neighbor/[userId]" options={{ title: " " }} />
               <Stack.Screen
                 name="settings/settings"
-                options={{ title: "Voltar" }}
+                options={{ title: "Configurações" }}
               />
             </Stack>
           </GestureHandlerRootView>
