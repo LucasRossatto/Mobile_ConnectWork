@@ -139,6 +139,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries(['notifications', user?.id]);
       setComment("");
       setErrorMessage("");
     },
