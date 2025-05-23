@@ -11,8 +11,8 @@ const CoursePicker = ({
   const validCourses = [
     "Desenvolvimento de sistemas",
     "Administração",
-    "Logistica",
-    "Eletromecânica",
+    "Logística",
+    "Eletromecânica"
   ];
 
   return (
@@ -20,18 +20,22 @@ const CoursePicker = ({
       <View
         className={`w-full bg-white border ${
           isValid ? "border-gray-300" : "border-red-500"
-        } rounded-2xl text-xl px-4 py-1`}
+        } rounded-2xl text-base`}
       >
         <Picker
           selectedValue={selectedValue}
           onValueChange={onValueChange}
           style={{
             fontSize: 16,
+            color: "#666666",
           }}
         >
           <Picker.Item
             label="Selecione um curso"
-            className="text-gray-300"
+            style={{
+              fontSize: 16,
+              color: "#666666",
+            }}
             value=""
           />
           {validCourses.map((course, index) => (

@@ -11,13 +11,7 @@ import InputField from "@/components/register/InputField";
 import CoursePicker from "@/components/register/CoursePicker";
 import log from "@/utils/logger";
 import api from "@/services/api";
-import {
-  validateEmail,
-  validateCPF,
-  validateRA,
-  validateCourse,
-  validatePassword,
-} from "@/utils/validations";
+import { validateEmail, validateCPF, validateRA } from "@/utils/validations";
 import Icon from "react-native-vector-icons/Feather";
 
 const MultiStepForm = () => {
@@ -51,14 +45,14 @@ const MultiStepForm = () => {
   const inputsRef = useRef([]);
 
   const RequirementItem = ({ met, text }) => (
-    <View className="flex-row items-center mb-1">
+    <View className="flex-row items-center">
       <Icon
         name={met ? "check-circle" : "x-circle"}
         size={16}
         color={met ? "#10B981" : "#9CA3AF"}
-        className="mr-2"
+        style={{ marginRight: 8 }}
       />
-      <Text className={`text-sm ${met ? "text-green-600" : "text-gray-500"}`}>
+      <Text className={`text-xs ${met ? "text-green-600" : "text-gray-500"}`}>
         {text}
       </Text>
     </View>
@@ -107,8 +101,7 @@ const MultiStepForm = () => {
         {
           name: "verificationCode",
           placeholder: "Código de Verificação (6 dígitos)",
-          required: true,
-        },
+          required: true},
       ],
     },
   ];
@@ -140,7 +133,7 @@ const MultiStepForm = () => {
 
     if (step === 1) {
       if (!formData.fullName.trim()) {
-        newErrors.fullName = "O campo Nome Completo é obrigatório.";
+        newErrors.fullName = "Nome completo é obrigatório.";
       }
 
       const emailError = validateEmail(formData.email);
@@ -459,6 +452,10 @@ const MultiStepForm = () => {
       if (field.name === "password") {
         return (
           <View key={field.name} className="mb-4">
+            <Text className="text-sm font-medium text-gray-700 mb-1">
+              {field.placeholder} *
+            </Text>
+
             <InputField
               placeholder={field.placeholder}
               value={formData[field.name]}
@@ -469,7 +466,7 @@ const MultiStepForm = () => {
             />
 
             {/* Visualização dos requisitos da senha */}
-            <View className="bg-white-50 rounded-lg p-3 mt-2 border border-gray-300">
+            <View className="bg-white-50 rounded-lg p-3 border border-gray-300">
               <Text className="text-black text-sm font-medium mb-2">
                 Sua senha deve conter:
               </Text>
@@ -502,42 +499,53 @@ const MultiStepForm = () => {
 
       if (field.name === "course") {
         return (
-          <CoursePicker
-            key={field.name}
-            selectedValue={formData.course}
-            onValueChange={(value) => handleChange("course", value)}
-            isValid={!errors.course}
-            errorMessage={errors.course}
-          />
+          <View>
+            <Text className="text-xs font-medium text-gray-700 mb-1">
+              {field.placeholder} *
+            </Text>
+            <CoursePicker
+              key={field.name}
+              selectedValue={formData.course}
+              onValueChange={(value) => handleChange("course", value)}
+              isValid={!errors.course}
+              errorMessage={errors.course}
+            />
+          </View>
         );
       }
 
       return (
-        <InputField
-          key={field.name}
-          placeholder={field.placeholder}
-          value={formData[field.name]}
-          onChangeText={(text) => handleChange(field.name, text)}
-          secureTextEntry={field.secureTextEntry}
-          email={field.name === "verificationCode" ? formData.email : undefined}
-          isValid={!errors[field.name]}
-          errorMessage={errors[field.name]}
-          keyboardType={
-            field.name === "email"
-              ? "email-address"
-              : field.name === "cpf" ||
-                field.name === "ra" ||
-                field.name === "verificationCode"
-              ? "numeric"
-              : "default"
-          }
-          autoCapitalize={
-            field.name === "fullName" || field.name === "schoolUnit"
-              ? "words"
-              : "none"
-          }
-          autoCorrect={false}
-        />
+        <View key={field.name}>
+          <Text className="text-xs font-medium text-gray-700 mb-1">
+            {field.placeholder} *
+          </Text>
+          <InputField
+            placeholder={field.placeholder}
+            value={formData[field.name]}
+            onChangeText={(text) => handleChange(field.name, text)}
+            secureTextEntry={field.secureTextEntry}
+            email={
+              field.name === "verificationCode" ? formData.email : undefined
+            }
+            isValid={!errors[field.name]}
+            errorMessage={errors[field.name]}
+            keyboardType={
+              field.name === "email"
+                ? "email-address"
+                : field.name === "cpf" ||
+                  field.name === "ra" ||
+                  field.name === "verificationCode"
+                ? "numeric"
+                : "default"
+            }
+            autoCapitalize={
+              field.name === "fullName" || field.name === "schoolUnit"
+                ? "words"
+                : "none"
+            }
+            autoCorrect={false}
+          />
+        </View>
       );
     },
     [formData, errors, handleChange]
@@ -545,23 +553,71 @@ const MultiStepForm = () => {
 
   return (
     <View className="flex-1 justify-center p-4 bg-white">
-      <Text className="text-4xl font-medium mb-6 text-center">
-        Crie sua conta!
-      </Text>
-      <Text className="text-2xl font-semibold mb-4 text-center">
-        {currentStep.title}
+      <Text className="text-3xl font-medium mb-4 text-center">
+        Crie sua conta
       </Text>
 
-      <View className="flex-row justify-between mb-6">
-        {steps.map((label, index) => (
-          <View key={index} className="flex-1 items-center">
+      <View className="mb-6 px-4">
+        <View className="flex-row justify-between relative">
+          {/* Linha de fundo */}
+          <View className="absolute h-0.5 bg-gray-200 top-1 left-0 right-0 mx-[15%]" />
+          {steps.map((label, index) => (
             <View
-              className={`w-[70%] h-2 ${
-                index < step ? "bg-black" : "bg-gray-300"
-              } rounded-full`}
-            />
-          </View>
-        ))}
+              key={`step-${index}-${label}`}
+              className="flex-1 items-center z-10"
+            >
+              {/* Etapa (bolinha + linha) */}
+              <View className="flex-row items-center">
+                {/* Linha conectora (antes da bolinha) */}
+                {index > 0 && (
+                  <View
+                    className={`h-0.5 flex-1 ${
+                      index < step ? "bg-black" : "bg-gray-300"
+                    }`}
+                  />
+                )}
+
+                {/* Bolinha da etapa */}
+                <View
+                  className={`w-4 h-4 rounded-full ${
+                    index < step
+                      ? "bg-black border-2 border-black"
+                      : index === step - 1
+                      ? "bg-white border-2 border-black"
+                      : "bg-white border-2 border-gray-300"
+                  }`}
+                >
+                  {index < step - 1 && (
+                    <Icon
+                      name="check"
+                      size={12}
+                      color="white"
+                      className="m-auto"
+                    />
+                  )}
+                </View>
+
+                {/* Linha  (depois da bolinha) */}
+                {index < steps.length - 1 && (
+                  <View
+                    className={`h-0.5 flex-1 ${
+                      index < step - 1 ? "bg-black" : "bg-gray-300"
+                    }`}
+                  />
+                )}
+              </View>
+
+              <Text
+                className={`text-sm mt-2 font-medium ${
+                  index < step ? "text-black" : "text-gray-500"
+                }`}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       {currentStep.fields.map(renderField)}
