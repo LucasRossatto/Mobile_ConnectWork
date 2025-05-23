@@ -17,7 +17,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Este aplicativo usa a câmera para permitir que os usuários tirem fotos.",
-        "NSPhotoLibraryUsageDescription": "Este aplicativo acessa a galeria de fotos para permitir que os usuários selecionem imagens."
+        "NSPhotoLibraryUsageDescription": "Este aplicativo acessa a galeria de fotos para permitir que os usuários selecionem imagens.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -26,10 +29,18 @@
         "backgroundColor": "#181818"
       },
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.anonymous.mobile_ConnectWork"
     },
     "web": {
       "bundler": "metro",
@@ -45,7 +56,16 @@
           "cameraPermission": "Este aplicativo usa a câmera para permitir que os usuários tirem fotos."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/Icon_notification_connectwork.png",
+          "color": "#000000",
+          "defaultChannel": "default",
+          "androidMode": "default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
