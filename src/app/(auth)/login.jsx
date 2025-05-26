@@ -113,7 +113,7 @@ export default function Login() {
       </Text>
 
       <TextInput
-        className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 mb-4"
+        className="w-full bg-white border border-borderLight rounded-[14px] py-4 px-4 text-base  mb-4"
         placeholder="Email"
         placeholderTextColor="#666"
         keyboardType="email-address"
@@ -125,7 +125,7 @@ export default function Login() {
 
       <View className="relative mb-4">
         <TextInput
-          className="w-full bg-white border border-borderLight rounded-[14px] text-xl px-4 py-5 pr-12"
+          className="w-full bg-white border border-borderLight rounded-[14px] py-4 px-4 text-base  pr-12"
           placeholder="Senha"
           placeholderTextColor="#666"
           secureTextEntry={!showPassword}
@@ -134,7 +134,7 @@ export default function Login() {
           accessibilityLabel="Campo de senha"
         />
         <TouchableOpacity
-          className="absolute right-4 top-5"
+          className="absolute right-4 top-4"
           onPress={() => setShowPassword(!showPassword)}
           accessibilityLabel={showPassword ? "Ocultar senha" : "Mostrar senha"}
         >

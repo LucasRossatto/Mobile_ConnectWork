@@ -71,33 +71,6 @@ export const validateCourse = (course) => {
   return true;
 };
 
-// Validação de senha
-export const validatePassword = (password) => {
-  const errors = [];
-
-  if (password.length < 12) {
-    errors.push("A senha deve ter no mínimo 12 caracteres.");
-  }
-
-  if (!/[A-Z]/.test(password)) {
-    errors.push("A senha deve conter pelo menos uma letra maiúscula.");
-  }
-
-  if (!/[a-z]/.test(password)) {
-    errors.push("A senha deve conter pelo menos uma letra minúscula.");
-  }
-
-  if (!/\d/.test(password)) {
-    errors.push("A senha deve conter pelo menos um número.");
-  }
-
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    errors.push("A senha deve conter pelo menos um caractere especial.");
-  }
-
-  return errors.length === 0 ? true : errors.join(" ");
-};
-
 export const educationValidations = {
   institution: (value) => (!value?.trim() ? 'Instituição é obrigatória' : ''),
   courseDegree: (value) => (!value?.trim() ? 'Curso/grau é obrigatório' : ''),
