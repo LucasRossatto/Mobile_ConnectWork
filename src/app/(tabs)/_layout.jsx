@@ -1,9 +1,10 @@
 import { StatusBar, Animated, Platform } from "react-native";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { House, UserRound } from "lucide-react-native";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ---------------------------------
  *  Configurações visuais constantes
@@ -60,6 +61,11 @@ function AnimatedTabBar(props) {
  * --------------------------------- */
 export default function _TabsLayout() {
   const { counts } = useNotifications();
+    const { user } = useAuth();
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
