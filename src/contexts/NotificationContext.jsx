@@ -325,27 +325,53 @@ export const NotificationProvider = ({ children }) => {
     setupNotifications,
   };
 
- useEffect(() => {
+  useEffect(() => {
     const handleNewNotifications = async () => {
       const currentUnread = notificationsData.counts?.unread || 0;
       const now = Date.now();
 
-      if (currentUnread > 0 && 
-          !notificationLock.current && 
-          now - lastNotificationTime.current > 30000) {
-        
+      if (
+        currentUnread > 0 &&
+        !notificationLock.current &&
+        now - lastNotificationTime.current > 30000
+      ) {
         notificationLock.current = true;
         lastNotificationTime.current = now;
 
         try {
+          // Converte o objeto notifications em array e filtra os não lidos
+          const unreadNotifications = Object.values(
+            notificationsData.notifications || {}
+          ).filter((notif) => !notif.read && notif.userId !== undefined);
+
+          // mensagens personalizadas
+          const messages = unreadNotifications.map((notif) => {
+            const userName = notif.user?.nome || "Alguém";
+
+            if (notif.likeId) {
+              return `${userName} curtiu sua publicação.`;
+            } else if (notif.commentId) {
+              return `${userName} comentou sua publicação.`;
+            } else {
+              return `${userName} tem uma nova notificação.`;
+            }
+          });
+
+          // Junta mensagens, limita se tiver muitas
+          const bodyMessage =
+            messages.length > 3
+              ? messages.slice(0, 3).join("\n") +
+                `\n...e mais ${messages.length - 3} notificações.`
+              : messages.join("\n");
+
           await scheduleLocalNotification(
             "Você tem novas atualizações.",
-            `Você tem ${currentUnread} nova${currentUnread > 1 ? 's' : ''} notificação${currentUnread > 1 ? 'es' : ''}`,
+            bodyMessage,
             { screen: "notifications" },
             { seconds: 1 }
           );
         } catch (error) {
-          log.error("Error showing new notifications alert:", error);
+          console.error("Error showing new notifications alert:", error);
         } finally {
           notificationLock.current = false;
         }
@@ -356,6 +382,7 @@ export const NotificationProvider = ({ children }) => {
       handleNewNotifications();
     }
   }, [notificationsData.counts?.unread, user?.id]);
+
   return (
     <NotificationContext.Provider value={contextValue}>
       {children}
