@@ -5,11 +5,9 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import api from "@/services/api";
-import { log } from "@/utils/logger";
-import { Alert } from "react-native";
 
 const AuthContext = createContext();
 
@@ -23,14 +21,16 @@ export const AuthProvider = ({ children }) => {
 
     const loadUser = async () => {
       try {
-        const storedUser = await SecureStore.getItemAsync("user");
-        const token = await SecureStore.getItemAsync("token");
+        const [storedUser, token] = await Promise.all([
+          AsyncStorage.getItem("user"),
+          AsyncStorage.getItem("token"),
+        ]);
 
         if (isMounted && storedUser && token) {
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        log.error("Erro ao carregar usuário", error);
+        log.error("Erro ao carrecar usuário", error);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -49,17 +49,13 @@ export const AuthProvider = ({ children }) => {
     const updateStorage = async () => {
       try {
         if (user) {
-          await Promise.all([
-            SecureStore.setItemAsync("user", JSON.stringify(user)),
-            SecureStore.setItemAsync("token", user.token),
-            user.role ? SecureStore.setItemAsync("role", user.role) : Promise.resolve(),
+          await AsyncStorage.multiSet([
+            ["user", JSON.stringify(user)],
+            ["token", user.token],
+            ["role", user.role],
           ]);
         } else {
-          await Promise.all([
-            SecureStore.deleteItemAsync("user"),
-            SecureStore.deleteItemAsync("token"),
-            SecureStore.deleteItemAsync("role"),
-          ]);
+          await AsyncStorage.multiRemove(["user", "token", "role"]);
         }
       } catch (error) {
         log.error("Erro ao atualizar storage", error);
@@ -75,39 +71,29 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (userData) => {
     try {
-      const storageOperations = [
-        SecureStore.setItemAsync("user", JSON.stringify(userData)),
-        SecureStore.setItemAsync("token", userData.token),
+      const storageData = [
+        ["user", JSON.stringify(userData)],
+        ["token", userData.token],
       ];
 
       if (userData.role) {
-        storageOperations.push(SecureStore.setItemAsync("role", userData.role));
+        storageData.push(["role", userData.role]);
       }
 
-      await Promise.all(storageOperations);
+      await AsyncStorage.multiSet(storageData);
       setUser(userData);
       router.replace("/(tabs)/");
     } catch (error) {
       log.error("Erro no Login", error);
-      await Promise.all([
-        SecureStore.deleteItemAsync("user"),
-        SecureStore.deleteItemAsync("token"),
-        SecureStore.deleteItemAsync("role"),
-      ]);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await Promise.all([
-        SecureStore.deleteItemAsync("user"),
-        SecureStore.deleteItemAsync("token"),
-        SecureStore.deleteItemAsync("role"),
-      ]);
-      
-      setUser(null);
+      await AsyncStorage.multiRemove(["user", "token", "role"]);
       router.replace("/");
+      setUser(null);
     } catch (error) {
       Alert.alert("Erro", "Não foi possível fazer logout. Tente novamente.");
       log.error("Logout failed", error);
