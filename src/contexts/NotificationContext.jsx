@@ -381,7 +381,7 @@ export const NotificationProvider = ({ children }) => {
     if (user?.id) {
       handleNewNotifications();
     }
-  }, [notificationsData.counts?.unread, user?.id]);
+}, [notificationsData.counts?.unread, notificationsData.notifications, user?.id, scheduleLocalNotification]);
 
   return (
     <NotificationContext.Provider value={contextValue}>
