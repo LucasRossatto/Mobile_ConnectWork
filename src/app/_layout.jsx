@@ -1,4 +1,4 @@
-import { Stack, useRouter, usePathname  } from "expo-router";
+import { Stack, useRouter, usePathname } from "expo-router";
 import { StatusBar, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -73,7 +73,7 @@ function AuthRedirect() {
   const router = useRouter();
   const pathname = usePathname();
 
-   useEffect(() => {
+  useEffect(() => {
     if (!isLoading) {
       // Evita redirecionar se já estiver na rota certa
       if (user && !pathname.startsWith("/(tabs)")) {
@@ -86,7 +86,6 @@ function AuthRedirect() {
 
   return null;
 }
-
 
 const queryClient = new QueryClient();
 
