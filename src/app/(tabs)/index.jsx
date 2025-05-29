@@ -156,11 +156,16 @@ const HomeScreen = () => {
 
   // API queries
   const fetchUser = useCallback(async () => {
+  try {
     if (!user?.id) throw new Error("ID do usuário não disponível");
     const { data } = await api.get(`/user/users/${user.id}`);
     setUser((prev) => ({ ...prev, ...data }));
     return data;
-  }, [user?.id, setUser]);
+  } catch (error) {
+    log.error("Erro ao buscar usuário:", error);
+    throw error;
+  }
+}, [user?.id, setUser]);
 
   const {
     data: userData,
