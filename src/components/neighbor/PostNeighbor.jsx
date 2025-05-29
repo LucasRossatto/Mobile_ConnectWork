@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { Image, Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
+import React from "react";
+import {
+  Image,
+  Text,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert, // Adicionado
+} from "react-native";
 import { Heart, MessageCircle } from "lucide-react-native";
 import { formatPostDate } from "@/utils/formatPostDate";
 import Animated, {
@@ -12,13 +19,19 @@ import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "expo-router"; // Adicionado para navegação
 
 const AnimatedHeart = Animated.createAnimatedComponent(Heart);
 
-export default function MyPostNeighbor({ item, viewOnly = true }) {
+export default function MyPostNeighbor({
+  item,
+  viewOnly = true,
+  onCommentPress,
+}) {
+  // Adicionado onCommentPress
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   const {
     id: postId,
     user: { nome: author, profile_img: author_profileImg, id: authorId },
@@ -27,8 +40,18 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
     numberLikes: initialLikeCount,
     createdAt: date,
     category,
-    comments
+    comments: initialComments,
   } = item;
+
+  // Adicionado query para comentários
+  const { data: comments = [] } = useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async () => {
+      const response = await api.get(`/user/comments/${postId}`);
+      return response.data.comments || [];
+    },
+    enabled: !!postId && !!user?.token,
+  });
 
   // Verificar se o post já foi curtido
   const { data: isLiked } = useQuery({
@@ -65,7 +88,6 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
       }
     },
     onMutate: async () => {
-      // Cancelar queries em andamento
       await queryClient.cancelQueries(["checkLike", postId, user?.id]);
       await queryClient.cancelQueries(["likes", postId]);
 
@@ -77,7 +99,6 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
       const previousLikeCount =
         queryClient.getQueryData(["likes", postId])?.count || initialLikeCount;
 
-      // Atualização otimista
       queryClient.setQueryData(
         ["checkLike", postId, user?.id],
         !previousIsLiked
@@ -89,7 +110,6 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
       return { previousIsLiked, previousLikeCount };
     },
     onError: (error, variables, context) => {
-      // Reverter para o estado anterior em caso de erro
       queryClient.setQueryData(
         ["checkLike", postId, user?.id],
         context.previousIsLiked
@@ -97,9 +117,9 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
       queryClient.setQueryData(["likes", postId], {
         count: context.previousLikeCount,
       });
+      Alert.alert("Erro", "Não foi possível processar sua curtida");
     },
     onSettled: () => {
-      // Invalidar queries para sincronizar com o servidor
       queryClient.invalidateQueries(["checkLike", postId, user?.id]);
       queryClient.invalidateQueries(["likes", postId]);
     },
@@ -136,30 +156,35 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
   return (
     <View className="border-b border-gray-100 py-5 bg-white">
       <View className="flex-row justify-between items-start mb-3 px-4">
-        <View className="flex-row items-center">
-          {author_profileImg ? (
-            <Image
-              source={{ uri: author_profileImg }}
-              className="w-12 h-12 rounded-full"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-12 h-12 rounded-full bg-gray-300 items-center justify-center">
-              <Text className="text-xl font-bold text-black">
-                {author?.charAt(0)?.toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <View className="ml-3">
-            <Text className="font-bold text-lg text-gray-900">{author}</Text>
-            <View className="space-x-2 flex-row gap-2">
-              <Text className="text-xs text-gray-500">
-                {formatPostDate(date)}
-              </Text>
-              <Text className="text-xs text-gray-500">{category}</Text>
+        <Link
+          href={authorId === user?.id ? "/profile" : `/neighbor/${authorId}`}
+          onPress={(e) => !authorId && e.preventDefault()}
+        >
+          <View className="flex-row items-center">
+            {author_profileImg ? (
+              <Image
+                source={{ uri: author_profileImg }}
+                className="w-12 h-12 rounded-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-12 h-12 rounded-full bg-gray-300 items-center justify-center">
+                <Text className="text-xl font-bold text-black">
+                  {author?.charAt(0)?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View className="ml-3">
+              <Text className="font-bold text-lg text-gray-900">{author}</Text>
+              <View className="space-x-2 flex-row gap-2">
+                <Text className="text-xs text-gray-500">
+                  {formatPostDate(date)}
+                </Text>
+                <Text className="text-xs text-gray-500">{category}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </Link>
       </View>
 
       {content && (
@@ -176,7 +201,7 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
         />
       )}
 
-      <View className="flex-row items-center mt-4 px-5 space-x-6">
+      <View className="flex-row flex items-center mt-4 px-5 gap-4 space-x-6">
         <GestureDetector gesture={tapGesture}>
           <View className="flex-row items-center">
             {likeMutation.isLoading ? (
@@ -191,20 +216,17 @@ export default function MyPostNeighbor({ item, viewOnly = true }) {
               />
             )}
             <Text className="text-sm text-gray-600 ml-2">
-              {likesData?.count ?? initialLikeCount}
+              {likesData?.count ?? likeCount}
             </Text>
           </View>
         </GestureDetector>
 
         <TouchableOpacity
+          onPress={onCommentPress}
           activeOpacity={0.7}
           className="flex-row items-center"
         >
-          <MessageCircle
-            size={24}
-            color="#4b5563"
-            strokeWidth={2}
-          />
+          <MessageCircle size={24} color="#1C86FF" strokeWidth={2} />
           <Text className="text-sm text-gray-600 ml-2">
             {comments?.length || 0}
           </Text>

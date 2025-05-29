@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from "expo-router";
 import React, { useState, useCallback } from "react";
 import {
   Text,
@@ -8,6 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Platform,
+  Modal,
 } from "react-native";
 import { Pencil } from "lucide-react-native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,19 +18,27 @@ import ViewEducationSection from "@/components/neighbor/AsideEducationNeighbor";
 import ViewExperienceSection from "@/components/neighbor/AsideExperienceNeighbor";
 import ViewVolunteerWorkSection from "@/components/neighbor/AsideVolunteerWorkNeighbor";
 import ViewUserPosts from "@/components/neighbor/ListUserPostNeighbor";
+import ModalCommentBox from "@/components/ModalCommentBox";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import api from "@/services/api";
 import log from "@/utils/logger";
 
 const ProfileNeighbor = () => {
-  const { userId } = useLocalSearchParams();
+  const { userId: userIdParam } = useLocalSearchParams();
+  const userId = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const [refreshFlag, setRefreshFlag] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
-  const { data: profileUser, isLoading, isError } = useQuery({
-    queryKey: ['neighborProfile', userId],
+  const {
+    data: profileUser,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["neighborProfile", userId],
     queryFn: async () => {
       const response = await api.get(`/user/users/${userId}`);
       return response.data;
@@ -41,7 +51,7 @@ const ProfileNeighbor = () => {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await queryClient.invalidateQueries(['neighborProfile', userId]);
+      await queryClient.invalidateQueries(["neighborProfile", userId]);
       setRefreshFlag((prev) => prev + 1);
     } catch (error) {
       log.error("Error refreshing data:", error);
@@ -49,6 +59,45 @@ const ProfileNeighbor = () => {
       setRefreshing(false);
     }
   }, [queryClient, userId]);
+
+  const openCommentModal = useCallback((post) => {
+    setSelectedPostId(post.id);
+    setShowCommentModal(true);
+  }, []);
+
+  const closeCommentModal = useCallback(() => {
+    setShowCommentModal(false);
+    setSelectedPostId(null);
+  }, []);
+
+  const renderModal = (Component, visible, props = {}) => {
+    if (Platform.OS === "ios") {
+      return (
+        <Modal
+          visible={visible}
+          transparent={true}
+          animationType="slide"
+          presentationStyle="overFullScreen"
+          onRequestClose={closeCommentModal}
+        >
+          <Component {...props} />
+        </Modal>
+      );
+    }
+
+    return visible ? (
+      <View
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          zIndex: 1000,
+        }}
+      >
+        <Component {...props} />
+      </View>
+    ) : null;
+  };
 
   const profileData = {
     name: profileUser?.nome || "Usuário",
@@ -100,7 +149,7 @@ const ProfileNeighbor = () => {
               <Pencil width={16} color="black" />
             </TouchableOpacity>
           )}
-          
+
           <View className="h-[100px] relative">
             {profileData.banner ? (
               <Image
@@ -134,7 +183,10 @@ const ProfileNeighbor = () => {
 
           <View className="px-5 pt-[50px] mb-4">
             <View className="flex-row justify-between items-center">
-              <Text className="font-semibold text-2xl" accessibilityRole="header">
+              <Text
+                className="font-semibold text-2xl"
+                accessibilityRole="header"
+              >
                 {profileData.name}
               </Text>
               {isOwnProfile && (
@@ -162,15 +214,7 @@ const ProfileNeighbor = () => {
 
         {/* Content Sections */}
         <View className="px-4 mb-4">
-          <ViewEducationSection 
-            userId={userId} 
-            refreshFlag={refreshFlag}
-            isOwnProfile={isOwnProfile}
-          />
-        </View>
-
-        <View className="px-4 mb-4">
-          <ViewExperienceSection 
+          <ViewEducationSection
             userId={userId}
             refreshFlag={refreshFlag}
             isOwnProfile={isOwnProfile}
@@ -178,7 +222,15 @@ const ProfileNeighbor = () => {
         </View>
 
         <View className="px-4 mb-4">
-          <ViewVolunteerWorkSection 
+          <ViewExperienceSection
+            userId={userId}
+            refreshFlag={refreshFlag}
+            isOwnProfile={isOwnProfile}
+          />
+        </View>
+
+        <View className="px-4 mb-4">
+          <ViewVolunteerWorkSection
             userId={userId}
             refreshFlag={refreshFlag}
             isOwnProfile={isOwnProfile}
@@ -190,9 +242,15 @@ const ProfileNeighbor = () => {
             user={profileUser}
             refreshFlag={refreshFlag}
             isOwnProfile={isOwnProfile}
+            onCommentPress={openCommentModal}
           />
         </View>
       </ScrollView>
+
+      {renderModal(ModalCommentBox, showCommentModal, {
+        onClose: closeCommentModal,
+        postId: selectedPostId,
+      })}
     </View>
   );
 };
