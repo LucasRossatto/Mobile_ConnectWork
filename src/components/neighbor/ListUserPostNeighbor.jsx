@@ -8,7 +8,7 @@ import {
 import { FlashList } from "@shopify/flash-list";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import api from "@/services/api";
-import PostCard from "@/components/neighbor/MyPostNeighbor";
+import PostCard from "@/components/neighbor/PostNeighbor";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 
 const ViewUserPosts = ({ user, isOwnProfile = false, refreshFlag }) => {
