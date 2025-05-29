@@ -76,12 +76,15 @@ function AuthRedirect() {
     if (!isLoading) {
       if (user) {
         router.replace("/(tabs)/");
+      } else {
+        router.replace("/(auth)/login");
       }
     }
   }, [user, isLoading, router]);
 
   return null;
 }
+
 
 const queryClient = new QueryClient();
 
