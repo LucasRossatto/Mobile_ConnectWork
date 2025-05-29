@@ -1,4 +1,4 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, usePathname  } from "expo-router";
 import { StatusBar, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -71,16 +71,18 @@ function NotificationHandler() {
 function AuthRedirect() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  useEffect(() => {
+   useEffect(() => {
     if (!isLoading) {
-      if (user) {
+      // Evita redirecionar se já estiver na rota certa
+      if (user && !pathname.startsWith("/(tabs)")) {
         router.replace("/(tabs)/");
-      } else {
+      } else if (!user && !pathname.startsWith("/(auth)")) {
         router.replace("/(auth)/login");
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, pathname]);
 
   return null;
 }
