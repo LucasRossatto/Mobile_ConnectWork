@@ -54,7 +54,6 @@ const Post = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
-  const [showCommentBox, setShowCommentBox] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
@@ -200,22 +199,6 @@ const Post = ({
     },
   });
 
-  // 5. Mutação para adicionar comentário
-  const addCommentMutation = useMutation({
-    mutationFn: (commentText) =>
-      api.post(`/user/comment/${postId}`, {
-        userId: user.id,
-        comment: commentText,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["comments", postId]);
-      Alert.alert("Sucesso", "Comentário adicionado!");
-    },
-    onError: () => {
-      Alert.alert("Erro", "Não foi possível adicionar o comentário");
-    },
-  });
-
   // 6. Mutação para reportar post
   const reportPostMutation = useMutation({
     mutationFn: (reportData) =>
@@ -246,14 +229,6 @@ const Post = ({
     }
     log.debug(`Tentando ${isLiked ? "descurtir" : "curtir"} o post ${postId}`);
     likeMutation.mutate();
-  };
-
-  const handleAddComment = (commentText) => {
-    if (!user) {
-      Alert.alert("Aviso", "Você precisa estar logado para comentar");
-      return;
-    }
-    addCommentMutation.mutate(commentText);
   };
 
   const handleReportPost = () => {
