@@ -12,6 +12,13 @@ const api = axios.create({
   timeout: API_TIMEOUT,
 });
 
+api.interceptors.request.use(config => {
+  console.log('[API] Request:', config.url, {
+    auth: config.headers.Authorization ? 'present' : 'missing'
+  });
+  return config;
+});
+
 api.interceptors.request.use(
   async (config) => {
     try {

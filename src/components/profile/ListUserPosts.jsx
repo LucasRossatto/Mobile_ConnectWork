@@ -1,7 +1,6 @@
 import { useCallback, useState, memo, useMemo } from "react";
 import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import api from "@/services/api";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MyPost from "@/components/profile/MyPost";
 import { Plus, ArrowDown, ArrowUp, Clock } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -143,7 +142,7 @@ const ListUserPosts = ({
   }
 
   return (
-    <GestureHandlerRootView>
+    <View>
       <View className="flex-row justify-between items-center px-2 mb-4">
         <Text className="text-2xl font-medium">Minhas publicações</Text>
 
@@ -179,7 +178,7 @@ const ListUserPosts = ({
         estimatedItemSize={100}
         ListEmptyComponent={ListEmpty}
       />
-    </GestureHandlerRootView>
+    </View>
   );
 };
 

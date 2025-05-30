@@ -1,7 +1,6 @@
 import { useCallback, useState, useEffect, memo, useMemo } from "react";
 import { Text, View, ActivityIndicator, TouchableOpacity } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import api from "@/services/api";
 import PostCard from "@/components/neighbor/PostNeighbor";
 import { ArrowDown, ArrowUp, Clock } from "lucide-react-native";
@@ -85,7 +84,7 @@ const ViewUserPosts = memo(
     }
 
     return (
-      <GestureHandlerRootView>
+      <View>
         <View className="w-full bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-4">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-semibold">
@@ -135,7 +134,7 @@ const ViewUserPosts = memo(
             }
           />
         </View>
-      </GestureHandlerRootView>
+      </View>
     );
   }
 );

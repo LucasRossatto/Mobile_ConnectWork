@@ -68,7 +68,8 @@ export const NotificationProvider = ({ children }) => {
 
       try {
         const response = await api.get(`/user/notifications/${user.id}`);
-        log.debug("Resposta do fetch:", response.data);
+        //log.debug("Notificações buscadas");
+        //log.debug("Resposta do fetch:", response.data);
 
         if (response.data?.success) {
           const notificationsData = response.data.notifications;

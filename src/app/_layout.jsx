@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { StrictMode, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
 import { useNotifications } from "@/contexts/NotificationContext";
 
@@ -45,8 +45,16 @@ function NotificationHandler() {
         Notifications.addNotificationResponseReceivedListener((response) => {
           const targetScreen =
             response.notification.request.content.data?.screen;
-          if (targetScreen) {
+
+          // Verifica se targetScreen é uma string válida e começa com "/"
+          if (
+            typeof targetScreen === "string" &&
+            targetScreen.startsWith("/")
+          ) {
             router.push(targetScreen);
+          } else {
+            // Se não tiver targetScreen válido, pode navegar para uma tela padrão, ex:
+            router.push("/vacancys");
           }
         });
     };
@@ -67,7 +75,6 @@ function NotificationHandler() {
 
   return null;
 }
-
 function AuthRedirect() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
@@ -75,12 +82,10 @@ function AuthRedirect() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.replace("/(tabs)/");
-      } else {
-        router.replace("/(auth)/login");
+        router.replace("/(tabs)");
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, router]);
 
   return null;
 }
@@ -89,31 +94,26 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <NotificationProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <StatusBar barStyle="dark-content" />
-              <NotificationHandler />
-              <AuthRedirect />
-              <Stack>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="neighbor/[userId]"
-                  options={{ title: " " }}
-                />
-                <Stack.Screen
-                  name="settings/settings"
-                  options={{ title: "Configurações" }}
-                />
-              </Stack>
-            </GestureHandlerRootView>
-          </NotificationProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <NotificationProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <StatusBar barStyle="dark-content" />
+            <NotificationHandler />
+            <AuthRedirect />
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="neighbor/[userId]" options={{ title: " " }} />
+              <Stack.Screen
+                name="settings/settings"
+                options={{ title: "Configurações" }}
+              />
+            </Stack>
+          </GestureHandlerRootView>
+        </NotificationProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

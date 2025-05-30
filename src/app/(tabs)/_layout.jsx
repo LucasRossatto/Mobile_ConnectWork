@@ -1,4 +1,4 @@
-import { StatusBar, Animated, Platform } from "react-native";
+import { StatusBar, Platform, View } from "react-native";
 import { Redirect, Tabs } from "expo-router";
 import { BottomTabBar } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,49 +10,19 @@ import { useAuth } from "@/contexts/AuthContext";
  *  Configurações visuais constantes
  * --------------------------------- */
 const TABBAR_HEIGHT = 58; // altura da barra
-const ANIM_DURATION = 200; // ms
 
 /* ---------------------------------
- *  Animated.Value + helpers globais
+ *  TabBar simplificada (sem animações)
  * --------------------------------- */
-const tabBarAnim = new Animated.Value(0); // 0 = visível • 1 = oculto
-
-export const hideTabBar = () =>
-  Animated.timing(tabBarAnim, {
-    toValue: 1,
-    duration: ANIM_DURATION,
-    useNativeDriver: true,
-  }).start();
-
-export const showTabBar = () =>
-  Animated.timing(tabBarAnim, {
-    toValue: 0,
-    duration: ANIM_DURATION,
-    useNativeDriver: true,
-  }).start();
-
-/* ---------------------------------
- *  TabBar animado (interno)
- * --------------------------------- */
-function AnimatedTabBar(props) {
-  const translateY = tabBarAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, TABBAR_HEIGHT + 20], // desliza totalmente + folga
-  });
-
+function TabBar(props) {
   return (
-    <Animated.View
+    <View
       style={{
-        transform: [{ translateY }],
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
         backgroundColor: "#181818",
       }}
     >
       <BottomTabBar {...props} />
-    </Animated.View>
+    </View>
   );
 }
 
@@ -61,17 +31,17 @@ function AnimatedTabBar(props) {
  * --------------------------------- */
 export default function _TabsLayout() {
   const { counts } = useNotifications();
-    const { user } = useAuth();
+  const { user } = useAuth();
 
   if (!user) {
     return <Redirect href="/(auth)/login" />;
   }
+
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <Tabs
-        // usamos nossa TabBar customizada
-        tabBar={(props) => <AnimatedTabBar {...props} />}
+        tabBar={(props) => <TabBar {...props} />}
         screenOptions={{
           tabBarStyle: {
             backgroundColor: "#181818",
