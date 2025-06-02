@@ -1,6 +1,5 @@
 import React, {
   useState,
-  useContext,
   useCallback,
   useRef,
   useMemo,
@@ -12,8 +11,8 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
-  Platform,
-  Modal,
+  Animated,
+  StyleSheet,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { FlashList } from "@shopify/flash-list";
@@ -27,18 +26,69 @@ import Post from "@/components/Post";
 import ModalSearch from "@/components/index/ModalSearch";
 import SideDrawer from "@/components/index/SideDrawer";
 import { useAuth } from "@/contexts/AuthContext";
-import { Redirect, useFocusEffect } from "expo-router";
+import { hideTabBar, showTabBar } from "./_layout";
+import { useFocusEffect } from "expo-router";
 import log from "@/utils/logger";
 
+// Constants
 const HEADER_HEIGHT = 76;
 const HIDE_THRESHOLD = 8;
 
-// Sistema de logs melhorado
+// Styles
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  emptyListContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HEADER_HEIGHT,
+    zIndex: 30,
+  },
+  searchButton: {
+    flexDirection: 'row',
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 999,
+    paddingVertical: 12,
+    marginHorizontal: 8,
+  },
+  avatarContainer: {
+    height: 44,
+    width: 44,
+    borderRadius: 22,
+    backgroundColor: '#9ca3af',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
+// Logger
 const logger = {
-  info: (message, data) =>
-    __DEV__ && console.log(`[HOME][INFO] ${message}`, data),
-  warn: (message, data) =>
-    __DEV__ && console.warn(`[HOME][WARN] ${message}`, data),
+  info: (message, data) => __DEV__ && console.log(`[HOME][INFO] ${message}`, data),
+  warn: (message, data) => __DEV__ && console.warn(`[HOME][WARN] ${message}`, data),
   error: (message, error) => {
     if (__DEV__) {
       console.error(`[HOME][ERROR] ${message}`, error);
@@ -46,17 +96,14 @@ const logger = {
       log.error(message, error);
     }
   },
-  debug: (message, data) =>
-    __DEV__ && console.debug(`[HOME][DEBUG] ${message}`, data),
+  debug: (message, data) => __DEV__ && console.debug(`[HOME][DEBUG] ${message}`, data),
 };
 
-// Componente UserAvatar memoizado
+// Memoized Components
 const UserAvatar = React.memo(({ uri, nameInitial, pending, error }) => {
-  logger.debug("Renderizando UserAvatar", { pending, error });
-
   if (pending) {
     return (
-      <View className="h-11 w-11 rounded-full bg-gray-200 items-center justify-center">
+      <View style={styles.avatarContainer}>
         <ActivityIndicator size="small" />
       </View>
     );
@@ -64,44 +111,34 @@ const UserAvatar = React.memo(({ uri, nameInitial, pending, error }) => {
 
   if (error) {
     return (
-      <View className="h-11 w-11 rounded-full bg-gray-200 items-center justify-center">
-        <Text className="text-lg font-bold">!</Text>
+      <View style={styles.avatarContainer}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>!</Text>
       </View>
     );
   }
 
   return (
-    <View className="h-11 w-11 rounded-full bg-gray-400 overflow-hidden items-center justify-center">
+    <View style={styles.avatarContainer}>
       {uri ? (
-        <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
+        <Image source={{ uri }} style={{ height: '100%', width: '100%' }} resizeMode="cover" />
       ) : (
-        <Text className="text-lg font-bold text-black">{nameInitial}</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'black' }}>{nameInitial}</Text>
       )}
     </View>
   );
 });
 
-// Componente Header memoizado
 const Header = React.memo(({ avatarProps, onSearch, onMenu, translateY }) => {
-  logger.debug("Renderizando Header");
-
   return (
-    <View
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: HEADER_HEIGHT,
-        zIndex: 30,
-      }}
+    <Animated.View
+      style={[styles.header, { transform: [{ translateY }] }]}
       className="bg-white border-b border-gray-100 flex-row items-center px-4"
     >
       <UserAvatar {...avatarProps} />
 
       <Pressable
         onPress={onSearch}
-        className="flex-row w-full items-center bg-gray-100 rounded-full py-3 mx-2"
+        style={styles.searchButton}
         accessibilityRole="search"
         testID="search-button"
       >
@@ -111,17 +148,16 @@ const Header = React.memo(({ avatarProps, onSearch, onMenu, translateY }) => {
           color="#9CA3AF"
           style={{ marginLeft: 16 }}
         />
-        <Text className="ml-2 text-gray-700 text-base">Busque por vagas</Text>
+        <Text style={{ marginLeft: 8, color: '#374151', fontSize: 16 }}>Busque por vagas</Text>
       </Pressable>
 
       <Pressable onPress={onMenu} hitSlop={8} accessibilityLabel="Abrir menu">
         <MenuIcon size={27} strokeWidth={2} color="#000" />
       </Pressable>
-    </View>
+    </Animated.View>
   );
 });
 
-// Componente Post memoizado com comparação profunda
 const MemoizedPost = React.memo(
   ({
     postId,
@@ -135,8 +171,6 @@ const MemoizedPost = React.memo(
     LikeCount,
     onCommentPress,
   }) => {
-    logger.debug(`Renderizando Post ${postId}`);
-
     return (
       <Post
         postId={postId}
@@ -162,7 +196,6 @@ const MemoizedPost = React.memo(
   }
 );
 
-// Função de renderização de modal otimizada
 const renderModal = (Component, visible, props = {}) => {
   return visible ? (
     <GestureHandlerRootView
@@ -179,50 +212,38 @@ const renderModal = (Component, visible, props = {}) => {
 };
 
 const HomeScreen = () => {
-  logger.info("Inicializando HomeScreen");
-
-  // Estado
+  // State
   const [searchVisible, setSearchVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   // Refs
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const lastScrollY = useRef(0);
 
-  // Contextos
+  // Context
   const { user, setUser } = useAuth();
-  logger.debug("Estado do usuário", user ? { id: user.id } : "null");
-
   const { fetchNotifications } = useNotifications();
 
   // Callbacks
   const closeAllModals = useCallback(() => {
-    logger.debug("Fechando todos os modais");
     setSearchVisible(false);
     setCommentModalVisible(false);
     setDrawerVisible(false);
   }, []);
 
   const openCommentModal = useCallback((post) => {
-    logger.debug(`Abrindo modal de comentários para post: ${post.id}`);
     setSelectedPost(post);
     setCommentModalVisible(true);
   }, []);
 
-  // Queries
+  // API Queries
   const fetchUser = useCallback(async () => {
-    logger.debug("Buscando dados do usuário");
-
-    if (!user?.id) {
-      logger.warn("ID do usuário não disponível para fetchUser");
-      throw new Error("ID do usuário não disponível");
-    }
-
-    logger.debug(`Chamando API para dados do usuário ID: ${user.id}`);
+    if (!user?.id) throw new Error("ID do usuário não disponível");
+    
     const { data } = await api.get(`/user/users/${user.id}`);
-
-    logger.debug("Dados do usuário recebidos", data.data);
-
     setUser((prev) => ({ ...prev, ...data }));
     return data;
   }, [user?.id, setUser]);
@@ -235,7 +256,7 @@ const HomeScreen = () => {
     queryKey: ["userData", user?.id],
     queryFn: fetchUser,
     enabled: !!user?.token,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 60 * 5,
   });
 
   const {
@@ -250,15 +271,9 @@ const HomeScreen = () => {
   } = useInfiniteQuery({
     queryKey: ["posts"],
     queryFn: async ({ pageParam = 0 }) => {
-      logger.debug(`Buscando posts, offset: ${pageParam}`);
       const { data } = await api.get("/user/posts", {
-        params: {
-          limit: 10,
-          offset: pageParam,
-          include: "comments,likes",
-        },
+        params: { limit: 10, offset: pageParam, include: "comments,likes" },
       });
-
       return {
         posts: data.posts,
         nextOffset: data.posts.length >= 10 ? pageParam + 10 : undefined,
@@ -266,74 +281,77 @@ const HomeScreen = () => {
     },
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     initialPageParam: 0,
-    staleTime: 1000 * 60 * 10, // 10 minutos
-    gcTime: 1000 * 60 * 30, // 30 minutos para garbage collection
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
   });
 
   // Memoized values
-  const allPosts = useMemo(() => {
-    const posts = postsData?.pages.flatMap((p) => p.posts) || [];
-    logger.debug(`Todos os posts combinados: ${posts.length}`);
-    return posts;
-  }, [postsData]);
+  const allPosts = useMemo(() => postsData?.pages.flatMap((p) => p.posts) || [], [postsData]);
 
-  const avatarProps = useMemo(() => {
-    const props = {
-      uri: userData?.profile_img || user?.profile_img,
-      nameInitial: (userData?.nome || user?.nome || "U")
-        .charAt(0)
-        .toUpperCase(),
-    };
-    logger.debug("Props do avatar", props);
-    return props;
-  }, [userData, user]);
+  const avatarProps = useMemo(() => ({
+    uri: userData?.profile_img || user?.profile_img,
+    nameInitial: (userData?.nome || user?.nome || "U").charAt(0).toUpperCase(),
+    pending: loadingUser,
+    error: errorUser,
+  }), [userData, user, loadingUser, errorUser]);
 
-  // Efeitos
+  // Effects
   useFocusEffect(
     useCallback(() => {
-      logger.debug("Tela em foco - buscando notificações");
       fetchNotifications();
     }, [fetchNotifications])
   );
 
   useEffect(() => {
     let isMounted = true;
-    const notificationInterval = 5 * 60 * 1000; // 5 minutos
+    const notificationInterval = 5 * 60 * 1000;
 
     const fetchAndSchedule = async () => {
       try {
         await fetchNotifications();
-        if (isMounted) {
-          setTimeout(fetchAndSchedule, notificationInterval);
-        }
+        if (isMounted) setTimeout(fetchAndSchedule, notificationInterval);
       } catch (error) {
-        logger.error("Erro nas notificações", error);
-        if (isMounted) {
-          setTimeout(fetchAndSchedule, 10000); // Retry após 10s em caso de erro
-        }
+        if (isMounted) setTimeout(fetchAndSchedule, 10000);
       }
     };
 
     fetchAndSchedule();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [fetchNotifications]);
 
-  const loadMore = useCallback(() => {
-    logger.debug("Verificando carregamento de mais posts", {
-      hasNextPage,
-      isFetchingNextPage,
-    });
+  const handleScroll = useCallback(
+    (event) => {
+      const currentY = event.nativeEvent.contentOffset.y;
+      const deltaY = currentY - lastScrollY.current;
 
-    if (hasNextPage && !isFetchingNextPage) {
-      logger.debug("Chamando fetchNextPage");
-      fetchNextPage();
-    }
+      if (deltaY > HIDE_THRESHOLD && !headerHidden) {
+        setHeaderHidden(true);
+        hideTabBar();
+        Animated.timing(headerAnim, {
+          toValue: -HEADER_HEIGHT,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      } else if (deltaY < -HIDE_THRESHOLD && headerHidden) {
+        setHeaderHidden(false);
+        showTabBar();
+        Animated.timing(headerAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }
+
+      lastScrollY.current = currentY;
+    },
+    [headerHidden, headerAnim]
+  );
+
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Verificações de estado
+  // Render
   if (!user || !user.token) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -342,41 +360,28 @@ const HomeScreen = () => {
     );
   }
 
-  logger.debug("Estado atual", {
-    searchVisible,
-    drawerVisible,
-    commentModalVisible,
-    selectedPost: selectedPost?.id,
-    fetchingPosts,
-    loadingUser,
-    postCount: allPosts.length,
-  });
-
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
+    <View style={styles.container}>
       <Header
         avatarProps={avatarProps}
-        onSearch={() => {
-          logger.debug("Botão de pesquisa pressionado");
-          setSearchVisible(true);
-        }}
+        onSearch={() => setSearchVisible(true)}
         onMenu={() => {
-          logger.debug("Botão de menu pressionado");
           setSearchVisible(false);
           setDrawerVisible(true);
         }}
+        translateY={headerAnim}
       />
 
       {errorPosts ? (
-        <View className="items-center justify-center mt-10">
-          <Text className="text-red-600 text-lg">
+        <View style={styles.errorContainer}>
+          <Text style={{ color: '#dc2626', fontSize: 18 }}>
             Erro: {postsError?.message || "Falha ao carregar posts"}
           </Text>
           <Pressable
-            className="mt-4 bg-blue-500 px-4 py-2 rounded"
+            style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Text className="text-white">Tentar novamente</Text>
+            <Text style={{ color: 'white' }}>Tentar novamente</Text>
           </Pressable>
         </View>
       ) : (
@@ -400,37 +405,29 @@ const HomeScreen = () => {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           estimatedItemSize={450}
-          scrollEventThrottle={32}
-          removeClippedSubviews={false}
-          contentContainerStyle={{
-            paddingTop: HEADER_HEIGHT,
-          }}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
           ListFooterComponent={
             hasNextPage ? (
-              <View className="py-6">
+              <View style={{ paddingVertical: 24 }}>
                 <ActivityIndicator size="large" />
               </View>
             ) : null
           }
           ListEmptyComponent={
             !fetchingPosts && (
-              <View className="items-center justify-center mt-10">
-                <Text className="text-gray-500 text-lg">
+              <View style={styles.emptyListContainer}>
+                <Text style={{ color: '#6b7280', fontSize: 18 }}>
                   Nenhum post encontrado.
                 </Text>
               </View>
             )
           }
-          disableHorizontalMomentum={true}
-          drawDistance={500}
-          overrideItemLayout={(layout, item) => {
-            layout.size = 450;
-          }}
         />
       )}
 
       {renderModal(ModalSearch, searchVisible, { onClose: closeAllModals })}
-
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
         profile_img: user?.profile_img,
@@ -439,10 +436,7 @@ const HomeScreen = () => {
 
       <SideDrawer
         visible={drawerVisible}
-        onClose={() => {
-          logger.debug("Fechando drawer");
-          setDrawerVisible(false);
-        }}
+        onClose={() => setDrawerVisible(false)}
         user={userData || user || {}}
       />
     </View>

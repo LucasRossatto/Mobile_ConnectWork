@@ -138,6 +138,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
+          router.replace("/(tabs)/home")
           console.log(
             "[AUTH] Usuário e token encontrados, configurando estado"
           );
