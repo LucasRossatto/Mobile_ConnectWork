@@ -3,18 +3,18 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "**/*.jsx",
+    "**/*.js",
     ".expo/types/**/*.ts",
     "src/types/expo-env.d.ts",
     "src/types/nativewind-env.d.ts",
     "nativewind-env.d.ts",
     "expo-env.d.ts"
-, "src/app/(auth)/(stacks)/register.jsx", "src/app/(auth)/(stacks)/login.jsx", "src/app/_layout.jsx", "src/app/(auth)/(stacks)/_layout.jsx", "src/app/(auth)/(stacks)/index.jsx", "src/components/Post.jsx", "src/app/(auth)/(stacks)/forgotPassword.jsx", "src/config/toast.js", "src/components/forgotPassword/NewPasswordStep.jsx", "src/components/forgotPassword/RequestCodeStep.jsx", "src/components/forgotPassword/VerifyCodeStep.jsx", "src/app/(auth)/_layout.jsx"  ]
+  ]
 }

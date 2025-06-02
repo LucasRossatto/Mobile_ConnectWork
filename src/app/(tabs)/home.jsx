@@ -15,6 +15,7 @@ import {
   Platform,
   Modal,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { FlashList } from "@shopify/flash-list";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { Menu as MenuIcon } from "lucide-react-native";
@@ -100,7 +101,7 @@ const Header = React.memo(({ avatarProps, onSearch, onMenu, translateY }) => {
 
       <Pressable
         onPress={onSearch}
-        className="flex-row flex-1 items-center bg-gray-100 rounded-full py-3 mx-2"
+        className="flex-row w-full items-center bg-gray-100 rounded-full py-3 mx-2"
         accessibilityRole="search"
         testID="search-button"
       >
@@ -164,7 +165,7 @@ const MemoizedPost = React.memo(
 // Função de renderização de modal otimizada
 const renderModal = (Component, visible, props = {}) => {
   return visible ? (
-    <View
+    <GestureHandlerRootView
       style={{
         position: "absolute",
         width: "100%",
@@ -173,7 +174,7 @@ const renderModal = (Component, visible, props = {}) => {
       }}
     >
       <Component {...props} />
-    </View>
+    </GestureHandlerRootView>
   ) : null;
 };
 
@@ -220,10 +221,7 @@ const HomeScreen = () => {
     logger.debug(`Chamando API para dados do usuário ID: ${user.id}`);
     const { data } = await api.get(`/user/users/${user.id}`);
 
-    logger.debug("Dados do usuário recebidos", {
-      id: data.id,
-      nome: data.nome,
-    });
+    logger.debug("Dados do usuário recebidos", data.data);
 
     setUser((prev) => ({ ...prev, ...data }));
     return data;
@@ -285,12 +283,10 @@ const HomeScreen = () => {
       nameInitial: (userData?.nome || user?.nome || "U")
         .charAt(0)
         .toUpperCase(),
-      pending: loadingUser,
-      error: errorUser,
     };
     logger.debug("Props do avatar", props);
     return props;
-  }, [userData, user, loadingUser, errorUser]);
+  }, [userData, user]);
 
   // Efeitos
   useFocusEffect(
@@ -339,14 +335,13 @@ const HomeScreen = () => {
 
   // Verificações de estado
   if (!user || !user.token) {
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Usuário não autenticado, por favor faça login.</Text>
-    </View>
-  );
-}
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Usuário não autenticado, por favor faça login.</Text>
+      </View>
+    );
+  }
 
- 
   logger.debug("Estado atual", {
     searchVisible,
     drawerVisible,
@@ -373,7 +368,7 @@ const HomeScreen = () => {
       />
 
       {errorPosts ? (
-        <View className="flex-1 items-center justify-center mt-10">
+        <View className="items-center justify-center mt-10">
           <Text className="text-red-600 text-lg">
             Erro: {postsError?.message || "Falha ao carregar posts"}
           </Text>
@@ -419,7 +414,7 @@ const HomeScreen = () => {
           }
           ListEmptyComponent={
             !fetchingPosts && (
-              <View className="flex-1 items-center justify-center mt-10">
+              <View className="items-center justify-center mt-10">
                 <Text className="text-gray-500 text-lg">
                   Nenhum post encontrado.
                 </Text>
