@@ -132,10 +132,18 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
         throw new Error("Nenhuma palavra pode ter mais de 50 caracteres.");
       }
 
-      const response = await api.post(`/user/postcomment/${postId}`, {
+      // Determine if the user is a company or regular user
+      const isCompany = user.role === "company";
+      const endpoint = isCompany
+        ? `/company/postcomment/${postId}`
+        : `/user/postcomment/${postId}`;
+      
+      const payload = {
         content: commentData.content,
-        userId: commentData.user,
-      });
+        [isCompany ? "companyId" : "userId"]: user.id,
+      };
+
+      const response = await api.post(endpoint, payload);
       return response.data;
     },
     onSuccess: () => {
@@ -247,6 +255,22 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
     }
   };
 
+  // Function to check if comment is from a company
+  const isCompanyComment = (comment) => {
+    return !!comment.company || !!comment.Company || !!comment.companyId;
+  };
+
+  // Function to get comment author
+  const getCommentAuthor = (comment) => {
+    return comment.user || comment.User || comment.company || comment.Company;
+  };
+
+  // Function to check if current user is the author of the comment
+  const isCommentAuthor = (comment) => {
+    const author = getCommentAuthor(comment);
+    return author?.id === user?.id;
+  };
+
   return (
     <GestureHandlerRootView>
       <Modal
@@ -306,105 +330,118 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
                   </Text>
                 </View>
               ) : (
-                comments.map((item) => (
-                  <View key={item.id} className="flex-row mb-3">
-                    {/* Renderização do comentário */}
-                    <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center mr-2 overflow-hidden">
-                      {item.user?.profile_img ? (
-                        <Image
-                          source={{ uri: item.user?.profile_img }}
-                          className="w-full h-full"
-                        />
-                      ) : (
-                        <Text className="text-sm font-bold text-black text-center">
-                          {item.user?.nome?.charAt(0)?.toUpperCase()}
-                        </Text>
-                      )}
-                    </View>
+                comments.map((item) => {
+                  const author = getCommentAuthor(item);
+                  const isCompany = isCompanyComment(item);
+                  const isAuthor = isCommentAuthor(item);
 
-                    <View className="flex-1 relative">
-                      <View className="bg-gray-100 py-2 pl-4 rounded-xl rounded-tl-none">
-                        <Text className="font-bold text-sm mb-0.5">
-                          {item.user?.nome}
-                        </Text>
-                        <Text className="text-sm text-gray-700">
-                          {item.content}
-                        </Text>
+                  return (
+                    <View key={item.id} className="flex-row mb-3">
+                      {/* Renderização do comentário */}
+                      <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center mr-2 overflow-hidden">
+                        {author?.profile_img ? (
+                          <Image
+                            source={{ uri: author.profile_img }}
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <Text className="text-sm font-bold text-black text-center">
+                            {author?.nome?.charAt(0)?.toUpperCase()}
+                          </Text>
+                        )}
                       </View>
 
-                      {/* Menu de opções do comentário */}
-                      <TouchableOpacity
-                        className="absolute top-1 right-1 p-1"
-                        onPress={() =>
-                          setActiveCommentMenu(
-                            activeCommentMenu === item.id ? null : item.id
-                          )
-                        }
-                      >
-                        <MoreVertical size={16} color="#6b7280" />
-                      </TouchableOpacity>
+                      <View className="flex-1 relative">
+                        <View className="bg-gray-100 py-2 pl-4 rounded-xl rounded-tl-none">
+                          <View className="flex-row items-center">
+                            <Text className="font-bold text-sm mb-0.5">
+                              {author?.nome}
+                            </Text>
+                            {isCompany && (
+                              <Text className="text-xs text-blue-500 ml-2">
+                                (Empresa)
+                              </Text>
+                            )}
+                          </View>
+                          <Text className="text-sm text-gray-700">
+                            {item.content}
+                          </Text>
+                        </View>
 
-                      {activeCommentMenu === item.id && (
-                        <View className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-md py-2 z-10">
-                          {item.user?.id === user.id ? (
-                            <View>
+                        {/* Menu de opções do comentário */}
+                        <TouchableOpacity
+                          className="absolute top-1 right-1 p-1"
+                          onPress={() =>
+                            setActiveCommentMenu(
+                              activeCommentMenu === item.id ? null : item.id
+                            )
+                          }
+                        >
+                          <MoreVertical size={16} color="#6b7280" />
+                        </TouchableOpacity>
+
+                        {activeCommentMenu === item.id && (
+                          <View className="absolute right-0 top-6 w-32 bg-white rounded-lg shadow-md py-2 z-10">
+                            {isAuthor ? (
+                              <View>
+                                <TouchableOpacity
+                                  className="flex-row items-center px-3 py-2 gap-2"
+                                  onPress={() => {
+                                    setShowReportPopupComment(true);
+                                    setActiveCommentMenu(null);
+                                    setReportCommentId(item.id);
+                                  }}
+                                >
+                                  <Flag
+                                    size={16}
+                                    color="#f59e0b"
+                                    className="mr-2"
+                                  />
+                                  <Text className="text-sm text-[#f59e0b]">
+                                    Denunciar
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  className="flex-row items-center px-3 py-2 gap-2"
+                                  onPress={() => {
+                                    setShowDeleteConfirm(true);
+                                    setCommentToDelete(item.id);
+                                    setActiveCommentMenu(null);
+                                  }}
+                                >
+                                  <Trash2
+                                    size={16}
+                                    color="#ef4444"
+                                    className="mr-2"
+                                  />
+                                  <Text className="text-sm text-red-500">
+                                    Excluir
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
                               <TouchableOpacity
-                                className="flex-row items-center px-3 py-2 gap-2"
+                                className="flex-row items-center px-3 py-2"
                                 onPress={() => {
                                   setShowReportPopupComment(true);
                                   setActiveCommentMenu(null);
                                   setReportCommentId(item.id);
                                 }}
                               >
-                                <Flag
+                                <AlertTriangle
                                   size={16}
                                   color="#f59e0b"
                                   className="mr-2"
                                 />
-                                <Text className="text-sm text-[#f59e0b]">
-                                  Denunciar
-                                </Text>
+                                <Text className="text-sm">Denunciar</Text>
                               </TouchableOpacity>
-                              <TouchableOpacity
-                                className="flex-row items-center px-3 py-2 gap-2"
-                                onPress={() => {
-                                  setShowDeleteConfirm(true);
-                                  setCommentToDelete(item.id);
-                                  setActiveCommentMenu(null);
-                                }}
-                              >
-                                <Trash2
-                                  size={16}
-                                  color="#ef4444"
-                                  className="mr-2"
-                                />
-                                <Text className="text-sm text-red-500">
-                                  Excluir
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              className="flex-row items-center px-3 py-2"
-                              onPress={() => {
-                                setShowReportPopupComment(true);
-                                setActiveCommentMenu(null);
-                                setReportCommentId(item.id);
-                              }}
-                            >
-                              <AlertTriangle
-                                size={16}
-                                color="#f59e0b"
-                                className="mr-2"
-                              />
-                              <Text className="text-sm">Denunciar</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )}
+                            )}
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
             </ScrollView>
 
