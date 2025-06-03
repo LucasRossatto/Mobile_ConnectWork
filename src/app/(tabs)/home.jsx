@@ -20,6 +20,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { Menu as MenuIcon } from "lucide-react-native";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import ModalCommentBox from "@/components/ModalCommentBox";
+import ReportModal from "@/components/ReportModal";
 import { useNotifications } from "@/contexts/NotificationContext";
 import api from "@/services/api";
 import Post from "@/components/Post";
@@ -38,23 +39,23 @@ const HIDE_THRESHOLD = 8;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   errorContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: '#3b82f6',
+    backgroundColor: "#3b82f6",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 4,
   },
   emptyListContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   header: {
@@ -66,10 +67,10 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   searchButton: {
-    flexDirection: 'row',
+    flexDirection: "row",
     flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
     borderRadius: 999,
     paddingVertical: 12,
     marginHorizontal: 8,
@@ -78,17 +79,19 @@ const styles = StyleSheet.create({
     height: 44,
     width: 44,
     borderRadius: 22,
-    backgroundColor: '#9ca3af',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#9ca3af",
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
 // Logger
 const logger = {
-  info: (message, data) => __DEV__ && console.log(`[HOME][INFO] ${message}`, data),
-  warn: (message, data) => __DEV__ && console.warn(`[HOME][WARN] ${message}`, data),
+  info: (message, data) =>
+    __DEV__ && console.log(`[HOME][INFO] ${message}`, data),
+  warn: (message, data) =>
+    __DEV__ && console.warn(`[HOME][WARN] ${message}`, data),
   error: (message, error) => {
     if (__DEV__) {
       console.error(`[HOME][ERROR] ${message}`, error);
@@ -96,7 +99,8 @@ const logger = {
       log.error(message, error);
     }
   },
-  debug: (message, data) => __DEV__ && console.debug(`[HOME][DEBUG] ${message}`, data),
+  debug: (message, data) =>
+    __DEV__ && console.debug(`[HOME][DEBUG] ${message}`, data),
 };
 
 // Memoized Components
@@ -112,7 +116,7 @@ const UserAvatar = React.memo(({ uri, nameInitial, pending, error }) => {
   if (error) {
     return (
       <View style={styles.avatarContainer}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>!</Text>
+        <Text style={{ fontSize: 18, fontWeight: "bold" }}>!</Text>
       </View>
     );
   }
@@ -120,9 +124,15 @@ const UserAvatar = React.memo(({ uri, nameInitial, pending, error }) => {
   return (
     <View style={styles.avatarContainer}>
       {uri ? (
-        <Image source={{ uri }} style={{ height: '100%', width: '100%' }} resizeMode="cover" />
+        <Image
+          source={{ uri }}
+          style={{ height: "100%", width: "100%" }}
+          resizeMode="cover"
+        />
       ) : (
-        <Text style={{ fontSize: 18, fontWeight: 'bold', color: 'black' }}>{nameInitial}</Text>
+        <Text style={{ fontSize: 18, fontWeight: "bold", color: "black" }}>
+          {nameInitial}
+        </Text>
       )}
     </View>
   );
@@ -148,7 +158,9 @@ const Header = React.memo(({ avatarProps, onSearch, onMenu, translateY }) => {
           color="#9CA3AF"
           style={{ marginLeft: 16 }}
         />
-        <Text style={{ marginLeft: 8, color: '#374151', fontSize: 16 }}>Busque por vagas</Text>
+        <Text style={{ marginLeft: 8, color: "#374151", fontSize: 16 }}>
+          Busque por vagas
+        </Text>
       </Pressable>
 
       <Pressable onPress={onMenu} hitSlop={8} accessibilityLabel="Abrir menu">
@@ -170,6 +182,7 @@ const MemoizedPost = React.memo(
     img,
     LikeCount,
     onCommentPress,
+    onReportPress,
   }) => {
     return (
       <Post
@@ -183,6 +196,7 @@ const MemoizedPost = React.memo(
         img={img}
         LikeCount={LikeCount}
         onCommentPress={onCommentPress}
+        onReportPress={onReportPress}
       />
     );
   },
@@ -218,6 +232,7 @@ const HomeScreen = () => {
   const [headerHidden, setHeaderHidden] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   // Refs
   const headerAnim = useRef(new Animated.Value(0)).current;
@@ -231,6 +246,7 @@ const HomeScreen = () => {
   const closeAllModals = useCallback(() => {
     setSearchVisible(false);
     setCommentModalVisible(false);
+    setReportModalVisible(false);
     setDrawerVisible(false);
   }, []);
 
@@ -239,10 +255,15 @@ const HomeScreen = () => {
     setCommentModalVisible(true);
   }, []);
 
+  const openReportModal = useCallback((postId) => {
+  setSelectedPost(postId);
+  setReportModalVisible(true);
+}, []);
+
   // API Queries
   const fetchUser = useCallback(async () => {
     if (!user?.id) throw new Error("ID do usuário não disponível");
-    
+
     const { data } = await api.get(`/user/users/${user.id}`);
     setUser((prev) => ({ ...prev, ...data }));
     return data;
@@ -286,14 +307,22 @@ const HomeScreen = () => {
   });
 
   // Memoized values
-  const allPosts = useMemo(() => postsData?.pages.flatMap((p) => p.posts) || [], [postsData]);
+  const allPosts = useMemo(
+    () => postsData?.pages.flatMap((p) => p.posts) || [],
+    [postsData]
+  );
 
-  const avatarProps = useMemo(() => ({
-    uri: userData?.profile_img || user?.profile_img,
-    nameInitial: (userData?.nome || user?.nome || "U").charAt(0).toUpperCase(),
-    pending: loadingUser,
-    error: errorUser,
-  }), [userData, user, loadingUser, errorUser]);
+  const avatarProps = useMemo(
+    () => ({
+      uri: userData?.profile_img || user?.profile_img,
+      nameInitial: (userData?.nome || user?.nome || "U")
+        .charAt(0)
+        .toUpperCase(),
+      pending: loadingUser,
+      error: errorUser,
+    }),
+    [userData, user, loadingUser, errorUser]
+  );
 
   // Effects
   useFocusEffect(
@@ -316,7 +345,9 @@ const HomeScreen = () => {
     };
 
     fetchAndSchedule();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [fetchNotifications]);
 
   const handleScroll = useCallback(
@@ -374,14 +405,11 @@ const HomeScreen = () => {
 
       {errorPosts ? (
         <View style={styles.errorContainer}>
-          <Text style={{ color: '#dc2626', fontSize: 18 }}>
+          <Text style={{ color: "#dc2626", fontSize: 18 }}>
             Erro: {postsError?.message || "Falha ao carregar posts"}
           </Text>
-          <Pressable
-            style={styles.retryButton}
-            onPress={() => refetch()}
-          >
-            <Text style={{ color: 'white' }}>Tentar novamente</Text>
+          <Pressable style={styles.retryButton} onPress={() => refetch()}>
+            <Text style={{ color: "white" }}>Tentar novamente</Text>
           </Pressable>
         </View>
       ) : (
@@ -399,6 +427,7 @@ const HomeScreen = () => {
               img={item.images}
               LikeCount={item.numberLikes}
               onCommentPress={() => openCommentModal(item)}
+              onReportPress={() => openReportModal(item.id)} 
             />
           )}
           keyExtractor={(item) => `post-${item.id}`}
@@ -418,7 +447,7 @@ const HomeScreen = () => {
           ListEmptyComponent={
             !fetchingPosts && (
               <View style={styles.emptyListContainer}>
-                <Text style={{ color: '#6b7280', fontSize: 18 }}>
+                <Text style={{ color: "#6b7280", fontSize: 18 }}>
                   Nenhum post encontrado.
                 </Text>
               </View>
@@ -431,6 +460,11 @@ const HomeScreen = () => {
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
         profile_img: user?.profile_img,
+        onClose: closeAllModals,
+      })}
+
+      {renderModal(ReportModal, reportModalVisible, {
+        postId: selectedPost?.id,
         onClose: closeAllModals,
       })}
 

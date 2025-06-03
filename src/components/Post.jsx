@@ -50,12 +50,12 @@ const Post = ({
   onLikeSuccess,
   onCommentPress,
   authorId,
+  onReportPress,
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [showMenu, setShowMenu] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -198,29 +198,6 @@ const Post = ({
       queryClient.invalidateQueries(["likes", postId]);
     },
   });
-
-  // 6. Mutação para reportar post
-  const reportPostMutation = useMutation({
-    mutationFn: (reportData) =>
-      api.post(`/user/report/post/${postId}`, reportData),
-    onSuccess: () => {
-      Alert.alert("Sucesso", "Post denunciado com sucesso!");
-      setReportReason("");
-      setReportDescription("");
-      setShowReportModal(false);
-      queryClient.setQueryData(["posts"], (oldData) => {
-        if (!oldData) return oldData;
-        return oldData.filter((post) => post.id !== postId);
-      });
-    },
-    onError: (error) => {
-      const errorMessage =
-        error.response?.data?.message ||
-        "Erro ao denunciar o post. Tente novamente.";
-      Alert.alert("Erro", errorMessage);
-    },
-  });
-
   const handleLike = () => {
     if (!user) {
       log.debug("Usuário não autenticado tentou curtir");
@@ -229,24 +206,6 @@ const Post = ({
     }
     log.debug(`Tentando ${isLiked ? "descurtir" : "curtir"} o post ${postId}`);
     likeMutation.mutate();
-  };
-
-  const handleReportPost = () => {
-    if (!reportReason) {
-      Alert.alert("Atenção", "Por favor, selecione um motivo para a denúncia");
-      return;
-    }
-
-    if (!reportDescription || reportDescription.length < 10) {
-      Alert.alert("Atenção", "A descrição deve ter pelo menos 10 caracteres");
-      return;
-    }
-
-    reportPostMutation.mutate({
-      reason: reportReason,
-      description: reportDescription,
-      notifierId: user.id,
-    });
   };
 
   const tapGesture = Gesture.Tap().onFinalize(() => {
@@ -361,7 +320,7 @@ const Post = ({
             <TouchableOpacity
               className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50"
               onPress={() => {
-                setShowReportModal(true);
+                onReportPress(postId);
                 setShowMenu(false);
               }}
             >
@@ -488,66 +447,6 @@ const Post = ({
           <Text className="text-sm text-gray-600 ml-2">{comments.length}</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Modal de Denúncia */}
-      <Modal
-        visible={showReportModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowReportModal(false)}
-      >
-        <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white p-6 rounded-lg w-11/12">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold">Denunciar Post</Text>
-              <TouchableOpacity onPress={() => setShowReportModal(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-
-            <Text className="text-sm text-gray-600 mb-2">
-              Escolha um motivo:
-            </Text>
-            <View className="border rounded mb-4">
-              <Picker
-                selectedValue={reportReason}
-                onValueChange={(itemValue) => setReportReason(itemValue)}
-              >
-                <Picker.Item label="Selecione um motivo" value="" />
-                <Picker.Item label="Spam" value="Spam" />
-                <Picker.Item
-                  label="Conteúdo impróprio"
-                  value="Conteúdo impróprio"
-                />
-                <Picker.Item label="Assédio" value="Assédio" />
-              </Picker>
-            </View>
-
-            <TextInput
-              className="border rounded p-2 mb-4 h-24 text-left align-top"
-              multiline
-              placeholder="Descreva o motivo (mínimo 10 caracteres)"
-              onChangeText={setReportDescription}
-              value={reportDescription}
-            />
-
-            <View className="flex-row justify-end space-x-2">
-              <TouchableOpacity
-                className="px-4 py-2 bg-gray-300 rounded"
-                onPress={() => setShowReportModal(false)}
-              >
-                <Text>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="px-4 py-2 bg-red-600 rounded"
-                onPress={handleReportPost}
-              >
-                <Text className="text-white">Enviar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
