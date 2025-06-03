@@ -137,6 +137,7 @@ export const AuthProvider = ({ children }) => {
           await AsyncStorage.multiRemove([USER_KEY, TOKEN_KEY, ROLE_KEY]);
         } else {
           const parsedUser = JSON.parse(storedUser);
+          setUser(token);
           setUser(parsedUser);
           router.replace("/(tabs)/home")
           console.log(
