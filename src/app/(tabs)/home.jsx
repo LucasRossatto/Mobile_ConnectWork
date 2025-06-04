@@ -85,24 +85,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
-
-// Logger
-const logger = {
-  info: (message, data) =>
-    __DEV__ && console.log(`[HOME][INFO] ${message}`, data),
-  warn: (message, data) =>
-    __DEV__ && console.warn(`[HOME][WARN] ${message}`, data),
-  error: (message, error) => {
-    if (__DEV__) {
-      console.error(`[HOME][ERROR] ${message}`, error);
-    } else {
-      log.error(message, error);
-    }
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: HEADER_HEIGHT,
   },
-  debug: (message, data) =>
-    __DEV__ && console.debug(`[HOME][DEBUG] ${message}`, data),
-};
+});
 
 // Memoized Components
 const UserAvatar = React.memo(({ uri, nameInitial, pending, error }) => {
@@ -403,7 +392,6 @@ const HomeScreen = () => {
         }}
         translateY={headerAnim}
       />
-
       <FlashList
         data={allPosts}
         renderItem={({ item }) => (
@@ -429,25 +417,53 @@ const HomeScreen = () => {
         onScroll={handleScroll}
         contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
         ListFooterComponent={
-          hasNextPage ? (
+          isFetchingNextPage ? (
+            <View style={{ paddingVertical: 24 }}>
+              <ActivityIndicator size="large" />
+              <Text style={{ textAlign: "center", marginTop: 8 }}>
+                Carregando mais posts...
+              </Text>
+            </View>
+          ) : hasNextPage ? (
             <View style={{ paddingVertical: 24 }}>
               <ActivityIndicator size="large" />
             </View>
           ) : null
         }
         ListEmptyComponent={
-          <View style={styles.errorContainer}>
-            <Text style={{ color: "#dc2626", fontSize: 18 }}>
-              Erro: {postsError?.message || "Falha ao carregar posts"}
-            </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-              <Text style={{ color: "white" }}>Tentar novamente</Text>
-            </TouchableOpacity>
-          </View>
+          fetchingPosts ? (
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                paddingTop: HEADER_HEIGHT,
+              }}
+            >
+              <ActivityIndicator size="large" />
+              <Text style={{ marginTop: 16 }}>Carregando posts...</Text>
+            </View>
+          ) : errorPosts ? (
+            <View style={styles.errorContainer}>
+              <Text style={{ color: "#dc2626", fontSize: 18 }}>
+                Erro: {postsError?.message || "Falha ao carregar posts"}
+              </Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => refetch()}
+              >
+                <Text style={{ color: "white" }}>Tentar novamente</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.emptyListContainer}>
+              <Text style={{ fontSize: 18 }}>Nenhum post encontrado</Text>
+            </View>
+          )
         }
       />
-
       {renderModal(ModalSearch, searchVisible, { onClose: closeAllModals })}
+
       {renderModal(ModalCommentBox, commentModalVisible, {
         postId: selectedPost?.id,
         profile_img: user?.profile_img,
