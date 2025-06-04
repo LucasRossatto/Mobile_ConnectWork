@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Modal,
-  TextInput,
   Alert,
   Dimensions,
   ActivityIndicator,
@@ -30,7 +28,6 @@ import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/services/api";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Picker } from "@react-native-picker/picker";
 import log from "@/utils/logger";
 import { FlashList } from "@shopify/flash-list";
 import { Link } from "expo-router";
@@ -56,8 +53,6 @@ const Post = ({
   const queryClient = useQueryClient();
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [showMenu, setShowMenu] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportDescription, setReportDescription] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef(null);
 
