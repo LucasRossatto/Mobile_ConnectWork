@@ -18,7 +18,6 @@ import {
 import {
   Send,
   MoreVertical,
-  AlertTriangle,
   X as CloseIcon,
   Trash2,
   Flag,
@@ -438,14 +437,14 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
                               </View>
                             ) : (
                               <TouchableOpacity
-                                className="flex-row items-center px-3 py-2"
+                                className="flex-row items-center px-3 py-2 gap-2"
                                 onPress={() => {
                                   setShowReportPopupComment(true);
                                   setActiveCommentMenu(null);
                                   setReportCommentId(item.id);
                                 }}
                               >
-                                <AlertTriangle
+                                <Flag
                                   size={16}
                                   color="#f59e0b"
                                   className="mr-2"
