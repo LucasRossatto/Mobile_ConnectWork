@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/Icon_connectwork.png",
+        "foregroundImage": "./assets/images/Icon_adaptive_connectwork.png",
         "backgroundColor": "#181818"
       },
       "permissions": [
