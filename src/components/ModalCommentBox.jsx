@@ -161,8 +161,8 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
       queryClient.invalidateQueries(["notifications", user?.id]);
-      setComment("");
       setErrorMessage("");
+      setComment("");
     },
     onError: (error) => {
       setErrorMessage(error.message);
@@ -175,6 +175,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
   });
 
   const handleSend = async () => {
+    if (commentMutation.isPending) return;
     if (!comment.trim()) {
       setErrorMessage("O comentário não pode estar em branco.");
       return;
@@ -473,21 +474,34 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
 
               <View className="flex-row items-center border bg-white border-gray-300 rounded-2xl px-4 mt-2">
                 <TextInput
-                  placeholder="Escreva um comentário..."
+                  placeholder={
+                    commentMutation.isPending
+                      ? "Enviando comentário..."
+                      : "Escreva um comentário..."
+                  }
                   value={comment}
                   onChangeText={setComment}
-                  onSubmitEditing={handleSend}
                   className="flex-1 py-4 text-base"
+                  editable={!commentMutation.isPending}
+                  multiline={true}
+                  returnKeyType="done"
                 />
                 <TouchableOpacity
                   onPress={handleSend}
                   className="p-2"
-                  disabled={commentMutation.isPending}
+                  disabled={commentMutation.isPending || !comment.trim()}
+                  style={{
+                    opacity:
+                      commentMutation.isPending || !comment.trim() ? 0.5 : 1,
+                  }}
                 >
                   {commentMutation.isPending ? (
                     <ActivityIndicator size="small" color="#3b82f6" />
                   ) : (
-                    <Send size={20} color="#3b82f6" />
+                    <Send
+                      size={20}
+                      color={comment.trim() ? "#3b82f6" : "#9ca3af"}
+                    />
                   )}
                 </TouchableOpacity>
               </View>
