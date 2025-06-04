@@ -51,8 +51,10 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
     if (!author?.id) return;
 
     if (author.id === user?.id) {
+      onClose();
       router.push("/profile");
     } else {
+      onClose();
       router.push(`/neighbor/${author.id}`);
     }
   };
@@ -348,7 +350,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
                   return (
                     <View key={item.id} className="flex-row mb-3">
                       <TouchableOpacity
-                        onPress={navigateToAuthor(item)}
+                        onPress={() => navigateToAuthor(author)}
                         className="mr-2"
                       >
                         <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center  overflow-hidden">
