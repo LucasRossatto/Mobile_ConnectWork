@@ -30,8 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import log from "@/utils/logger";
 import { Picker } from "@react-native-picker/picker";
-import { Link } from "expo-router";
-
+import { useRouter } from "expo-router";
 const { height } = Dimensions.get("window");
 const MODAL_HEIGHT = height * 0.6;
 
@@ -46,6 +45,17 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
+  const router = useRouter();
+
+  const navigateToAuthor = (author) => {
+    if (!author?.id) return;
+
+    if (author.id === user?.id) {
+      router.push("/profile");
+    } else {
+      router.push(`/neighbor/${author.id}`);
+    }
+  };
 
   const { data: comments = [], isLoading: isLoadingComments } = useQuery({
     queryKey: ["comments", postId],
@@ -337,14 +347,8 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
 
                   return (
                     <View key={item.id} className="flex-row mb-3">
-                      <Link
-                        href={
-                          author?.id
-                            ? author?.id === user?.id
-                              ? "/profile"
-                              : `/neighbor/${author?.id}`
-                            : "#"
-                        }
+                      <TouchableOpacity
+                        onPress={navigateToAuthor(item)}
                         className="mr-2"
                       >
                         <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center  overflow-hidden">
@@ -359,7 +363,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
                             </Text>
                           )}
                         </View>
-                      </Link>
+                      </TouchableOpacity>
 
                       <View className="flex-1 relative">
                         <View className="bg-gray-100 py-2 pl-4 rounded-xl rounded-tl-none">
