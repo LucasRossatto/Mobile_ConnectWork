@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ConnectWork",
-    "slug": "ConnectWork",
+    "slug": "mobile_ConnectWork",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/Icon_connectwork.png",
