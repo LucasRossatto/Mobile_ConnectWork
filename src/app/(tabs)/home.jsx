@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Animated,
   StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { FlashList } from "@shopify/flash-list";
@@ -255,10 +256,10 @@ const HomeScreen = () => {
     setCommentModalVisible(true);
   }, []);
 
-  const openReportModal = useCallback((postId) => {
-  setSelectedPost(postId);
-  setReportModalVisible(true);
-}, []);
+  const openReportModal = useCallback((post) => {
+    setSelectedPost(post);
+    setReportModalVisible(true);
+  }, []);
 
   // API Queries
   const fetchUser = useCallback(async () => {
@@ -403,58 +404,48 @@ const HomeScreen = () => {
         translateY={headerAnim}
       />
 
-      {errorPosts ? (
-        <View style={styles.errorContainer}>
-          <Text style={{ color: "#dc2626", fontSize: 18 }}>
-            Erro: {postsError?.message || "Falha ao carregar posts"}
-          </Text>
-          <Pressable style={styles.retryButton} onPress={() => refetch()}>
-            <Text style={{ color: "white" }}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlashList
-          data={allPosts}
-          renderItem={({ item }) => (
-            <MemoizedPost
-              postId={item.id}
-              authorId={item.userId}
-              author={item.user.nome}
-              author_profileImg={item.user.profile_img}
-              content={item.content}
-              date={item.createdAt}
-              category={item.category}
-              img={item.images}
-              LikeCount={item.numberLikes}
-              onCommentPress={() => openCommentModal(item)}
-              onReportPress={() => openReportModal(item.id)} 
-            />
-          )}
-          keyExtractor={(item) => `post-${item.id}`}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          estimatedItemSize={450}
-          scrollEventThrottle={16}
-          onScroll={handleScroll}
-          contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
-          ListFooterComponent={
-            hasNextPage ? (
-              <View style={{ paddingVertical: 24 }}>
-                <ActivityIndicator size="large" />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            !fetchingPosts && (
-              <View style={styles.emptyListContainer}>
-                <Text style={{ color: "#6b7280", fontSize: 18 }}>
-                  Nenhum post encontrado.
-                </Text>
-              </View>
-            )
-          }
-        />
-      )}
+      <FlashList
+        data={allPosts}
+        renderItem={({ item }) => (
+          <MemoizedPost
+            postId={item.id}
+            authorId={item.userId}
+            author={item.user.nome}
+            author_profileImg={item.user.profile_img}
+            content={item.content}
+            date={item.createdAt}
+            category={item.category}
+            img={item.images}
+            LikeCount={item.numberLikes}
+            onCommentPress={() => openCommentModal(item)}
+            onReportPress={() => openReportModal(item)}
+          />
+        )}
+        keyExtractor={(item) => `post-${item.id}`}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        estimatedItemSize={450}
+        scrollEventThrottle={16}
+        onScroll={handleScroll}
+        contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
+        ListFooterComponent={
+          hasNextPage ? (
+            <View style={{ paddingVertical: 24 }}>
+              <ActivityIndicator size="large" />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          <View style={styles.errorContainer}>
+            <Text style={{ color: "#dc2626", fontSize: 18 }}>
+              Erro: {postsError?.message || "Falha ao carregar posts"}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+              <Text style={{ color: "white" }}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       {renderModal(ModalSearch, searchVisible, { onClose: closeAllModals })}
       {renderModal(ModalCommentBox, commentModalVisible, {

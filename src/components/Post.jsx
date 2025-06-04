@@ -319,10 +319,7 @@ const Post = ({
           {showMenu && (
             <TouchableOpacity
               className="absolute right-0 top-8 w-40 bg-white shadow-md rounded-lg py-2 z-50"
-              onPress={() => {
-                onReportPress(postId);
-                setShowMenu(false);
-              }}
+              onPress={onReportPress}
             >
               <View className="flex-row items-center px-4 py-2 gap-2 flex">
                 <Flag size={16} color="#f59e0b" className="mr-2" />
