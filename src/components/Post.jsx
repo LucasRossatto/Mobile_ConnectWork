@@ -17,7 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react-native";
-import { formatPostDate } from "../utils/formatPostDate";
+import { formatPostDate } from "@/utils/formatPostDate";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
