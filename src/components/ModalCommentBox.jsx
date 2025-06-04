@@ -19,7 +19,6 @@ import {
   Send,
   MoreVertical,
   AlertTriangle,
-  User,
   X as CloseIcon,
   Trash2,
   Flag,
@@ -31,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import log from "@/utils/logger";
 import { Picker } from "@react-native-picker/picker";
+import { Link } from "expo-router";
 
 const { height } = Dimensions.get("window");
 const MODAL_HEIGHT = height * 0.6;
@@ -137,7 +137,7 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
       const endpoint = isCompany
         ? `/company/postcomment/${postId}`
         : `/user/postcomment/${postId}`;
-      
+
       const payload = {
         content: commentData.content,
         [isCompany ? "companyId" : "userId"]: user.id,
@@ -337,19 +337,29 @@ const CommentBoxModal = ({ postId, visible, onClose }) => {
 
                   return (
                     <View key={item.id} className="flex-row mb-3">
-                      {/* Renderização do comentário */}
-                      <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center mr-2 overflow-hidden">
-                        {author?.profile_img ? (
-                          <Image
-                            source={{ uri: author.profile_img }}
-                            className="w-full h-full"
-                          />
-                        ) : (
-                          <Text className="text-sm font-bold text-black text-center">
-                            {author?.nome?.charAt(0)?.toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
+                      <Link
+                        href={
+                          author?.id
+                            ? author?.id === user?.id
+                              ? "/profile"
+                              : `/neighbor/${author?.id}`
+                            : "#"
+                        }
+                        className="mr-2"
+                      >
+                        <View className="w-8 h-8 rounded-full bg-gray-200 justify-center items-center  overflow-hidden">
+                          {author?.profile_img ? (
+                            <Image
+                              source={{ uri: author.profile_img }}
+                              className="w-full h-full"
+                            />
+                          ) : (
+                            <Text className="text-sm font-bold text-black text-center">
+                              {author?.nome?.charAt(0)?.toUpperCase()}
+                            </Text>
+                          )}
+                        </View>
+                      </Link>
 
                       <View className="flex-1 relative">
                         <View className="bg-gray-100 py-2 pl-4 rounded-xl rounded-tl-none">
